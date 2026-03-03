@@ -213,6 +213,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WhatsApp</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
+        </div>
       </div>
     </div>
   );
