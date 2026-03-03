@@ -59,8 +59,8 @@ const G = `
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media print {
-    body > * { display:none !important; }
-    #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
+    body * { visibility:hidden !important; }
+    #pdf-print-area { visibility:visible !important; position:fixed !important; inset:0 !important; padding:32px !important; box-sizing:border-box !important; overflow:visible !important; }
     #pdf-print-area * { visibility:visible !important; }
   }
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
@@ -356,20 +356,23 @@ const WACardModal = ({listing,onClose}) => {
 
   const buildText=()=>{
     const lines=[];
-    lines.push(`🏠 *${listing.title}*`);
-    lines.push(`📍 ${listing.location}`);
-    lines.push("");
-    lines.push(`💰 *${price}*${listing.listingType==="Rent"?" /month":""}`);
-    lines.push(`🏷️ For *${listing.listingType}*`);
-    if(details.length>0) lines.push(details.join("   "));
-    if(listing.description){lines.push("");lines.push(listing.description);}
-    if(highlights.length>0){lines.push("");highlights.forEach(h=>lines.push(`✅ ${h}`));}
-    lines.push("");
-    lines.push(`📞 *${listing.agentName||""}* — ${listing.agentPhone||""}`);
-    if(listing.agencyName) lines.push(`🏢 ${listing.agencyName}`);
-    lines.push("");
-    lines.push(`_Powered by Pheniq_`);
-    return lines.join("\n");
+    lines.push('*' + listing.title + '*');
+    lines.push('Location: ' + listing.location);
+    lines.push('');
+    lines.push('Price: *' + price + '*' + (listing.listingType==='Rent' ? ' / month' : ''));
+    lines.push('Type: For ' + listing.listingType);
+    const dc = details.map(d => d.replace(/[^\w\s.,:%\/\-]/g, '').trim()).filter(Boolean);
+    if(dc.length > 0) lines.push('Details: ' + dc.join(' | '));
+    if(listing.description){ lines.push(''); lines.push(listing.description); }
+    if(highlights.length > 0){ lines.push(''); lines.push('Highlights:'); highlights.forEach(h => lines.push('  - ' + h)); }
+    lines.push('');
+    lines.push('Contact:');
+    lines.push('  Agent: *' + (listing.agentName || '') + '*');
+    if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
+    if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
+    lines.push('');
+    lines.push('_Powered by Pheniq_');
+    return lines.join('\n');
   };
 
   const copyText=()=>{
@@ -403,15 +406,10 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        {/* Image action buttons */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:360}}>
-          <button onClick={()=>downloadImage("png")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
-            {downloading?"⏳…":"⬇️ Save PNG"}
-          </button>
-          <button onClick={()=>downloadImage("jpg")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
-            {downloading?"⏳…":"⬇️ Save JPG"}
-          </button>
-        </div>
+        {/* Image download button */}
+        <button onClick={()=>downloadImage("png")} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.6:1}}>
+          {downloading?"Processing...":"Download WhatsApp Card"}
+        </button>
 
         {/* WhatsApp share with image */}
         <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
