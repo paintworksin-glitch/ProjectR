@@ -295,7 +295,7 @@ const PropModal = ({listing,onClose}) => {
 // ── WA Card Modal ────────────────────────────────────────────────
 const WACardModal = ({listing,onClose}) => {
   const [copied,setCopied]=useState(false);
-  useEffect(()=>{if(listing?.id) track(listing.id,"wa");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
   if(!listing) return null;
   const price=fmtP(listing.price);
   const details=[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
@@ -368,7 +368,7 @@ const WACardModal = ({listing,onClose}) => {
 
 // ── PDF Modal ────────────────────────────────────────────────────
 const PDFModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id) track(listing.id,"pdf");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${listing.id?.slice(-6)?.toUpperCase()||"000000"}`;
@@ -1362,13 +1362,13 @@ const Home = ({currentUser,onNavigate}) => {
         ))}
       </div>
 
-
-      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/> }
-      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/> }
-      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/> }
+      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
+      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
+      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
     </div>
   );
 };
+
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
