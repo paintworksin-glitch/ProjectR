@@ -372,8 +372,7 @@ const WACardModal = ({listing,onClose}) => {
     if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
     lines.push('');
     lines.push('_Powered by Pheniq_');
-    return lines.join('
-');
+    return lines.join('\n');
   };
 
   const copyText=()=>{
