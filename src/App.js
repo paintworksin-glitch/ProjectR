@@ -58,6 +58,11 @@ const G = `
   .afd{animation:fadeIn 0.3s ease forwards} .shk{animation:shake 0.4s ease}
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  @media print {
+    body > * { display:none !important; }
+    #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
+    #pdf-print-area * { visibility:visible !important; }
+  }
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
@@ -351,23 +356,20 @@ const WACardModal = ({listing,onClose}) => {
 
   const buildText=()=>{
     const lines=[];
-    lines.push('*' + listing.title + '*');
-    lines.push('Location: ' + listing.location);
-    lines.push('');
-    lines.push('Price: *' + price + '*' + (listing.listingType==='Rent' ? ' / month' : ''));
-    lines.push('Type: For ' + listing.listingType);
-    const dc = details.map(d => d.replace(/[^\w\s.,:%\/\-]/g, '').trim()).filter(Boolean);
-    if(dc.length > 0) lines.push('Details: ' + dc.join(' | '));
-    if(listing.description){ lines.push(''); lines.push(listing.description); }
-    if(highlights.length > 0){ lines.push(''); lines.push('Highlights:'); highlights.forEach(h => lines.push('  - ' + h)); }
-    lines.push('');
-    lines.push('Contact:');
-    lines.push('  Agent: *' + (listing.agentName || '') + '*');
-    if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
-    if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
-    lines.push('');
-    lines.push('_Powered by Pheniq_');
-    return lines.join('\n');
+    lines.push(`🏠 *${listing.title}*`);
+    lines.push(`📍 ${listing.location}`);
+    lines.push("");
+    lines.push(`💰 *${price}*${listing.listingType==="Rent"?" /month":""}`);
+    lines.push(`🏷️ For *${listing.listingType}*`);
+    if(details.length>0) lines.push(details.join("   "));
+    if(listing.description){lines.push("");lines.push(listing.description);}
+    if(highlights.length>0){lines.push("");highlights.forEach(h=>lines.push(`✅ ${h}`));}
+    lines.push("");
+    lines.push(`📞 *${listing.agentName||""}* — ${listing.agentPhone||""}`);
+    if(listing.agencyName) lines.push(`🏢 ${listing.agencyName}`);
+    lines.push("");
+    lines.push(`_Powered by Pheniq_`);
+    return lines.join("\n");
   };
 
   const copyText=()=>{
@@ -401,10 +403,15 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        {/* Image download button */}
-        <button onClick={()=>downloadImage("png")} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.6:1}}>
-          {downloading?"Processing...":"Download WhatsApp Card"}
-        </button>
+        {/* Image action buttons */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:360}}>
+          <button onClick={()=>downloadImage("png")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
+            {downloading?"⏳…":"⬇️ Save PNG"}
+          </button>
+          <button onClick={()=>downloadImage("jpg")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
+            {downloading?"⏳…":"⬇️ Save JPG"}
+          </button>
+        </div>
 
         {/* WhatsApp share with image */}
         <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
@@ -435,25 +442,39 @@ const PDFModal = ({listing,onClose}) => {
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
+  const [pdfLoading,setPdfLoading]=useState(false);
 
-  const printPDF=()=>{
-    const el=document.getElementById("pdf-print-area");
-    if(!el){return;}
-    const html=el.innerHTML;
-    const fonts='<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>';
-    const style='<style>'
-      +'*{box-sizing:border-box;margin:0;padding:0;}'
-      +'body{font-family:Inter,sans-serif;color:#1a1410;padding:36px 44px;}'
-      +':root{--primary:#FF6B00;--primary2:#E55E00;--primary-light:#fff3ea;--primary-mid:#ffd4b0;--navy:#1a1410;}'
-      +'img{max-width:100%;border-radius:10px;display:block;}'
-      +'.section-label{font-size:11px;font-weight:700;color:#FF6B00;text-transform:uppercase;letter-spacing:1px;}'
-      +'@media print{@page{margin:1.2cm;}body{padding:0;}}'
-      +'</style>';
-    const w=window.open("","_blank","width=860,height=1000");
-    w.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'>"+fonts+style+"</head><body>"+html+"</body></html>");
-    w.document.close();
-    w.focus();
-    setTimeout(()=>{w.print();},900);
+  const downloadPDF=async()=>{
+    const el=document.getElementById('pdf-print-area');
+    if(!el) return;
+    setPdfLoading(true);
+    try{
+      const h2c=await new Promise((res,rej)=>{
+        if(window.html2canvas){res(window.html2canvas);return;}
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);
+      });
+      const jsPDFCls=await new Promise((res,rej)=>{
+        if(window.jspdf){res(window.jspdf.jsPDF);return;}
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);
+      });
+      const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
+      const mmW=210;
+      const mmH=(canvas.height*mmW)/canvas.width;
+      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
+      const pageH=297;
+      let y=0;
+      while(y<mmH){
+        if(y>0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
+        y+=pageH;
+      }
+      pdf.save('pheniq-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
+    }catch(err){console.error(err);window.print();}
+    setPdfLoading(false);
   };
 
   return (
@@ -463,7 +484,7 @@ const PDFModal = ({listing,onClose}) => {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={printPDF} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Print / Save PDF</button>
+            <button onClick={downloadPDF} disabled={pdfLoading} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,opacity:pdfLoading?0.7:1}}>{pdfLoading?<><span className="spin"/>Generating PDF…</>:<>⬇️ Download PDF</>}</button>
             <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
           </div>
         </div>
