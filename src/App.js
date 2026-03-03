@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ─────────────────────────────────────────────────────────────────
@@ -1338,7 +1338,6 @@ const Home = ({currentUser,onNavigate}) => {
     </div>
   );
 };
-
 // ── #4 Agent Public Profile Page ─────────────────────────────────
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
@@ -1450,6 +1449,30 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   );
 };
 
+// ── Error Boundary ───────────────────────────────────────────────
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { crashed: false, error: null }; }
+  static getDerivedStateFromError(error) { return { crashed: true, error }; }
+  componentDidCatch(error, info) { console.error("Pheniq crash:", error, info); }
+  render() {
+    if (this.state.crashed) {
+      return (
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff8f4",fontFamily:"'Inter',sans-serif",padding:24}}>
+          <div style={{textAlign:"center",maxWidth:420}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"#1a1410",marginBottom:8}}>PHENIQ</div>
+            <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#1a1410",marginBottom:8}}>Something went wrong</h2>
+            <p style={{fontSize:14,color:"#78716c",marginBottom:24,lineHeight:1.6}}>The app encountered an unexpected error. Your data is safe — just reload to continue.</p>
+            <button onClick={()=>window.location.reload()} style={{background:"#FF6B00",color:"#fff",border:"none",padding:"12px 28px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>↺ Reload App</button>
+            {this.state.error && <details style={{marginTop:20,textAlign:"left",fontSize:11,color:"#aaa",background:"#f5f0ec",padding:12,borderRadius:8,wordBreak:"break-all"}}><summary style={{cursor:"pointer",marginBottom:6}}>Error details</summary>{this.state.error.toString()}</details>}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ── App Root ─────────────────────────────────────────────────────
 export default function App() {
   const [page,setPage]=useState("home");
@@ -1478,7 +1501,7 @@ export default function App() {
         }
       }
       setAuthLoading(false);
-    });
+    }).catch(()=>setAuthLoading(false));
     _h.openWA=(l)=>setWAListing(l);
     _h.openPDF=(l)=>setPDFListing(l);
   },[]);
@@ -1497,6 +1520,7 @@ export default function App() {
   );
 
   return (
+    <ErrorBoundary>
     <div style={{minHeight:"100vh",background:"var(--cream)",color:"var(--text)"}}>
       <style>{G}</style>
       {page!=="login"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
@@ -1514,5 +1538,6 @@ export default function App() {
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
+    </ErrorBoundary>
   );
 }
