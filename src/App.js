@@ -58,6 +58,11 @@ const G = `
   .afd{animation:fadeIn 0.3s ease forwards} .shk{animation:shake 0.4s ease}
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  @media print {
+    body > * { display:none !important; }
+    #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
+    #pdf-print-area * { visibility:visible !important; }
+  }
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
@@ -297,8 +302,54 @@ const PropModal = ({listing,onClose}) => {
 // ── WA Card Modal ────────────────────────────────────────────────
 const WACardModal = ({listing,onClose}) => {
   const [copied,setCopied]=useState(false);
+  const [downloading,setDownloading]=useState(false);
   useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
   if(!listing) return null;
+
+  const loadH2C=()=>new Promise((res,rej)=>{
+    if(window.html2canvas){res(window.html2canvas);return;}
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload=()=>res(window.html2canvas); s.onerror=rej;
+    document.head.appendChild(s);
+  });
+
+  const captureCard=async()=>{
+    const h2c=await loadH2C();
+    const card=document.getElementById("wa-card");
+    return h2c(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:"#ffffff",logging:false});
+  };
+
+  const downloadImage=async(fmt)=>{
+    setDownloading(true);
+    try{
+      const canvas=await captureCard();
+      const a=document.createElement("a");
+      a.download=`pheniq-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.${fmt}`;
+      a.href=canvas.toDataURL(fmt==="jpg"?"image/jpeg":"image/png",0.95);
+      a.click();
+    }catch(e){alert("Download failed — try screenshotting the card manually.");}
+    setDownloading(false);
+  };
+
+  const shareOnWA=async()=>{
+    setDownloading(true);
+    try{
+      const canvas=await captureCard();
+      canvas.toBlob(async(blob)=>{
+        const file=new File([blob],"pheniq-card.png",{type:"image/png"});
+        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+          await navigator.share({files:[file],title:listing.title,text:buildText()});
+        } else {
+          // Fallback: download image then open WA text
+          const a=document.createElement("a"); a.download="pheniq-card.png";
+          a.href=canvas.toDataURL(); a.click();
+          setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank"),800);
+        }
+      },"image/png");
+    }catch(e){alert("Share failed — try downloading the image instead.");}
+    setDownloading(false);
+  };
   const price=fmtP(listing.price);
   const details=[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
   const highlights=(listing.highlights||[]).slice(0,3);
@@ -352,16 +403,31 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        {/* Tip */}
-        <div style={{width:360,background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"9px 14px",fontSize:11,color:"rgba(255,255,255,0.7)",textAlign:"center",border:"1px solid rgba(255,255,255,0.15)"}}>
-          📸 <strong style={{color:"#fff"}}>To share with photo:</strong> Screenshot the card above, then send on WhatsApp
+        {/* Image action buttons */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:360}}>
+          <button onClick={()=>downloadImage("png")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
+            {downloading?"⏳…":"⬇️ Save PNG"}
+          </button>
+          <button onClick={()=>downloadImage("jpg")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
+            {downloading?"⏳…":"⬇️ Save JPG"}
+          </button>
         </div>
 
-        {/* Buttons */}
+        {/* WhatsApp share with image */}
+        <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
+          {downloading?"⏳ Processing…":<><WALogo size={15}/>Share Card Image on WhatsApp</>}
+        </button>
+
+        {/* Tip */}
+        <div style={{width:360,background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"7px 12px",fontSize:10,color:"rgba(255,255,255,0.5)",textAlign:"center",lineHeight:1.5}}>
+          💡 On mobile: Share Image sends photo directly · On desktop: image downloads then WA opens
+        </div>
+
+        {/* Text buttons */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,width:360}}>
-          <button onClick={copyText} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
-          <button onClick={openWA} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><WALogo size={13}/>WhatsApp</button>
-          <button onClick={onClose} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",fontFamily:"inherit"}}>Close</button>
+          <button onClick={copyText} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.12)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
+          <button onClick={openWA} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(18,140,126,0.8)",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={11}/>Text Only</button>
+          <button onClick={onClose} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.08)",color:"#fff",border:"1px solid rgba(255,255,255,0.18)",fontFamily:"inherit"}}>✕ Close</button>
         </div>
       </div>
     </div>
@@ -374,7 +440,7 @@ const PDFModal = ({listing,onClose}) => {
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
-  const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Parking",listing.parkingType],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
+  const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
@@ -388,7 +454,7 @@ const PDFModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        <div style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
+        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
 
           {/* ── AGENT HEADER (white-label) ── */}
           {hasAgentBrand?(
