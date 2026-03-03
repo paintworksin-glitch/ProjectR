@@ -152,10 +152,12 @@ const showPDF    = (l) => _h.openPDF(l);
 const track = (listingId, type) => {
   if(!listingId) return;
   const col = type==="view"?"view_count":type==="wa"?"wa_count":"pdf_count";
-  supabase.rpc("increment_count",{row_id:listingId,col_name:col}).catch(()=>{
-    supabase.from("listings").select(col).eq("id",listingId).single().then(({data})=>{
-      if(data) supabase.from("listings").update({[col]:(data[col]||0)+1}).eq("id",listingId);
-    });
+  supabase.rpc("increment_count",{row_id:listingId,col_name:col}).then(({error})=>{
+    if(error){
+      supabase.from("listings").select(col).eq("id",listingId).single().then(({data})=>{
+        if(data) supabase.from("listings").update({[col]:(data[col]||0)+1}).eq("id",listingId);
+      });
+    }
   });
 };
 
