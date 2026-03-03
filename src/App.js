@@ -18,9 +18,10 @@ const G = `
   input, select, textarea, button { font-family: inherit; }
   :root {
     --navy: #1B3A2D; --navy2: #2D5540; --green: #3DAA7E; --green2: #2D9B6F;
-    --green-light: #E8F5EE; --green-mid: #C2E8D4; --cream: #F7F8F5;
-    --white: #FFFFFF; --gray: #F0F2EE; --border: #DDE5DC; --text: #1B3A2D;
-    --muted: #6B8076; --shadow: 0 1px 3px rgba(27,58,45,0.06),0 4px 16px rgba(27,58,45,0.08);
+    --green-light: #E8F5EE; --green-mid: #C2E8D4; --cream: #F7FAF8;
+    --white: #FFFFFF; --gray: #F0F5F2; --border: #DDE8E2; --text: #1B3A2D;
+    --muted: #6B8076; --coral: #FF6B6B; --amber: #F59E0B;
+    --shadow: 0 1px 3px rgba(27,58,45,0.06),0 4px 16px rgba(27,58,45,0.08);
     --shadow-lg: 0 4px 8px rgba(27,58,45,0.06),0 16px 48px rgba(27,58,45,0.12);
   }
   .card { background: var(--white); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); transition: all 0.25s ease; }
@@ -212,7 +213,6 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WhatsApp</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
-        </div>
       </div>
     </div>
   );
@@ -281,7 +281,12 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
         <div style={{display:"flex",gap:10,width:380}}>
-          {listing.agentPhone&&<a href={`https://wa.me/91${listing.agentPhone}?text=Hi%20${encodeURIComponent(listing.agentName||"")}%2C%20I'm%20interested%20in%20${encodeURIComponent(listing.title||"")}%20(${encodeURIComponent(listing.location||"")})`} target="_blank" rel="noreferrer" style={{flex:1,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#fff",padding:"13px",borderRadius:12,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={16}/>Share on WhatsApp</a>}
+          <button onClick={()=>{
+            const txt=`🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${fmtP(listing.price)}${listing.listingType==="Rent"?"/month":""}\n🏷️ For ${listing.listingType}\n${listing.bedrooms>0?`🛏 ${listing.bedrooms} Beds  `:""}${listing.bathrooms>0?`🚿 ${listing.bathrooms} Baths  `:""}${listing.sizesqft?`📐 ${listing.sizesqft} sqft`:""}\n${listing.description?"\n"+listing.description+"\n":""}\n📞 ${listing.agentName||""} — ${listing.agentPhone||""}\n🏢 ${listing.agencyName||""}\n\n_Powered by Pheniq_`;
+            navigator.clipboard?.writeText(txt).catch(()=>{});
+            const wa=`https://wa.me/?text=${encodeURIComponent(txt)}`;
+            window.open(wa,"_blank");
+          }} style={{flex:1,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#fff",padding:"13px",borderRadius:12,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,fontFamily:"inherit"}}><WALogo size={16}/>Share on WhatsApp</button>
           <button onClick={onClose} className="btn-ghost" style={{padding:"13px 18px",borderRadius:12,fontSize:13}}>Close</button>
         </div>
       </div>
@@ -310,6 +315,16 @@ const PDFModal = ({listing,onClose}) => {
             <div><div style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:800,color:"#1B3A2D"}}>PHEN<span style={{color:"#3DAA7E"}}>IQ</span></div><div style={{fontSize:10,color:"#6B8076",letterSpacing:"1.5px",marginTop:2,textTransform:"uppercase"}}>Professional Property Marketing</div></div>
             <div style={{textAlign:"right",fontSize:12,color:"#6B8076"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div><div style={{fontWeight:700,color:"#1B3A2D",marginTop:5}}>{listing.agentName||""}</div><div>{listing.agencyName||""}</div></div>
           </div>
+          {/* Photos */}
+          {listing.photos?.length>0&&(
+            <div style={{marginBottom:24}}>
+              <div style={{display:"grid",gridTemplateColumns:listing.photos.length===1?"1fr":"1fr 1fr",gap:8}}>
+                {listing.photos.slice(0,4).map((p,i)=>(
+                  <img key={i} src={p} alt="" style={{width:"100%",height:listing.photos.length===1?240:160,objectFit:"cover",borderRadius:10,border:"1px solid #DDE5DC"}}/>
+                ))}
+              </div>
+            </div>
+          )}
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,margin:"0 0 5px",color:"#1B3A2D"}}>{listing.title}</h1>
           <div style={{color:"#6B8076",fontSize:14,marginBottom:12}}>📍 {listing.location}</div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:30,fontWeight:800,color:"#1B3A2D",marginBottom:20}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:14,fontWeight:400,color:"#6B8076"}}>/month</span>}</div>
@@ -366,7 +381,7 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
 };
 
 // ── Login Page ───────────────────────────────────────────────────
-const LoginPage = ({onLogin,showToast}) => {
+const LoginPage = ({onLogin,showToast,onNavigate}) => {
   const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -402,14 +417,12 @@ const LoginPage = ({onLogin,showToast}) => {
         <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(61,170,126,0.12)"}}/>
         <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(61,170,126,0.08)"}}/>
         <div style={{position:"relative"}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>PHENIQ</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
-        <div style={{position:"relative"}}>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:700,color:"#fff",lineHeight:1.2,marginBottom:16}}>Property marketing that works as hard as you do.</h2>
-          <p style={{fontSize:15,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Instant brochures, WhatsApp cards, and verified listings — built for Indian real estate agents.</p>
-          <div style={{marginTop:40,display:"flex",gap:28}}>{[["500+","Listings"],["100+","Agents"],["2 min","Brochure Time"]].map(([v,l])=><div key={l}><div style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"#fff"}}>{v}</div><div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>{l}</div></div>)}</div>
-        </div>
       </div>
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32}}>
         <div style={{maxWidth:420,width:"100%"}}>
+          <div style={{marginBottom:16}}>
+            <button onClick={()=>onNavigate&&onNavigate("home")} style={{background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",fontWeight:600}}>← Back to Home</button>
+          </div>
           <div style={{marginBottom:32}}>
             <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"var(--navy)",marginBottom:2}}>PHENIQ</div>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}>{mode==="login"?"Welcome back.":"Create account."}</h2>
@@ -461,7 +474,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     e.target.value="";
   };
   const rmPhoto=(i)=>setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));
-  const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";setErrs(e);return !Object.keys(e).length;};
+  const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";if(!form.description||!form.description.trim())e.description="Description is required";if(!form.photos?.length)e.photos="At least 1 photo is required";setErrs(e);return !Object.keys(e).length;};
   const doSave=async()=>{
     setSaving(true);
     try{
@@ -497,7 +510,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <FI label="Location *" k="location" form={form} set={set} placeholder="Area, City" err={errs.location}/>
         <FS label="Property Type *" k="propertyType" form={form} set={set} opts={["Apartment","Villa","Plot","Commercial"]}/>
         <FS label="Listing Type *" k="listingType" form={form} set={set} opts={["Rent","Sale"]}/>
-        <FI label="Price ₹ *" k="price" form={form} set={set} type="number" err={errs.price}/>
+        <FI label={form.listingType==="Rent"?"Monthly Rent ₹ *":"Sale Price ₹ *"} k="price" form={form} set={set} type="number" err={errs.price}/>
         <FI label="Size (sqft)" k="sizesqft" form={form} set={set} type="number"/>
       </FormSec>
       <FormSec title="🏠 Property Details">
@@ -520,8 +533,9 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         {form.reraRegistered==="Yes"&&<FI label="RERA Number" k="reraNumber" form={form} set={set} span/>}
       </FormSec>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📝 Description</h3>
-        <textarea value={form.description||""} onChange={e=>set("description",e.target.value)} placeholder="Describe the property…" className="inp" rows={4} style={{resize:"vertical"}}/>
+        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📝 Description *</h3>
+        <textarea value={form.description||""} onChange={e=>set("description",e.target.value)} placeholder="Describe the property — highlights, neighbourhood, amenities…" className="inp" rows={4} style={{resize:"vertical",borderColor:errs.description?"#FCA5A5":"var(--border)"}}/>
+        {errs.description&&<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>{errs.description}</div>}
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ Key Highlights</h3>
@@ -535,11 +549,12 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <FI label="Email" k="agentEmail" form={form} set={set} type="email"/>
       </FormSec>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📸 Photos (max 10)</h3>
+        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📸 Photos * (min 1, max 10)</h3>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
         {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>{form.photos.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} alt="" style={{width:100,height:80,objectFit:"cover",borderRadius:8,border:"1px solid var(--border)"}}/><button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:-6,right:-6,background:"#DC2626",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button></div>)}</div>}
         <input type="file" ref={fileRef} multiple accept="image/*" onChange={handlePhotos} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} disabled={photoLoading} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13}}>📁 {photoLoading?"Uploading…":"Choose Photos"}</button>
+        <button onClick={()=>fileRef.current?.click()} disabled={photoLoading} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13,borderColor:errs.photos?"#FCA5A5":"var(--border)"}}>📁 {photoLoading?"Uploading…":"Choose Photos"}</button>
+        {errs.photos&&<div style={{fontSize:11,color:"#DC2626",marginTop:6}}>{errs.photos}</div>}
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
         <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>Status</h3>
@@ -745,8 +760,9 @@ const MasterDash = ({showToast}) => {
 };
 
 // ── Feed ─────────────────────────────────────────────────────────
-const Feed = ({currentUser,showToast}) => {
+const Feed = ({currentUser,showToast,onNavigate}) => {
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [modal,setModal]=useState(null);const [open,setOpen]=useState(false);
+  const requireAuth=(fn)=>(...args)=>{if(!currentUser){showToast("Please sign in to access this feature","error");onNavigate&&onNavigate("login");return;}fn(...args);};
   useEffect(()=>{
     (async()=>{
       const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false});
@@ -818,48 +834,99 @@ const Feed = ({currentUser,showToast}) => {
 
 // ── Home Page ────────────────────────────────────────────────────
 const Home = ({currentUser,onNavigate}) => {
-  const features=[["🚀","Instant Brochures","Generate print-ready PDF property brochures in seconds — no Canva, no templates, no waiting."],["📱","WhatsApp Cards","One-tap shareable property cards optimised for WhatsApp. Buyers screenshot and share instantly."],["🔍","Smart Duplicate Detection","AI-powered similarity scoring catches duplicate listings before they go live."],["📊","Agent Analytics","Track your listings' performance — views, saves, and buyer enquiries in one dashboard."],["🇮🇳","Built for India","INR pricing, RERA fields, Vastu direction, BHK types — every field Indian real estate needs."],["🔐","Multi-Role Platform","Agent, buyer, and master admin roles with full access control baked in."]];
+  const steps=[["📸","Upload Photos","Add property photos and details in under 2 minutes."],["📄","Generate Brochure","Instant PDF + WhatsApp card ready to share."],["🤝","Close Faster","Buyers get full info instantly — no back and forth."]];
+  const stats=[["500+","Properties Listed"],["100+","Agents Onboard"],["2 min","Brochure Ready"],["₹0","To Get Started"]];
   return (
-    <div>
-      <div style={{background:"var(--navy)",padding:"96px 24px 120px",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-80,right:-80,width:500,height:500,borderRadius:"50%",background:"rgba(61,170,126,0.1)"}} className="af"/>
-        <div style={{position:"absolute",bottom:-100,left:-100,width:400,height:400,borderRadius:"50%",background:"rgba(61,170,126,0.06)"}}/>
-        <div style={{maxWidth:740,margin:"0 auto",position:"relative",textAlign:"center"}}>
-          <span style={{fontSize:11,fontWeight:800,color:"var(--green)",textTransform:"uppercase",letterSpacing:3,display:"block",marginBottom:16,background:"rgba(61,170,126,0.12)",padding:"6px 16px",borderRadius:20,width:"fit-content",margin:"0 auto 20px",border:"1px solid rgba(61,170,126,0.2)"}}>Professional Property Marketing</span>
-          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:60,color:"#fff",lineHeight:1.05,marginBottom:20}} className="h1big">Stop wasting hours on <span style={{color:"var(--green)",fontStyle:"italic"}}>Canva</span></h1>
-          <p style={{fontSize:18,color:"rgba(255,255,255,0.55)",lineHeight:1.75,marginBottom:40,maxWidth:560,margin:"0 auto 40px"}}>Pheniq generates professional brochures, WhatsApp cards, and shareable links — instantly. Built for Indian real estate agents.</p>
-          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-green" style={{padding:"16px 32px",borderRadius:14,fontSize:16}}>
+    <div style={{background:"#fff"}}>
+      {/* Hero */}
+      <div style={{background:"linear-gradient(135deg,#0F2A1E 0%,#1B3A2D 50%,#1A4A35 100%)",padding:"80px 24px 100px",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,right:0,width:"45%",height:"100%",background:"url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80') center/cover",opacity:0.18}}/>
+        <div style={{position:"absolute",top:-40,right:"35%",width:300,height:300,borderRadius:"50%",background:"rgba(61,170,126,0.08)"}} />
+        <div style={{maxWidth:780,margin:"0 auto",position:"relative",textAlign:"center"}}>
+          <span style={{fontSize:11,fontWeight:800,color:"var(--green)",textTransform:"uppercase",letterSpacing:3,display:"inline-block",marginBottom:20,background:"rgba(61,170,126,0.15)",padding:"6px 18px",borderRadius:20,border:"1px solid rgba(61,170,126,0.25)"}}>🇮🇳 Built for Indian Real Estate Agents</span>
+          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:56,color:"#fff",lineHeight:1.08,marginBottom:22}} className="h1big">Market Properties.<br/><span style={{color:"var(--green)",fontStyle:"italic"}}>Close Faster.</span></h1>
+          <p style={{fontSize:17,color:"rgba(255,255,255,0.6)",lineHeight:1.8,marginBottom:44,maxWidth:540,margin:"0 auto 44px"}}>Instant PDF brochures, WhatsApp cards, and verified listings — all in one platform. No Canva. No design skills. Just results.</p>
+          <div style={{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} style={{padding:"16px 36px",borderRadius:14,fontSize:16,fontWeight:700,background:"#3DAA7E",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",boxShadow:"0 8px 32px rgba(61,170,126,0.35)"}}>
               {currentUser?"Go to Dashboard →":"Get Started Free →"}
             </button>
-            <button onClick={()=>onNavigate("feed")} className="btn-outline" style={{padding:"16px 32px",borderRadius:14,fontSize:16,border:"2px solid rgba(255,255,255,0.25)",color:"#fff"}}>Browse Properties</button>
+            <button onClick={()=>onNavigate("feed")} style={{padding:"16px 32px",borderRadius:14,fontSize:16,fontWeight:700,background:"transparent",color:"#fff",border:"2px solid rgba(255,255,255,0.25)",cursor:"pointer",fontFamily:"inherit"}}>Browse Properties</button>
           </div>
         </div>
       </div>
-      <div style={{maxWidth:1100,margin:"80px auto",padding:"0 24px"}}>
-        <div style={{textAlign:"center",marginBottom:52}}>
-          <span className="section-label">Why Pheniq?</span>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:800,color:"var(--navy)",margin:0}}>Everything you need to market properties</h2>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:24}} className="gr3">
-          {features.map(([icon,title,desc])=>(
-            <div key={title} className="card" style={{padding:"28px 24px"}}>
-              <div style={{fontSize:36,marginBottom:14}}>{icon}</div>
-              <h3 style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"var(--navy)",marginBottom:8}}>{title}</h3>
-              <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.7}}>{desc}</p>
+
+      {/* Stats Bar */}
+      <div style={{background:"var(--navy)",padding:"28px 24px"}}>
+        <div style={{maxWidth:900,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:20,textAlign:"center"}} className="gr">
+          {stats.map(([v,l])=>(
+            <div key={l}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:30,fontWeight:800,color:"var(--green)"}}>{v}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginTop:3,textTransform:"uppercase",letterSpacing:0.8}}>{l}</div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{background:"var(--navy)",padding:"80px 24px",textAlign:"center"}}>
-        <h2 style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:800,color:"#fff",marginBottom:12}}>Ready to transform your listings?</h2>
-        <p style={{fontSize:16,color:"rgba(255,255,255,0.5)",marginBottom:32}}>Join agents already using Pheniq to market faster and close quicker.</p>
-        <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-green" style={{padding:"16px 36px",borderRadius:14,fontSize:16}}>{currentUser?"Open Dashboard →":"Start Free Today →"}</button>
+
+      {/* How it Works */}
+      <div style={{padding:"80px 24px",background:"var(--cream)"}}>
+        <div style={{maxWidth:960,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:52}}>
+            <span style={{fontSize:11,fontWeight:800,color:"var(--green)",textTransform:"uppercase",letterSpacing:2,display:"block",marginBottom:10}}>How It Works</span>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:800,color:"var(--navy)",margin:0}}>Three steps to your next deal</h2>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:32}} className="gr3">
+            {steps.map(([icon,title,desc],i)=>(
+              <div key={title} style={{textAlign:"center",padding:"36px 28px",background:"#fff",borderRadius:20,border:"1px solid var(--border)",boxShadow:"var(--shadow)"}}>
+                <div style={{width:64,height:64,borderRadius:20,background:"var(--green-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 20px",border:"1px solid var(--green-mid)"}}>{icon}</div>
+                <div style={{fontSize:11,fontWeight:800,color:"var(--green)",letterSpacing:1.5,marginBottom:8,textTransform:"uppercase"}}>Step {i+1}</div>
+                <h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:10}}>{title}</h3>
+                <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.7}}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <div style={{background:"#0F2218",padding:"40px 24px",textAlign:"center",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-        <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"#fff",marginBottom:8}}>PHENIQ</div>
-        <p style={{fontSize:13,color:"rgba(255,255,255,0.3)",marginBottom:16}}>Professional Property Marketing · Made in India</p>
-        <div style={{display:"flex",justifyContent:"center",gap:24,fontSize:13,color:"rgba(255,255,255,0.3)"}}>
+
+      {/* Benefits */}
+      <div style={{padding:"80px 24px",background:"#fff"}}>
+        <div style={{maxWidth:1000,margin:"0 auto",display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center"}} className="gr">
+          <div>
+            <span style={{fontSize:11,fontWeight:800,color:"var(--green)",textTransform:"uppercase",letterSpacing:2,display:"block",marginBottom:12}}>Why Pheniq</span>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:800,color:"var(--navy)",lineHeight:1.2,marginBottom:24}}>Everything Indian agents need</h2>
+            {[["🇮🇳","Built for India","INR pricing, RERA fields, Vastu direction, BHK — every field Indian real estate needs."],["⚡","Instant Generation","PDF brochure and WhatsApp card ready in seconds, not hours."],["🔐","Multi-Role Platform","Agent, buyer, and admin roles with full access control."],["🔍","Smart Duplicate Check","Catches duplicate listings before they go live."]].map(([icon,title,desc])=>(
+              <div key={title} style={{display:"flex",gap:16,marginBottom:22,alignItems:"flex-start"}}>
+                <div style={{width:42,height:42,borderRadius:12,background:"var(--green-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,border:"1px solid var(--green-mid)"}}>{icon}</div>
+                <div><div style={{fontWeight:700,fontSize:15,color:"var(--navy)",marginBottom:3}}>{title}</div><div style={{fontSize:13,color:"var(--muted)",lineHeight:1.6}}>{desc}</div></div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"linear-gradient(135deg,var(--green-light),var(--green-mid))",borderRadius:24,padding:32,border:"1px solid var(--green-mid)"}}>
+            <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow-lg)"}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:18,color:"var(--navy)",marginBottom:16}}>PHEN<span style={{color:"var(--green)"}}>IQ</span> <span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>Sample Brochure</span></div>
+              <div style={{height:120,background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",borderRadius:12,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>🏠</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--green2)",marginBottom:4}}>₹85.00 L</div>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--navy)",marginBottom:4}}>3BHK Premium Apartment</div>
+              <div style={{fontSize:12,color:"var(--muted)",marginBottom:16}}>📍 Bandra West, Mumbai</div>
+              <div style={{display:"flex",gap:8,fontSize:11}}>
+                {["🛏 3 Beds","🚿 2 Baths","📐 1200 sqft"].map(t=><span key={t} style={{background:"var(--green-light)",border:"1px solid var(--green-mid)",borderRadius:20,padding:"3px 10px",fontWeight:600,color:"var(--green2)"}}>{t}</span>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{background:"linear-gradient(135deg,var(--navy),#0F2218)",padding:"80px 24px",textAlign:"center"}}>
+        <h2 style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:800,color:"#fff",marginBottom:14}}>Ready to market smarter?</h2>
+        <p style={{fontSize:16,color:"rgba(255,255,255,0.5)",marginBottom:36,maxWidth:480,margin:"0 auto 36px"}}>Join agents already using Pheniq to create brochures instantly and close deals faster.</p>
+        <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} style={{padding:"16px 40px",borderRadius:14,fontSize:16,fontWeight:700,background:"var(--green)",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",boxShadow:"0 8px 32px rgba(61,170,126,0.35)"}}>{currentUser?"Open Dashboard →":"Start Free Today →"}</button>
+      </div>
+
+      {/* Footer */}
+      <div style={{background:"#0A1A10",padding:"36px 24px",textAlign:"center",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:"#fff",marginBottom:6}}>PHENIQ</div>
+        <p style={{fontSize:12,color:"rgba(255,255,255,0.25)",marginBottom:14}}>Professional Property Marketing · Made in India</p>
+        <div style={{display:"flex",justifyContent:"center",gap:24,fontSize:12,color:"rgba(255,255,255,0.25)"}}>
           <span>© 2026 Pheniq</span><span>·</span><span>Privacy</span><span>·</span><span>Terms</span>
         </div>
       </div>
@@ -874,7 +941,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const textColor=scrolled||(page!=="home"&&page!=="feed")?"var(--navy)":"#fff";
   return (
     <nav style={{position:"sticky",top:0,zIndex:100,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:scrolled?"rgba(255,255,255,0.95)":"transparent",backdropFilter:scrolled?"blur(20px) saturate(180%)":"none",borderBottom:`1px solid ${scrolled?"var(--border)":"transparent"}`,transition:"all 0.3s",boxShadow:scrolled?"0 1px 12px rgba(27,58,45,0.08)":"none"}}>
-      <button onClick={onSecretClick} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:36,height:36,background:"var(--navy)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(27,58,45,0.2)"}}><span style={{color:"var(--green)",fontSize:16,fontWeight:900,fontFamily:"'Fraunces',serif"}}>P</span></div>
         <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:textColor,letterSpacing:"-0.5px",transition:"color 0.3s"}}>PHENIQ</span>
       </button>
@@ -942,12 +1009,12 @@ export default function App() {
       <style>{G}</style>
       {page!=="login"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
       {page==="home"&&<Home currentUser={user} onNavigate={nav}/>}
-      {page==="feed"&&<Feed currentUser={user} showToast={showToast}/>}
-      {page==="login"&&<LoginPage onLogin={login} showToast={showToast}/>}
+      {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
+      {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {page==="dashboard"&&user?.role==="agent"&&<AgentDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
-      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast}/>}
+      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
