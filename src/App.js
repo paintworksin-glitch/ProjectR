@@ -1035,66 +1035,57 @@ const MasterDash = ({showToast}) => {
               <div className="card" style={{padding:24}}><h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:18}}>Status Distribution</h3>{[["Active","#059669","#ECFDF5"],["Rented","#D97706","#FFFBEB"],["Sold","#7C3AED","#F5F3FF"]].map(([s,c,bg])=>{const n=listings.filter(l=>l.status===s).length;const p=listings.length?Math.round(n/listings.length*100):0;return(<div key={s} style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:5,fontWeight:600}}><span style={{color:"var(--muted)"}}>{s}</span><span style={{color:c}}>{n} ({p}%)</span></div><div style={{height:6,background:"var(--border)",borderRadius:3}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:3,transition:"width 0.5s"}}/></div></div>);})}</div>
             </div>
           )}
-          {tab==="analytics"&&(()=>{
-            const mapped=listings.map(mapListing).filter(Boolean);
-            const totalViews=mapped.reduce((s,l)=>s+(l.viewCount||0),0);
-            const totalWA=mapped.reduce((s,l)=>s+(l.waCount||0),0);
-            const totalPDF=mapped.reduce((s,l)=>s+(l.pdfCount||0),0);
-            const hottest=[...mapped].sort((a,b)=>(b.viewCount+b.waCount*2+b.pdfCount)-(a.viewCount+a.waCount*2+a.pdfCount)).slice(0,10);
-            const mostWA=[...mapped].sort((a,b)=>(b.waCount||0)-(a.waCount||0)).slice(0,5);
-            return (
-              <div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}} className="gr3">
-                  {[["👁 Total Views",totalViews,"#0ea5e9"],["📲 WhatsApp Taps",totalWA,"#25D366"],["📄 PDF Opens",totalPDF,"var(--primary)"]].map(([label,val,color])=>(
-                    <div key={label} className="card" style={{padding:"20px 22px",borderTop:`3px solid ${color}`}}>
-                      <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--navy)",marginBottom:4}}>{val}</div>
-                      <div style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{label}</div>
+          {tab==="analytics"&&(
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}} className="gr3">
+                {[["Views",listings.map(mapListing).reduce((s,l)=>s+(l?l.viewCount:0),0),"#0ea5e9"],
+                  ["WA Taps",listings.map(mapListing).reduce((s,l)=>s+(l?l.waCount:0),0),"#25D366"],
+                  ["PDF Opens",listings.map(mapListing).reduce((s,l)=>s+(l?l.pdfCount:0),0),"var(--primary)"]
+                ].map(([label,val,color])=>(
+                  <div key={label} className="card" style={{padding:"20px 22px",borderTop:"3px solid "+color}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--navy)",marginBottom:4}}>{val}</div>
+                    <div style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}} className="gr">
+                <div className="card" style={{padding:24}}>
+                  <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:16}}>Hottest Listings</h3>
+                  {listings.map(mapListing).filter(Boolean).sort((a,b)=>(b.viewCount+b.waCount*2+b.pdfCount)-(a.viewCount+a.waCount*2+a.pdfCount)).slice(0,8).map((l,i)=>(
+                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+                      <div style={{width:26,height:26,borderRadius:"50%",background:i<2?"#FEF3C7":"var(--gray)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:i<2?"#D97706":"var(--muted)",flexShrink:0}}>{i+1}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--navy)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
+                        <div style={{fontSize:11,color:"var(--muted)"}}>{l.agentName}</div>
+                      </div>
+                      <div style={{display:"flex",gap:6,fontSize:11,fontWeight:700,flexShrink:0}}>
+                        <span style={{color:"#0ea5e9"}}>👁{l.viewCount}</span>
+                        <span style={{color:"#25D366"}}>📲{l.waCount}</span>
+                        <span style={{color:"var(--primary)"}}>📄{l.pdfCount}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}} className="gr">
-                  <div className="card" style={{padding:24}}>
-                    <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:4}}>🔥 Hottest Listings</h3>
-                    <p style={{fontSize:12,color:"var(--muted)",marginBottom:16}}>Ranked by views + WA + PDF</p>
-                    {hottest.length===0?<p style={{color:"var(--muted)",fontSize:13}}>No data yet — tracking starts now.</p>:hottest.map((l,i)=>(
-                      <div key={l.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
-                        <div style={{width:26,height:26,borderRadius:"50%",background:i===0?"#FEF3C7":i===1?"#F3F4F6":"var(--gray)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:i<2?"#D97706":"var(--muted)",flexShrink:0}}>{i+1}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:700,color:"var(--navy)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
-                          <div style={{fontSize:11,color:"var(--muted)"}}>{l.agentName} · {l.location}</div>
-                        </div>
-                        <div style={{display:"flex",gap:6,fontSize:11,fontWeight:700,flexShrink:0}}>
-                          <span style={{color:"#0ea5e9"}}>👁{l.viewCount}</span>
-                          <span style={{color:"#25D366"}}>📲{l.waCount}</span>
-                          <span style={{color:"var(--primary)"}}>📄{l.pdfCount}</span>
-                        </div>
+                <div className="card" style={{padding:24}}>
+                  <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:16}}>Most WA Enquiries</h3>
+                  {listings.map(mapListing).filter(l=>l&&(l.waCount||0)>0).sort((a,b)=>b.waCount-a.waCount).slice(0,5).map((l,i,arr)=>(
+                    <div key={l.id} style={{padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--navy)",flex:1,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
+                        <span style={{fontWeight:900,color:"#25D366"}}>{l.waCount}</span>
                       </div>
-                    ))}
-                  </div>
-                  <div className="card" style={{padding:24}}>
-                    <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:4}}>📲 Most WA Enquiries</h3>
-                    <p style={{fontSize:12,color:"var(--muted)",marginBottom:16}}>What buyers are interested in</p>
-                    {mostWA.filter(l=>l.waCount>0).length===0?<p style={{color:"var(--muted)",fontSize:13}}>No WA taps yet.</p>:mostWA.filter(l=>l.waCount>0).map((l,i)=>(
-                      <div key={l.id} style={{padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                          <div style={{fontSize:13,fontWeight:700,color:"var(--navy)",flex:1,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
-                          <span style={{fontSize:16,fontWeight:900,color:"#25D366",flexShrink:0}}>{l.waCount}</span>
-                        </div>
-                        <div style={{display:"flex",gap:8,marginBottom:6}}>
-                          <span style={{fontSize:11,color:"var(--muted)"}}>{l.agentName}</span>
-                          <span style={{fontSize:11,color:"var(--muted)"}}>{fmtP(l.price)}</span>
-                        </div>
-                        <div style={{height:4,background:"var(--gray)",borderRadius:99}}>
-                          <div style={{height:"100%",width:`${mostWA[0]?.waCount?Math.round(l.waCount/mostWA[0].waCount*100):0}%`,background:"#25D366",borderRadius:99,transition:"width 0.5s"}}/>
-                        </div>
+                      <div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>{l.agentName} · {fmtP(l.price)}</div>
+                      <div style={{height:4,background:"var(--gray)",borderRadius:99}}>
+                        <div style={{height:"100%",width:(arr[0].waCount?Math.round(l.waCount/arr[0].waCount*100):0)+"%",background:"#25D366",borderRadius:99}}/>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                  {listings.filter(l=>(l.wa_count||0)>0).length===0&&<p style={{color:"var(--muted)",fontSize:13,marginTop:12}}>No WA taps yet — data appears as agents use the platform.</p>}
                 </div>
               </div>
-            );
-          })()}
-          {tab==="listings"&&(
+            </div>
+          )}
+          {tab==="listings"&&(          {tab==="listings"&&(
             <div>
               <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search listings…" className="inp" style={{maxWidth:340}}/><span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{filtered.length} results</span></div>
               <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}><thead><tr style={{background:"var(--navy)"}}>{["Title","Location","Agent","Type","Price","Status","Actions"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{filtered.map((raw,i)=>{const l=mapListing(raw);return(<tr key={l.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"11px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{l.title}</td><td style={{padding:"11px 14px",fontSize:12,color:"var(--muted)"}}>{l.location}</td><td style={{padding:"11px 14px",fontSize:12,color:"var(--muted)"}}>{l.agentName}</td><td style={{padding:"11px 14px"}}><span className="badge" style={{background:l.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:l.listingType==="Rent"?"#B45309":"#059669",border:"1px solid rgba(0,0,0,0.06)"}}>{l.listingType}</span></td><td style={{padding:"11px 14px",fontSize:13,fontWeight:700,color:"var(--green2)",fontFamily:"'Fraunces',serif"}}>{fmtP(l.price)}</td><td style={{padding:"11px 14px"}}><span className="badge tag">{l.status}</span></td><td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:5}}><button onClick={()=>setModal(l)} className="btn-ghost" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>View</button><button onClick={()=>showWACard(l)} style={{padding:"4px 9px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:3}}><WALogo size={10}/>WA</button><button onClick={()=>showPDF(l)} className="btn-ghost" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>📄</button><button onClick={()=>setDeleteTarget(l)} className="btn-danger" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>Del</button></div></td></tr>);})} </tbody></table></div>{filtered.length===0&&<div style={{textAlign:"center",padding:"36px",color:"var(--muted)"}}>No listings found</div>}</div>
