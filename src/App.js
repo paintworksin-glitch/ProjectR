@@ -258,8 +258,8 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
 
 // ── Property Modal ───────────────────────────────────────────────
 const PropModal = ({listing,onClose}) => {
+  useEffect(()=>{if(listing?.id) track(listing.id,"view");},[listing?.id]);
   if(!listing) return null;
-  useEffect(()=>{track(listing.id,"view");},[listing.id]);
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.35)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(4px)"}} onClick={onClose}>
@@ -294,9 +294,9 @@ const PropModal = ({listing,onClose}) => {
 
 // ── WA Card Modal ────────────────────────────────────────────────
 const WACardModal = ({listing,onClose}) => {
-  if(!listing) return null;
-  useEffect(()=>{track(listing.id,"wa");},[listing.id]);
   const [copied,setCopied]=useState(false);
+  useEffect(()=>{if(listing?.id) track(listing.id,"wa");},[listing?.id]);
+  if(!listing) return null;
   const price=fmtP(listing.price);
   const details=[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
   const highlights=(listing.highlights||[]).slice(0,3);
@@ -368,8 +368,8 @@ const WACardModal = ({listing,onClose}) => {
 
 // ── PDF Modal ────────────────────────────────────────────────────
 const PDFModal = ({listing,onClose}) => {
+  useEffect(()=>{if(listing?.id) track(listing.id,"pdf");},[listing?.id]);
   if(!listing) return null;
-  useEffect(()=>{track(listing.id,"pdf");},[listing.id]);
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${listing.id?.slice(-6)?.toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Parking",listing.parkingType],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
@@ -1353,6 +1353,175 @@ const Home = ({currentUser,onNavigate}) => {
       </footer>
 
       {/* Mobile Bottom Nav */}
+      <div style={{display:"none",position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid var(--border)",padding:"8px 0 12px",zIndex:200,justifyContent:"space-around"}} className="mob-nav">
+        {[["🏠","Home","home"],["🔍","Browse","feed"],["➕","Sell","dashboard"],["👤","Account","dashboard"]].map(([icon,label,pg])=>(
+          <button key={label} onClick={()=>onNavigate(pg)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"inherit",padding:"0 8px"}}>
+            <span style={{fontSize:20}}>{icon}</span>
+            <span style={{fontSize:10,fontWeight:700}}>{label}</span>
+          </button>
+        ))}
+      </div>
+
+  const testimonials=[
+    {name:"Ravi Sharma",agency:"Sharma Realty, Mumbai",text:"Generated my first brochure in 2 minutes. My clients were blown away by how professional it looked!"},
+    {name:"Priya Nair",agency:"NRI Homes, Pune",text:"WhatsApp cards are a game changer. Buyers share them instantly and I get more enquiries the same day."},
+    {name:"Deepika Joshi",agency:"REO Properties",text:"Finally a platform built for Indian agents. RERA fields, Vastu, BHK — everything is already there."},
+  ];
+  const features=[
+    {icon:"📄",title:"Instant PDF Brochures",desc:"Print-ready property brochures in seconds. Agent logo, contact and photos included."},
+    {icon:"📱",title:"WhatsApp Cards",desc:"One-tap shareable cards with full property details. Buyers screenshot and share instantly."},
+    {icon:"🔍",title:"Smart Duplicate Check",desc:"AI similarity scoring catches duplicate listings before they go live on the platform."},
+  ];
+  return (
+    <div style={{background:"var(--cream)"}}>
+
+      {/* Hero */}
+      <section style={{background:"#fff",overflow:"hidden"}}>
+        <div style={{maxWidth:1180,margin:"0 auto",padding:"72px 24px 80px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:60,alignItems:"center"}} className="gr">
+          <div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--primary-light)",color:"var(--primary)",padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,marginBottom:24,border:"1px solid var(--primary-mid)"}}>✨ The Future of Property Marketing is Here</div>
+            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:58,color:"var(--navy)",lineHeight:1.06,marginBottom:20,letterSpacing:"-1px"}} className="h1big">
+              <ShinyText text="Transform Your" color="#1a1410" shineColor="#FF6B00" speed={4} spread={180}/><br/>
+              <span style={{color:"var(--primary)"}}><ShinyText text="Property Marketing" color="#FF6B00" shineColor="#ffb366" speed={3} spread={160}/></span>
+            </h1>
+            <p style={{fontSize:17,color:"var(--muted)",lineHeight:1.8,marginBottom:36,maxWidth:480}}>Instant PDF brochures, WhatsApp cards, and verified listings — all in one platform built for Indian real estate agents.</p>
+            <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+              <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-green" style={{padding:"16px 32px",borderRadius:14,fontSize:16,display:"flex",alignItems:"center",gap:8}}>
+                {currentUser?"Go to Dashboard":"Get Started"} →
+              </button>
+              <button onClick={()=>onNavigate("feed")} className="btn-outline" style={{padding:"16px 28px",borderRadius:14,fontSize:16}}>Browse Properties</button>
+            </div>
+          </div>
+          {/* Hero Visual */}
+          <div style={{position:"relative"}}>
+            <div style={{background:"linear-gradient(135deg,var(--primary-light) 0%,var(--primary-mid) 100%)",borderRadius:28,aspectRatio:"4/3",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"6px solid #fff",boxShadow:"0 24px 64px rgba(255,107,0,0.15)"}}>
+              <div style={{textAlign:"center",padding:32}}>
+                <div style={{fontSize:64,marginBottom:16}}>🏠</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--primary)",marginBottom:6}}>₹85.00 L</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--navy)",marginBottom:4}}>3BHK Premium Apartment</div>
+                <div style={{fontSize:12,color:"var(--muted)"}}>📍 Bandra West, Mumbai</div>
+              </div>
+            </div>
+            {/* Floating badge */}
+            <div style={{position:"absolute",bottom:-18,left:-18,background:"#fff",padding:"14px 18px",borderRadius:18,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",border:"1px solid var(--border)",display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"#dcfce7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>✅</div>
+              <div><div style={{fontSize:11,color:"var(--muted)",fontWeight:600}}>Brochure Ready</div><div style={{fontSize:15,fontWeight:800,color:"var(--navy)"}}>Under 2 minutes</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trusted By */}
+      <section style={{background:"var(--primary-light)",padding:"20px 24px",borderTop:"1px solid var(--primary-mid)",borderBottom:"1px solid var(--primary-mid)"}}>
+        <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"center",gap:48,flexWrap:"wrap"}}>
+          {[["500+","Listings"],["100+","Agents"],["2 min","Brochure Time"],["₹0","To Start"]].map(([v,l])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:900,color:"var(--primary)"}}>{v}</div>
+              <div style={{fontSize:11,color:"var(--muted)",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section style={{background:"var(--cream)",padding:"80px 24px"}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:48}}>
+            <span style={{fontSize:11,fontWeight:800,color:"var(--primary)",textTransform:"uppercase",letterSpacing:2}}>Trusted by Leading Agents</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:24}} className="gr3">
+            {testimonials.map((t,i)=>(
+              <div key={i} className="card" style={{padding:28}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                  <div style={{width:44,height:44,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:16,flexShrink:0}}>{t.name.charAt(0)}</div>
+                  <div><div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{t.name}</div><div style={{fontSize:11,color:"var(--muted)"}}>{t.agency}</div></div>
+                </div>
+                <div style={{display:"flex",gap:2,marginBottom:12}}>{"⭐⭐⭐⭐⭐".split("").map((s,j)=><span key={j} style={{fontSize:13}}>{s}</span>)}</div>
+                <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.7,fontStyle:"italic"}}>"{t.text}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section style={{background:"#fff",padding:"80px 24px"}}>
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:52}}>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:40,fontWeight:900,color:"var(--navy)",marginBottom:10}}>Powerful Tools for Modern Agents</h2>
+            <p style={{fontSize:15,color:"var(--muted)",maxWidth:520,margin:"0 auto"}}>Everything you need to market properties and close deals — in one platform.</p>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:32}} className="gr3">
+            {features.map(({icon,title,desc})=>(
+              <div key={title} style={{textAlign:"center",padding:"40px 28px",borderRadius:24,border:"1px solid var(--border)",transition:"all 0.2s",cursor:"default"}}
+                onMouseEnter={e=>{e.currentTarget.style.background="var(--primary-light)";e.currentTarget.style.borderColor="var(--primary-mid)";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="var(--border)";}}>
+                <div style={{width:72,height:72,borderRadius:20,background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px",boxShadow:"0 8px 24px rgba(255,107,0,0.3)"}}>{icon}</div>
+                <h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:10}}>{title}</h3>
+                <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.7}}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Efficiency Bar */}
+      <section style={{background:"var(--cream)",padding:"80px 24px"}}>
+        <div style={{maxWidth:860,margin:"0 auto",background:"#fff",borderRadius:32,boxShadow:"0 8px 40px rgba(255,107,0,0.1)",overflow:"hidden",border:"1px solid var(--border)"}}>
+          <div style={{padding:"48px 52px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:48,alignItems:"center"}} className="gr">
+            <div>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--navy)",lineHeight:1.2,marginBottom:14}}>Measure Your<br/><span style={{color:"var(--primary)"}}>Efficiency Boost</span></h2>
+              <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.7,marginBottom:20}}>Agents using Pheniq save an average of 8 hours per listing — from photos to brochure to WhatsApp share.</p>
+              {[["✅","Professional brochure in 2 minutes"],["✅","WhatsApp-ready card instantly"],["✅","RERA, Vastu & all Indian fields"]].map(([i,t])=>(
+                <div key={t} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,fontSize:14,fontWeight:600,color:"var(--navy)"}}><span>{i}</span>{t}</div>
+              ))}
+            </div>
+            <div>
+              <div style={{marginBottom:20}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:700,marginBottom:6,color:"var(--muted)"}}><span>Manual (Canva + WhatsApp)</span><span>8+ hrs</span></div>
+                <div style={{height:14,background:"var(--gray)",borderRadius:99,overflow:"hidden"}}><div style={{height:"100%",width:"100%",background:"#e2e8f0",borderRadius:99}}/></div>
+              </div>
+              <div style={{marginBottom:24}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:700,marginBottom:6,color:"var(--primary)"}}><span>With Pheniq</span><span>2 min</span></div>
+                <div style={{height:14,background:"var(--primary-light)",borderRadius:99,overflow:"hidden"}}><div style={{height:"100%",width:"4%",background:"var(--primary)",borderRadius:99}}/></div>
+              </div>
+              <div style={{textAlign:"center",paddingTop:8,borderTop:"1px solid var(--border)"}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:900,color:"var(--primary)"}}>Save 8 hrs</div>
+                <div style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>per listing on average</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{background:"var(--primary)",padding:"80px 24px",textAlign:"center"}}>
+        <div style={{maxWidth:600,margin:"0 auto"}}>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:42,fontWeight:900,color:"#fff",marginBottom:14}}>Ready to scale your business?</h2>
+          <p style={{fontSize:16,color:"rgba(255,255,255,0.75)",marginBottom:36}}>Join 100+ agents already closing faster with Pheniq.</p>
+          <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} style={{background:"#fff",color:"var(--primary)",padding:"18px 44px",borderRadius:18,fontSize:18,fontWeight:900,border:"none",cursor:"pointer",fontFamily:"inherit",boxShadow:"0 8px 32px rgba(0,0,0,0.15)",transition:"transform 0.2s"}}
+            onMouseEnter={e=>e.currentTarget.style.transform="scale(1.04)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+            {currentUser?"Open Dashboard →":"Start Free Today →"}
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{background:"var(--navy)",padding:"40px 24px"}}>
+        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:32,height:32,background:"var(--primary)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:15}}>P</span></div>
+            <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:18,color:"#fff"}}>PHENIQ</span>
+          </div>
+          <p style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>© 2026 Pheniq · Professional Property Marketing · Made in India</p>
+          <div style={{display:"flex",gap:20,fontSize:12,color:"rgba(255,255,255,0.3)"}}>
+            <span style={{cursor:"pointer"}}>Privacy</span><span>·</span><span style={{cursor:"pointer"}}>Terms</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Mobile Bottom Nav */}
       <div style={{display:"none",position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid var(--border)",padding:"8px 0 12px",zIndex:200}} className="mob-nav">
         {[["🏠","Home","home"],["🔍","Browse","feed"],["👤","Account","dashboard"]].map(([icon,label,pg])=>(
           <button key={pg} onClick={()=>onNavigate(pg)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",color:pg==="home"?"var(--primary)":"var(--muted)",fontFamily:"inherit"}}>
@@ -1368,8 +1537,6 @@ const Home = ({currentUser,onNavigate}) => {
     </div>
   );
 };
-
-// ── #4 Agent Public Profile Page ─────────────────────────────────
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
