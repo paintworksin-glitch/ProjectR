@@ -58,7 +58,8 @@ const G = `
   .afd{animation:fadeIn 0.3s ease forwards} .shk{animation:shake 0.4s ease}
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  @media print{body>*{display:none!important}.pdf-brochure{display:block!important;position:fixed!important;top:0!important;left:0!important;width:100%!important;background:#fff!important;z-index:99999!important;overflow:visible!important}}s:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
+  @media print{body>*{display:none!important}.pdf-brochure{display:block!important;position:fixed!important;top:0!important;left:0!important;width:100%!important;background:#fff!important;z-index:99999!important;overflow:visible!important}}
+  @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
 
