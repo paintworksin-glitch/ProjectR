@@ -58,11 +58,6 @@ const G = `
   .afd{animation:fadeIn 0.3s ease forwards} .shk{animation:shake 0.4s ease}
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  @media print {
-    body * { visibility:hidden !important; }
-    #pdf-print-area { visibility:visible !important; position:fixed !important; inset:0 !important; padding:32px !important; box-sizing:border-box !important; overflow:visible !important; }
-    #pdf-print-area * { visibility:visible !important; }
-  }
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
@@ -440,6 +435,27 @@ const PDFModal = ({listing,onClose}) => {
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
+
+  const printPDF=()=>{
+    const el=document.getElementById("pdf-print-area");
+    if(!el){return;}
+    const html=el.innerHTML;
+    const fonts='<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>';
+    const style='<style>'
+      +'*{box-sizing:border-box;margin:0;padding:0;}'
+      +'body{font-family:Inter,sans-serif;color:#1a1410;padding:36px 44px;}'
+      +':root{--primary:#FF6B00;--primary2:#E55E00;--primary-light:#fff3ea;--primary-mid:#ffd4b0;--navy:#1a1410;}'
+      +'img{max-width:100%;border-radius:10px;display:block;}'
+      +'.section-label{font-size:11px;font-weight:700;color:#FF6B00;text-transform:uppercase;letter-spacing:1px;}'
+      +'@media print{@page{margin:1.2cm;}body{padding:0;}}'
+      +'</style>';
+    const w=window.open("","_blank","width=860,height=1000");
+    w.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'>"+fonts+style+"</head><body>"+html+"</body></html>");
+    w.document.close();
+    w.focus();
+    setTimeout(()=>{w.print();},900);
+  };
+
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
       <div className="asl" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
@@ -447,7 +463,7 @@ const PDFModal = ({listing,onClose}) => {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>window.print()} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Print / Save PDF</button>
+            <button onClick={printPDF} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Print / Save PDF</button>
             <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
           </div>
         </div>
