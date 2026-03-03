@@ -58,7 +58,6 @@ const G = `
   .afd{animation:fadeIn 0.3s ease forwards} .shk{animation:shake 0.4s ease}
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  @media print{body>*{display:none!important}.pdf-brochure{display:block!important;position:fixed!important;top:0!important;left:0!important;width:100%!important;background:#fff!important;z-index:99999!important;overflow:visible!important}}
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
@@ -259,7 +258,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
 
 // ── Property Modal ───────────────────────────────────────────────
 const PropModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id) track(listing.id,"view");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"view");},[listing?.id]);
   if(!listing) return null;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   return (
@@ -377,7 +376,7 @@ const PDFModal = ({listing,onClose}) => {
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div className="asl pdf-brochure" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+      <div className="asl" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         {/* Toolbar */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
@@ -1363,13 +1362,13 @@ const Home = ({currentUser,onNavigate}) => {
         ))}
       </div>
 
-      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
-      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
-      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
+
+      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/> }
+      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/> }
+      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/> }
     </div>
   );
 };
-
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
