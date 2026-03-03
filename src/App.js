@@ -356,20 +356,24 @@ const WACardModal = ({listing,onClose}) => {
 
   const buildText=()=>{
     const lines=[];
-    lines.push(`🏠 *${listing.title}*`);
-    lines.push(`📍 ${listing.location}`);
-    lines.push("");
-    lines.push(`💰 *${price}*${listing.listingType==="Rent"?" /month":""}`);
-    lines.push(`🏷️ For *${listing.listingType}*`);
-    if(details.length>0) lines.push(details.join("   "));
-    if(listing.description){lines.push("");lines.push(listing.description);}
-    if(highlights.length>0){lines.push("");highlights.forEach(h=>lines.push(`✅ ${h}`));}
-    lines.push("");
-    lines.push(`📞 *${listing.agentName||""}* — ${listing.agentPhone||""}`);
-    if(listing.agencyName) lines.push(`🏢 ${listing.agencyName}`);
-    lines.push("");
-    lines.push(`_Powered by Pheniq_`);
-    return lines.join("\n");
+    lines.push('*' + listing.title + '*');
+    lines.push('Location: ' + listing.location);
+    lines.push('');
+    lines.push('Price: *' + price + '*' + (listing.listingType==='Rent' ? ' / month' : ''));
+    lines.push('Type: For ' + listing.listingType);
+    const dc=details.map(d=>d.replace(/[^\w\s.,:%\/\-]/g,'').trim()).filter(Boolean);
+    if(dc.length>0) lines.push('Details: ' + dc.join(' | '));
+    if(listing.description){lines.push('');lines.push(listing.description);}
+    if(highlights.length>0){lines.push('');lines.push('Highlights:');highlights.forEach(h=>lines.push('  - '+h));}
+    lines.push('');
+    lines.push('Contact:');
+    lines.push('  Agent: *' + (listing.agentName||'') + '*');
+    if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
+    if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
+    lines.push('');
+    lines.push('_Powered by Pheniq_');
+    return lines.join('
+');
   };
 
   const copyText=()=>{
@@ -403,15 +407,9 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        {/* Image action buttons */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,width:360}}>
-          <button onClick={()=>downloadImage("png")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
-            {downloading?"⏳…":"⬇️ Save PNG"}
-          </button>
-          <button onClick={()=>downloadImage("jpg")} disabled={downloading} style={{padding:"11px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.18)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:downloading?0.6:1}}>
-            {downloading?"⏳…":"⬇️ Save JPG"}
-          </button>
-        </div>
+                <button onClick={()=>downloadImage('png')} disabled={downloading} style={{width:360,padding:'12px 8px',borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?'not-allowed':'pointer',background:'rgba(255,255,255,0.18)',color:'#fff',border:'1px solid rgba(255,255,255,0.3)',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:downloading?0.6:1}}>
+          {downloading?'Processing...':'⬇️ Download WhatsApp Card'}
+        </button>
 
         {/* WhatsApp share with image */}
         <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
