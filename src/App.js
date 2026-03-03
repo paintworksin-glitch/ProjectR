@@ -283,7 +283,7 @@ const PropModal = ({listing,onClose}) => {
             <div style={{fontWeight:700,fontSize:15}}>👤 {listing.agentName} <span style={{fontWeight:400,color:"var(--muted)"}}>· {listing.agencyName}</span></div>
             {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
             <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
-              {listing.agentPhone&&<a href={`https://wa.me/91${listing.agentPhone}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
+              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
             </div>
@@ -373,7 +373,7 @@ const PDFModal = ({listing,onClose}) => {
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
-  const ref=`PHQ-${listing.id?.slice(-6)?.toUpperCase()||"000000"}`;
+  const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Parking",listing.parkingType],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
   return (
@@ -1137,7 +1137,7 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
           </select>
         </div>
         {open&&(
-          <div className="card" style={{padding:"20px 24px",marginBottom:20,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"12px 20px"}} className="gr">
+          <div className="card gr" style={{padding:"20px 24px",marginBottom:20,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"12px 20px"}}>
             <FS label="City" k="city" form={filters} set={setF} opts={cities}/>
             <FS label="Property Type" k="propertyType" form={filters} set={setF} opts={["Apartment","Villa","Plot","Commercial"]}/>
             <FS label="Listing Type" k="listingType" form={filters} set={setF} opts={["Rent","Sale"]}/>
@@ -1222,7 +1222,7 @@ const Home = ({currentUser,onNavigate}) => {
             </select>
             <select className="inp" value={filter.type} onChange={e=>setFilter(f=>({...f,type:e.target.value}))} style={{width:150,padding:"8px 12px",fontSize:13}}>
               <option value="">All Properties</option>
-              {["Apartment","Independent House","Villa","Plot","Office","Shop","Warehouse"].map(t=><option key={t} value={t}>{t}</option>)}
+              {["Apartment","Villa","Plot","Commercial"].map(t=><option key={t} value={t}>{t}</option>)}
             </select>
             {(filter.type||filter.listing||filter.location)&&<button onClick={()=>setFilter({type:"",listing:"",location:""})} style={{padding:"8px 14px",borderRadius:9,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕ Clear</button>}
           </div>
@@ -1379,7 +1379,7 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
               <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:0.8}}>Active Listings</div>
             </div>
             <button onClick={copyLink} style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:copied?"#059669":"var(--primary)",color:"#fff",border:"none",fontFamily:"inherit",transition:"background 0.2s"}}>{copied?"✅ Copied!":"🔗 Copy Profile Link"}</button>
-            {agent.phone&&<a href={`https://wa.me/91${agent.phone}?text=${encodeURIComponent("Hi, I found your profile on Pheniq and would like to enquire about your properties.")}`} target="_blank" rel="noreferrer" style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WALogo size={12}/>WhatsApp Agent</a>}
+            {agent.phone&&<a href={`https://wa.me/${agent.phone.replace(/\D/g,"")}?text=${encodeURIComponent("Hi, I found your profile on Pheniq and would like to enquire about your properties.")}`} target="_blank" rel="noreferrer" style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WALogo size={12}/>WhatsApp Agent</a>}
           </div>
         </div>
       </div>
