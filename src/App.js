@@ -1362,12 +1362,6 @@ const Home = ({currentUser,onNavigate}) => {
         ))}
       </div>
 
-      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
-      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
-      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
-    </div>
-  );
-};
   const testimonials=[
     {name:"Ravi Sharma",agency:"Sharma Realty, Mumbai",text:"Generated my first brochure in 2 minutes. My clients were blown away by how professional it looked!"},
     {name:"Priya Nair",agency:"NRI Homes, Pune",text:"WhatsApp cards are a game changer. Buyers share them instantly and I get more enquiries the same day."},
@@ -1537,11 +1531,12 @@ const Home = ({currentUser,onNavigate}) => {
         ))}
       </div>
 
+      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
+      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
+      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
     </div>
   );
 };
-
-// ── #4 Agent Public Profile Page ─────────────────────────────────
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
