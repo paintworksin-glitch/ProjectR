@@ -265,22 +265,6 @@ const PropModal = ({listing,onClose}) => {
         {listing.description&&<p style={{fontSize:14,color:"var(--muted)",lineHeight:1.75,marginBottom:20,background:"var(--cream)",padding:14,borderRadius:10,border:"1px solid var(--border)"}}>{listing.description}</p>}
         {fields.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 24px",marginBottom:20}}>{fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid var(--border)",fontSize:13}}><span style={{color:"var(--muted)"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}</div>}
         {listing.highlights?.length>0&&<div style={{marginBottom:20}}><p className="section-label">Key Highlights</p>{listing.highlights.map((h,i)=><div key={i} style={{fontSize:13,color:"var(--text)",marginBottom:6,display:"flex",gap:8,alignItems:"flex-start"}}><span style={{color:"var(--green)",fontWeight:700,marginTop:1}}>✓</span>{h}</div>)}</div>}
-        {listing.location&&<div style={{marginBottom:20}}>
-          <p className="section-label">📍 Location</p>
-          <div style={{borderRadius:12,overflow:"hidden",border:"1px solid var(--border)",position:"relative"}}>
-            <img
-              src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x240&scale=2&maptype=roadmap&markers=color:0xFF6B00%7Clabel:P%7C${encodeURIComponent(listing.location)}&style=feature:poi%7Celement:labels%7Cvisibility:off&key=AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4`}
-              alt="Property location"
-              style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
-              onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
-            />
-            <div style={{display:"none",width:"100%",height:160,background:"var(--gray)",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,borderRadius:12}}>
-              <div style={{fontSize:28}}>🗺️</div>
-              <div style={{fontSize:12,color:"var(--muted)",fontWeight:600}}>{listing.location}</div>
-            </div>
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(listing.location)}`} target="_blank" rel="noreferrer" style={{position:"absolute",bottom:10,right:10,background:"rgba(255,255,255,0.95)",border:"1px solid var(--border)",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:700,color:"var(--navy)",textDecoration:"none",backdropFilter:"blur(4px)"}}>Open in Maps ↗</a>
-          </div>
-        </div>}
         <div style={{background:"var(--green-light)",borderRadius:14,padding:20,border:"1px solid var(--green-mid)"}}>
           <p className="section-label">Contact Agent</p>
           <div style={{fontSize:14,color:"var(--text)",display:"flex",flexDirection:"column",gap:8}}>
@@ -424,173 +408,148 @@ const PDFModal = ({listing,onClose}) => {
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
-  const MAPS_KEY="AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4";
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
   const [pdfLoading,setPdfLoading]=useState(false);
-  const SectionLabel=({children})=><div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1.2px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>{children}</div>;
 
   const downloadPDF=async()=>{
     const el=document.getElementById('pdf-print-area');
     if(!el) return;
     setPdfLoading(true);
     try{
-      const h2c=await new Promise((res,rej)=>{if(window.html2canvas){res(window.html2canvas);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);});
-      const jsPDFCls=await new Promise((res,rej)=>{if(window.jspdf){res(window.jspdf.jsPDF);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);});
+      const h2c=await new Promise((res,rej)=>{
+        if(window.html2canvas){res(window.html2canvas);return;}
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);
+      });
+      const jsPDFCls=await new Promise((res,rej)=>{
+        if(window.jspdf){res(window.jspdf.jsPDF);return;}
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);
+      });
       const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
-      const mmW=210,mmH=(canvas.height*mmW)/canvas.width,pdf=new jsPDFCls({unit:'mm',format:'a4'}),pageH=297;
-      let y=0;while(y<mmH){if(y>0)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);y+=pageH;}
+      const mmW=210;
+      const mmH=(canvas.height*mmW)/canvas.width;
+      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
+      const pageH=297;
+      let y=0;
+      while(y<mmH){
+        if(y>0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
+        y+=pageH;
+      }
       pdf.save('pheniq-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
     }catch(err){console.error(err);window.print();}
     setPdfLoading(false);
   };
 
   return (
-    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div className="asl" style={{background:"#fff",borderRadius:20,maxWidth:720,width:"100%",maxHeight:"93vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
-        {/* ── STICKY TOOLBAR ── */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:10,borderRadius:"20px 20px 0 0"}}>
-          <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>📄 PDF Preview</div>
+    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
+      <div className="asl" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+          <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={downloadPDF} disabled={pdfLoading} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:9,fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,opacity:pdfLoading?0.7:1}}>{pdfLoading?<><span className="spin"/>Generating…</>:<>⬇️ Download PDF</>}</button>
-            <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:9,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+            <button onClick={downloadPDF} disabled={pdfLoading} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,opacity:pdfLoading?0.7:1}}>{pdfLoading?<><span className="spin"/>Generating PDF…</>:<>⬇️ Download PDF</>}</button>
+            <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
           </div>
         </div>
-
-        {/* ── PDF CONTENT ── */}
-        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410",background:"#fff"}}>
-
-          {/* ── HEADER BRAND ── */}
+        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
           {hasAgentBrand?(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
-                {listing.logoUrl?<img src={listing.logoUrl} alt="logo" style={{width:60,height:60,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>:<div style={{width:60,height:60,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,border:"1px solid var(--primary-mid)"}}>🏢</div>}
+                {listing.logoUrl
+                  ?<img src={listing.logoUrl} alt="logo" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>
+                  :<div style={{width:64,height:64,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,border:"1px solid var(--primary-mid)"}}>🏢</div>
+                }
                 <div>
-                  <div style={{fontWeight:900,fontSize:20,color:"var(--navy)",letterSpacing:"-0.3px"}}>{listing.agencyName||listing.agentName}</div>
-                  {listing.agentPhone&&<div style={{fontSize:12,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
-                  {listing.agentAddress&&<div style={{fontSize:11,color:"#888"}}>📍 {listing.agentAddress}</div>}
-                  {listing.agentWebsite&&<div style={{fontSize:11,color:"var(--primary)"}}>{listing.agentWebsite}</div>}
+                  <div style={{fontWeight:900,fontSize:22,color:"var(--navy)",letterSpacing:"-0.5px"}}>{listing.agencyName||listing.agentName}</div>
+                  {listing.agentPhone&&<div style={{fontSize:13,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
+                  {listing.agentAddress&&<div style={{fontSize:12,color:"#666"}}>📍 {listing.agentAddress}</div>}
+                  {listing.agentWebsite&&<div style={{fontSize:12,color:"var(--primary)"}}>{listing.agentWebsite}</div>}
                 </div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:11,fontWeight:800,color:"#ccc",letterSpacing:"1px"}}>PHENIQ</div>
-                <div style={{fontSize:10,color:"#bbb",marginTop:2}}>{td}</div>
-                <div style={{fontSize:10,color:"#bbb"}}>Ref: {ref}</div>
+                <div style={{fontSize:11,color:"#aaa"}}>{td}</div>
+                <div style={{fontSize:11,color:"#aaa",marginTop:2}}>Ref: {ref}</div>
               </div>
             </div>
           ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--navy)"}}>PHEN<span style={{color:"var(--primary)"}}>IQ</span></div>
-                <div style={{fontSize:10,color:"#aaa",letterSpacing:"1.5px",marginTop:1,textTransform:"uppercase"}}>Professional Property Marketing</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,color:"var(--navy)"}}>PHEN<span style={{color:"var(--primary)"}}>IQ</span></div>
+                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:2,textTransform:"uppercase"}}>Professional Property Marketing</div>
               </div>
-              <div style={{textAlign:"right",fontSize:11,color:"#aaa"}}><div>{td}</div><div style={{marginTop:2}}>Ref: {ref}</div></div>
+              <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
             </div>
           )}
-
-          {/* ── HERO COVER PHOTO ── */}
-          {listing.photos?.[0]&&(
-            <div style={{position:"relative",marginBottom:24,borderRadius:14,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.12)"}}>
-              <img src={listing.photos[0]} alt="Cover" style={{width:"100%",height:300,objectFit:"cover",display:"block"}}/>
-              <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(26,20,16,0.75) 0%,transparent 55%)"}}/>
-              <div style={{position:"absolute",bottom:20,left:24,right:24}}>
-                <h1 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:900,color:"#fff",margin:"0 0 4px",lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>{listing.title}</h1>
-                <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>📍 {listing.location}</div>
-              </div>
-              <div style={{position:"absolute",top:14,right:14,background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"4px 14px",borderRadius:20,letterSpacing:"0.3px"}}>For {listing.listingType}</div>
-            </div>
-          )}
-
-          {/* ── PRICE + QUICK STATS ── */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24,padding:"18px 22px",background:"var(--primary-light)",borderRadius:14,border:"1px solid var(--primary-mid)"}}>
-            <div>
-              {!listing.photos?.[0]&&<h1 style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,margin:"0 0 4px",color:"var(--navy)"}}>{listing.title}</h1>}
-              {!listing.photos?.[0]&&<div style={{color:"#888",fontSize:13,marginBottom:8}}>📍 {listing.location}</div>}
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--primary)",lineHeight:1}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:14,fontWeight:400,color:"#888"}}>/month</span>}</div>
-            </div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-              {listing.bedrooms>0&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🛏</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.bedrooms} Bed{listing.bedrooms>1?"s":""}</div></div>}
-              {listing.bathrooms>0&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🚿</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.bathrooms} Bath{listing.bathrooms>1?"s":""}</div></div>}
-              {listing.sizesqft&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>📐</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.sizesqft} sqft</div></div>}
-              {listing.furnishingStatus&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🛋</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.furnishingStatus}</div></div>}
-            </div>
+          {/* ── PROPERTY INFO ── */}
+          <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:900,margin:"0 0 4px",color:"var(--navy)",lineHeight:1.15}}>{listing.title}</h1>
+          <div style={{color:"#888",fontSize:14,marginBottom:12}}>📍 {listing.location}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6,flexWrap:"wrap"}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"var(--primary)"}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:15,fontWeight:400,color:"#888"}}>/month</span>}</div>
+            <div style={{display:"inline-block",background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"3px 14px",fontSize:12,fontWeight:700}}>For {listing.listingType}</div>
           </div>
 
-          {/* ── DESCRIPTION ── */}
-          {listing.description&&<div style={{marginBottom:24}}>
-            <SectionLabel>About this Property</SectionLabel>
-            <p style={{fontSize:13,lineHeight:1.85,color:"#444",margin:0,background:"#fafafa",padding:"14px 16px",borderRadius:10,border:"1px solid #eee"}}>{listing.description}</p>
-          </div>}
+          {listing.description&&<div style={{background:"#fafafa",padding:16,borderRadius:10,fontSize:13,lineHeight:1.8,marginBottom:20,marginTop:14,border:"1px solid #eee",color:"#444"}}>{listing.description}</div>}
 
-          {/* ── PROPERTY DETAILS 2-COL TABLE ── */}
-          {fields.length>0&&<div style={{marginBottom:24}}>
-            <SectionLabel>Property Details</SectionLabel>
+          {fields.length>0&&<div style={{marginBottom:20}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Property Details</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 40px"}}>
-              {fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}><span style={{color:"#999"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}
+              {fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f4f4f4",fontSize:13}}><span style={{color:"#888"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}
             </div>
           </div>}
 
-          {/* ── HIGHLIGHTS ── */}
           {listing.highlights?.length>0&&<div style={{marginBottom:24}}>
-            <SectionLabel>Key Highlights</SectionLabel>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-              {listing.highlights.map((h,i)=><div key={i} style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--primary-light)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"5px 14px",fontSize:12,color:"var(--navy)",fontWeight:600}}><span style={{color:"var(--primary)",fontWeight:800}}>✓</span>{h}</div>)}
-            </div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Key Highlights</div>
+            {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
           </div>}
 
-          {/* ── PHOTOS stacked one above the other ── */}
+          {/* ── PHOTOS stacked vertically ── */}
           {listing.photos?.length>0&&(
             <div style={{marginBottom:24}}>
-              <SectionLabel>Property Photos</SectionLabel>
-              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Property Photos</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {listing.photos.map((p,i)=>(
-                  <div key={i} style={{position:"relative",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
-                    <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:300,objectFit:"cover",display:"block"}}/>
-                    {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:20,letterSpacing:"0.3px"}}>⭐ Cover Photo</div>}
-                    <div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.45)",color:"#fff",fontSize:10,fontWeight:600,padding:"3px 10px",borderRadius:12,backdropFilter:"blur(4px)"}}>{i+1} / {listing.photos.length}</div>
+                  <div key={i} style={{position:"relative"}}>
+                    <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
+                    {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* ── GOOGLE MAPS ── */}
-          {listing.location&&<div style={{marginBottom:24}}>
-            <SectionLabel>Location Map</SectionLabel>
-            <div style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)",position:"relative"}}>
+          {/* ── GOOGLE MAPS placeholder ── */}
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
+            {listing.location?(
               <img
-                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x240&scale=2&maptype=roadmap&markers=color:0xFF6B00%7Clabel:P%7C${encodeURIComponent(listing.location)}&style=feature:poi%7Celement:labels%7Cvisibility:off&key=${MAPS_KEY}`}
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4`}
                 alt="Property location map"
-                style={{width:"100%",height:220,objectFit:"cover",display:"block"}}
+                style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
                 onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
               />
-              <div style={{display:"none",width:"100%",height:140,background:"#f5f0ec",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
-                <div style={{fontSize:28}}>🗺️</div>
-                <div style={{fontSize:12,color:"#aaa",fontWeight:600}}>📍 {listing.location}</div>
-              </div>
-              <div style={{position:"absolute",bottom:10,left:12,background:"rgba(255,255,255,0.95)",borderRadius:8,padding:"4px 12px",fontSize:11,fontWeight:600,color:"var(--navy)",border:"1px solid #eee"}}>📍 {listing.location}</div>
-            </div>
-          </div>}
-
-          {/* ── AGENT FOOTER ── */}
-          <div style={{marginTop:8,background:"var(--navy)",borderRadius:14,padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:14}}>
-              {listing.logoUrl&&<img src={listing.logoUrl} alt="logo" style={{width:42,height:42,objectFit:"contain",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.1)"}}/>}
-              <div>
-                <div style={{fontWeight:800,fontSize:14,color:"#fff"}}>{listing.agentName||listing.agencyName||""}</div>
-                {listing.agencyName&&listing.agentName&&<div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{listing.agencyName}</div>}
-                <div style={{display:"flex",gap:14,marginTop:4,flexWrap:"wrap"}}>
-                  {listing.agentPhone&&<div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>📞 {listing.agentPhone}</div>}
-                  {listing.agentEmail&&<div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>✉ {listing.agentEmail}</div>}
-                </div>
-              </div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.3)",letterSpacing:"1px"}}>PHENIQ</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:1}}>Powered by Pheniq</div>
+            ):null}
+            <div style={{display:"none",width:"100%",height:120,background:"#f5f0ec",borderRadius:12,border:"1px dashed #ede5dc",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
+              <div style={{fontSize:24}}>🗺️</div>
+              <div style={{fontSize:12,color:"#aaa",fontWeight:600}}>Map not available — add Google Maps API key</div>
             </div>
           </div>
 
+          {/* ── AGENT FOOTER ── */}
+          <div style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
+              {listing.agentEmail&&<div style={{fontSize:12,color:"#888"}}>{listing.agentEmail}</div>}
+              {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>PHENIQ</div>
+              <div style={{fontSize:10,color:"#ccc"}}>Powered by Pheniq</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
