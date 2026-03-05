@@ -285,6 +285,7 @@ const PropModal = ({listing,onClose}) => {
 const WACardModal = ({listing,onClose}) => {
   const [copied,setCopied]=useState(false);
   const [downloading,setDownloading]=useState(false);
+  const [fmt,setFmt]=useState("square"); // square | portrait
   useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
   if(!listing) return null;
 
@@ -299,16 +300,16 @@ const WACardModal = ({listing,onClose}) => {
   const captureCard=async()=>{
     const h2c=await loadH2C();
     const card=document.getElementById("wa-card");
-    return h2c(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:"#ffffff",logging:false});
+    return h2c(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
   };
 
-  const downloadImage=async(fmt)=>{
+  const downloadImage=async()=>{
     setDownloading(true);
     try{
       const canvas=await captureCard();
       const a=document.createElement("a");
-      a.download=`pheniq-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.${fmt}`;
-      a.href=canvas.toDataURL(fmt==="jpg"?"image/jpeg":"image/png",0.95);
+      a.download=`pheniq-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
+      a.href=canvas.toDataURL("image/png",0.95);
       a.click();
     }catch(e){alert("Download failed — try screenshotting the card manually.");}
     setDownloading(false);
@@ -331,6 +332,7 @@ const WACardModal = ({listing,onClose}) => {
     }catch(e){alert("Share failed — try downloading the image instead.");}
     setDownloading(false);
   };
+
   const price=fmtP(listing.price);
   const details=[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
   const highlights=(listing.highlights||[]).slice(0,3);
@@ -361,42 +363,78 @@ const WACardModal = ({listing,onClose}) => {
   };
   const openWA=()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank");
 
+  // Card dimensions: square=420x420, portrait=340x425
+  const isSquare=fmt==="square";
+  const cardW=isSquare?420:340;
+  const cardH=isSquare?420:425;
+  const btnW=cardW;
+
   return (
-    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
+    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(10,5,2,0.75)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(8px)"}} onClick={onClose}>
       <div className="asl" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,maxHeight:"95vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}>
-        <div id="wa-card" style={{width:360,background:"#fff",borderRadius:20,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.5)",flexShrink:0}}>
-          <div style={{height:200,position:"relative",background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-            {listing.photos?.[0]?<img src={listing.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:56,opacity:0.25}}>🏠</div>}
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(27,58,45,0.88) 0%,rgba(27,58,45,0.05) 55%,transparent 100%)"}}/>
-            <div style={{position:"absolute",top:12,left:12}}><span style={{background:"#3DAA7E",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>{listing.listingType?.toUpperCase()} · {listing.status}</span></div>
-            <div style={{position:"absolute",bottom:14,left:14,right:14}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:800,color:"#fff"}}>{price}{listing.listingType==="Rent"&&<span style={{fontSize:13,fontWeight:400,color:"rgba(255,255,255,0.65)"}}>/mo</span>}</div>
+
+        {/* Format toggle */}
+        <div style={{display:"flex",gap:4,background:"rgba(255,255,255,0.08)",padding:4,borderRadius:12,border:"1px solid rgba(255,255,255,0.12)"}}>
+          {[["square","⬜ Square"],["portrait","▭ Portrait"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setFmt(v)} style={{padding:"7px 18px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:fmt===v?"var(--primary)":"transparent",color:fmt===v?"#fff":"rgba(255,255,255,0.5)",border:"none",fontFamily:"inherit",transition:"all 0.2s"}}>{l}</button>
+          ))}
+        </div>
+
+        {/* THE CARD */}
+        <div id="wa-card" style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
+          {/* Photo */}
+          {listing.photos?.[0]
+            ?<img src={listing.photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+            :<div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#2d2118,#1a1410)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:72,opacity:0.08}}>🏠</div></div>
+          }
+          {/* Gradient overlay */}
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+
+          {/* Top badges */}
+          <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR {listing.listingType?.toUpperCase()}</span>
+            <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"4px 10px"}}>
+              <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:13,color:"var(--primary)"}}>PHENIQ</span>
             </div>
           </div>
-          <div style={{padding:"14px 16px 0"}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#1B3A2D",marginBottom:3}}>{listing.title}</div>
-            <div style={{fontSize:12,color:"#6B8076",marginBottom:10}}>📍 {listing.location}</div>
-            {details.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>{details.map((d,i)=><span key={i} style={{background:"#F0F5F2",border:"1px solid #DDE8E2",borderRadius:6,padding:"4px 8px",fontSize:10,fontWeight:600,color:"#1B3A2D"}}>{d}</span>)}</div>}
-            {listing.description&&<p style={{fontSize:11,color:"#6B8076",lineHeight:1.6,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{listing.description}</p>}
-          </div>
-          <div style={{padding:"10px 16px 12px",borderTop:"1px solid #F0F2EE",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:11,fontWeight:700,color:"#1B3A2D"}}>{listing.agentName}</div><div style={{fontSize:10,color:"#6B8076"}}>{listing.agencyName} · {listing.agentPhone}</div></div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:14,fontWeight:800,color:"#3DAA7E"}}>PHENIQ</div>
+
+          {/* Bottom content */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:isSquare?34:30,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
+              {price}{listing.listingType==="Rent"&&<span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>}
+            </div>
+            <div style={{fontWeight:800,fontSize:isSquare?15:13,color:"#fff",marginBottom:3,lineHeight:1.3}}>{listing.title}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 {listing.location}</div>
+            {details.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {details.map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
+            </div>}
+            <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{listing.agentName}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{listing.agencyName}{listing.agentPhone?` · ${listing.agentPhone}`:""}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5,background:"#25D366",borderRadius:8,padding:"6px 10px"}}>
+                <WALogo size={13}/><span style={{fontSize:11,fontWeight:700,color:"#fff"}}>WhatsApp</span>
+              </div>
+            </div>
           </div>
         </div>
-        <button onClick={()=>downloadImage('png')} disabled={downloading} style={{width:360,padding:'12px 8px',borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?'not-allowed':'pointer',background:'rgba(255,255,255,0.18)',color:'#fff',border:'1px solid rgba(255,255,255,0.3)',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:downloading?0.6:1}}>
-          {downloading?'Processing...':'⬇️ Download WhatsApp Card'}
+
+        {/* Action buttons */}
+        <button onClick={downloadImage} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.6:1}}>
+          {downloading?"Processing...":"⬇️ Download Card (PNG)"}
         </button>
-        <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
-          {downloading?"⏳ Processing…":<><WALogo size={15}/>Share Card Image on WhatsApp</>}
+        <button onClick={shareOnWA} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
+          {downloading?"⏳ Processing…":<><WALogo size={15}/>Share on WhatsApp</>}
         </button>
-        <div style={{width:360,background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"7px 12px",fontSize:10,color:"rgba(255,255,255,0.5)",textAlign:"center",lineHeight:1.5}}>
-          💡 On mobile: Share Image sends photo directly · On desktop: image downloads then WA opens
+        <div style={{width:btnW,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <button onClick={copyText} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.18)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
+          <button onClick={openWA} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(18,140,126,0.7)",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={11}/>Text Only</button>
+          <button onClick={onClose} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#fff",border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit"}}>✕ Close</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,width:360}}>
-          <button onClick={copyText} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.12)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
-          <button onClick={openWA} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(18,140,126,0.8)",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={11}/>Text Only</button>
-          <button onClick={onClose} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.08)",color:"#fff",border:"1px solid rgba(255,255,255,0.18)",fontFamily:"inherit"}}>✕ Close</button>
+        <div style={{width:btnW,background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"7px 12px",fontSize:10,color:"rgba(255,255,255,0.4)",textAlign:"center",lineHeight:1.5}}>
+          Square = 1080×1080 · Portrait = 1080×1350 · Both work on WhatsApp &amp; Instagram
         </div>
       </div>
     </div>
