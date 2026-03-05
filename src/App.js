@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// ─────────────────────────────────────────────────────────────────
-//  🔧 FILL THESE IN FROM YOUR SUPABASE DASHBOARD → Settings → API
-// ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// ─────────────────────────────────────────────────────────────────
 
-// ── Global styles ────────────────────────────────────────────────
 const G = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,7 +62,6 @@ const G = `
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
 
-// ── ShinyText component (ReactBits) ─────────────────────────────
 const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread=120, direction="left", disabled=false, className=""}) => {
   const animDuration = `${speed}s`;
   const gradAngle = direction==="left" ? "90deg" : "-90deg";
@@ -83,7 +77,6 @@ const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread
   return <span className={`shiny-text ${className}`} style={style}>{text}</span>;
 };
 
-// ── Utilities ────────────────────────────────────────────────────
 const fmtP = (p) => { if(!p) return "POA"; const n=Number(p); if(n>=10000000) return `₹${(n/10000000).toFixed(2)} Cr`; if(n>=100000) return `₹${(n/100000).toFixed(2)} L`; return `₹${n.toLocaleString("en-IN")}`; };
 const simScore = (a="",b="") => { a=a.toLowerCase().trim(); b=b.toLowerCase().trim(); if(!a||!b) return 0; const sa=new Set(a.split(/\s+/)),sb=new Set(b.split(/\s+/)); return [...sa].filter(x=>sb.has(x)).length/Math.max(sa.size,sb.size); };
 const findDups = (form, all, editId) => all.filter(l => {
@@ -94,7 +87,6 @@ const findDups = (form, all, editId) => all.filter(l => {
   return (ts>0.6?2:0)+(ls>0.7?2:0)+(pm?1:0)+(dm?1:0)>=3;
 });
 
-// ── DB ↔ App shape mappers ────────────────────────────────────────
 const mapListing = (l) => !l ? null : ({
   id: l.id, agentId: l.agent_id, title: l.title, location: l.location,
   propertyType: l.property_type, listingType: l.listing_type,
@@ -138,7 +130,6 @@ const dbToForm = (l) => ({
   agencyName:l.agency_name, photos:l.photos||[]
 });
 
-// ── Supabase data helpers ─────────────────────────────────────────
 const uploadPhoto = async (file) => {
   const ext = file.name.split(".").pop().toLowerCase() || "jpg";
   const name = `${Date.now()}-${Math.random().toString(36).substr(2,7)}.${ext}`;
@@ -148,12 +139,10 @@ const uploadPhoto = async (file) => {
   return data.publicUrl;
 };
 
-// ── Module-level WA / PDF handlers (set by App on mount) ─────────
 const _h = { openWA: ()=>{}, openPDF: ()=>{} };
 const showWACard = (l) => _h.openWA(l);
 const showPDF    = (l) => _h.openPDF(l);
 
-// ── Tracking ─────────────────────────────────────────────────────
 const track = (listingId, type) => {
   if(!listingId) return;
   const col = type==="view"?"view_count":type==="wa"?"wa_count":"pdf_count";
@@ -166,14 +155,12 @@ const track = (listingId, type) => {
   });
 };
 
-// ── WALogo ───────────────────────────────────────────────────────
 const WALogo = ({size=16}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="#fff" style={{flexShrink:0}}>
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
   </svg>
 );
 
-// ── Toast ────────────────────────────────────────────────────────
 const Toast = ({msg,type,onClose}) => (
   <div className="asl" style={{position:"fixed",bottom:28,right:28,zIndex:9999,padding:"13px 18px",borderRadius:12,display:"flex",alignItems:"center",gap:10,maxWidth:340,fontSize:14,fontWeight:600,boxShadow:"0 8px 32px rgba(27,58,45,0.18)",background:type==="error"?"#FEF2F2":type==="success"?"#ECFDF5":"#EFF6FF",border:`1.5px solid ${type==="error"?"#FCA5A5":type==="success"?"#6EE7B7":"#BFDBFE"}`,color:type==="error"?"#DC2626":type==="success"?"#059669":"#1D4ED8"}}>
     <span>{type==="error"?"⚠️":type==="success"?"✅":"ℹ️"}</span>
@@ -182,7 +169,6 @@ const Toast = ({msg,type,onClose}) => (
   </div>
 );
 
-// ── Confirm Delete Modal (replaces window.confirm) ───────────────
 const ConfirmModal = ({message,onConfirm,onCancel}) => (
   <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.45)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
     <div className="card asl" style={{padding:28,maxWidth:360,width:"100%"}}>
@@ -199,7 +185,6 @@ const ConfirmModal = ({message,onConfirm,onCancel}) => (
   </div>
 );
 
-// ── Duplicate Modal ──────────────────────────────────────────────
 const DupModal = ({dups,onProceed,onCancel}) => (
   <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.4)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
     <div className="card asl" style={{padding:32,maxWidth:500,width:"100%",boxShadow:"0 24px 80px rgba(27,58,45,0.2)"}}>
@@ -224,7 +209,6 @@ const DupModal = ({dups,onProceed,onCancel}) => (
   </div>
 );
 
-// ── Property Card ────────────────────────────────────────────────
 const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
   const isSaved = savedIds?.includes(listing.id);
   const statusColor = listing.status==="Active"?"#059669":listing.status==="Rented"?"#D97706":"#7C3AED";
@@ -263,7 +247,6 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
   );
 };
 
-// ── Property Modal ───────────────────────────────────────────────
 const PropModal = ({listing,onClose}) => {
   useEffect(()=>{if(listing?.id)track(listing.id,"view");},[listing?.id]);
   if(!listing) return null;
@@ -282,6 +265,22 @@ const PropModal = ({listing,onClose}) => {
         {listing.description&&<p style={{fontSize:14,color:"var(--muted)",lineHeight:1.75,marginBottom:20,background:"var(--cream)",padding:14,borderRadius:10,border:"1px solid var(--border)"}}>{listing.description}</p>}
         {fields.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 24px",marginBottom:20}}>{fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid var(--border)",fontSize:13}}><span style={{color:"var(--muted)"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}</div>}
         {listing.highlights?.length>0&&<div style={{marginBottom:20}}><p className="section-label">Key Highlights</p>{listing.highlights.map((h,i)=><div key={i} style={{fontSize:13,color:"var(--text)",marginBottom:6,display:"flex",gap:8,alignItems:"flex-start"}}><span style={{color:"var(--green)",fontWeight:700,marginTop:1}}>✓</span>{h}</div>)}</div>}
+        {listing.location&&<div style={{marginBottom:20}}>
+          <p className="section-label">📍 Location</p>
+          <div style={{borderRadius:12,overflow:"hidden",border:"1px solid var(--border)",position:"relative"}}>
+            <img
+              src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x240&scale=2&maptype=roadmap&markers=color:0xFF6B00%7Clabel:P%7C${encodeURIComponent(listing.location)}&style=feature:poi%7Celement:labels%7Cvisibility:off&key=AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4`}
+              alt="Property location"
+              style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
+              onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
+            />
+            <div style={{display:"none",width:"100%",height:160,background:"var(--gray)",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,borderRadius:12}}>
+              <div style={{fontSize:28}}>🗺️</div>
+              <div style={{fontSize:12,color:"var(--muted)",fontWeight:600}}>{listing.location}</div>
+            </div>
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(listing.location)}`} target="_blank" rel="noreferrer" style={{position:"absolute",bottom:10,right:10,background:"rgba(255,255,255,0.95)",border:"1px solid var(--border)",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:700,color:"var(--navy)",textDecoration:"none",backdropFilter:"blur(4px)"}}>Open in Maps ↗</a>
+          </div>
+        </div>}
         <div style={{background:"var(--green-light)",borderRadius:14,padding:20,border:"1px solid var(--green-mid)"}}>
           <p className="section-label">Contact Agent</p>
           <div style={{fontSize:14,color:"var(--text)",display:"flex",flexDirection:"column",gap:8}}>
@@ -299,7 +298,6 @@ const PropModal = ({listing,onClose}) => {
   );
 };
 
-// ── WA Card Modal ────────────────────────────────────────────────
 const WACardModal = ({listing,onClose}) => {
   const [copied,setCopied]=useState(false);
   const [downloading,setDownloading]=useState(false);
@@ -341,7 +339,6 @@ const WACardModal = ({listing,onClose}) => {
         if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
           await navigator.share({files:[file],title:listing.title,text:buildText()});
         } else {
-          // Fallback: download image then open WA text
           const a=document.createElement("a"); a.download="pheniq-card.png";
           a.href=canvas.toDataURL(); a.click();
           setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank"),800);
@@ -383,8 +380,6 @@ const WACardModal = ({listing,onClose}) => {
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
       <div className="asl" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,maxHeight:"95vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}>
-
-        {/* Card Preview */}
         <div id="wa-card" style={{width:360,background:"#fff",borderRadius:20,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.5)",flexShrink:0}}>
           <div style={{height:200,position:"relative",background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
             {listing.photos?.[0]?<img src={listing.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:56,opacity:0.25}}>🏠</div>}
@@ -405,22 +400,15 @@ const WACardModal = ({listing,onClose}) => {
             <div style={{fontFamily:"'Fraunces',serif",fontSize:14,fontWeight:800,color:"#3DAA7E"}}>PHENIQ</div>
           </div>
         </div>
-
-                <button onClick={()=>downloadImage('png')} disabled={downloading} style={{width:360,padding:'12px 8px',borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?'not-allowed':'pointer',background:'rgba(255,255,255,0.18)',color:'#fff',border:'1px solid rgba(255,255,255,0.3)',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:downloading?0.6:1}}>
+        <button onClick={()=>downloadImage('png')} disabled={downloading} style={{width:360,padding:'12px 8px',borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?'not-allowed':'pointer',background:'rgba(255,255,255,0.18)',color:'#fff',border:'1px solid rgba(255,255,255,0.3)',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:downloading?0.6:1}}>
           {downloading?'Processing...':'⬇️ Download WhatsApp Card'}
         </button>
-
-        {/* WhatsApp share with image */}
         <button onClick={shareOnWA} disabled={downloading} style={{width:360,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
           {downloading?"⏳ Processing…":<><WALogo size={15}/>Share Card Image on WhatsApp</>}
         </button>
-
-        {/* Tip */}
         <div style={{width:360,background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"7px 12px",fontSize:10,color:"rgba(255,255,255,0.5)",textAlign:"center",lineHeight:1.5}}>
           💡 On mobile: Share Image sends photo directly · On desktop: image downloads then WA opens
         </div>
-
-        {/* Text buttons */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,width:360}}>
           <button onClick={copyText} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.12)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
           <button onClick={openWA} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(18,140,126,0.8)",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={11}/>Text Only</button>
@@ -431,137 +419,175 @@ const WACardModal = ({listing,onClose}) => {
   );
 };
 
-// ── PDF Modal ────────────────────────────────────────────────────
 const PDFModal = ({listing,onClose}) => {
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
+  const MAPS_KEY="AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4";
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
   const [pdfLoading,setPdfLoading]=useState(false);
+  const SectionLabel=({children})=><div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1.2px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>{children}</div>;
 
   const downloadPDF=async()=>{
     const el=document.getElementById('pdf-print-area');
     if(!el) return;
     setPdfLoading(true);
     try{
-      const h2c=await new Promise((res,rej)=>{
-        if(window.html2canvas){res(window.html2canvas);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);
-      });
-      const jsPDFCls=await new Promise((res,rej)=>{
-        if(window.jspdf){res(window.jspdf.jsPDF);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);
-      });
+      const h2c=await new Promise((res,rej)=>{if(window.html2canvas){res(window.html2canvas);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);});
+      const jsPDFCls=await new Promise((res,rej)=>{if(window.jspdf){res(window.jspdf.jsPDF);return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);});
       const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
-      const mmW=210;
-      const mmH=(canvas.height*mmW)/canvas.width;
-      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
-      const pageH=297;
-      let y=0;
-      while(y<mmH){
-        if(y>0) pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
-        y+=pageH;
-      }
+      const mmW=210,mmH=(canvas.height*mmW)/canvas.width,pdf=new jsPDFCls({unit:'mm',format:'a4'}),pageH=297;
+      let y=0;while(y<mmH){if(y>0)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);y+=pageH;}
       pdf.save('pheniq-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
     }catch(err){console.error(err);window.print();}
     setPdfLoading(false);
   };
 
   return (
-    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div className="asl" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-        {/* Toolbar */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
-          <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
+    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
+      <div className="asl" style={{background:"#fff",borderRadius:20,maxWidth:720,width:"100%",maxHeight:"93vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+        {/* ── STICKY TOOLBAR ── */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:10,borderRadius:"20px 20px 0 0"}}>
+          <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>📄 PDF Preview</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={downloadPDF} disabled={pdfLoading} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,opacity:pdfLoading?0.7:1}}>{pdfLoading?<><span className="spin"/>Generating PDF…</>:<>⬇️ Download PDF</>}</button>
-            <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
+            <button onClick={downloadPDF} disabled={pdfLoading} style={{background:"var(--primary)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:9,fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,opacity:pdfLoading?0.7:1}}>{pdfLoading?<><span className="spin"/>Generating…</>:<>⬇️ Download PDF</>}</button>
+            <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:9,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
           </div>
         </div>
 
-        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
+        {/* ── PDF CONTENT ── */}
+        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410",background:"#fff"}}>
 
-          {/* ── AGENT HEADER (white-label) ── */}
+          {/* ── HEADER BRAND ── */}
           {hasAgentBrand?(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
-                {listing.logoUrl
-                  ?<img src={listing.logoUrl} alt="logo" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>
-                  :<div style={{width:64,height:64,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,border:"1px solid var(--primary-mid)"}}>🏢</div>
-                }
+                {listing.logoUrl?<img src={listing.logoUrl} alt="logo" style={{width:60,height:60,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>:<div style={{width:60,height:60,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,border:"1px solid var(--primary-mid)"}}>🏢</div>}
                 <div>
-                  <div style={{fontWeight:900,fontSize:22,color:"var(--navy)",letterSpacing:"-0.5px"}}>{listing.agencyName||listing.agentName}</div>
-                  {listing.agentPhone&&<div style={{fontSize:13,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
-                  {listing.agentAddress&&<div style={{fontSize:12,color:"#666"}}>📍 {listing.agentAddress}</div>}
-                  {listing.agentWebsite&&<div style={{fontSize:12,color:"var(--primary)"}}>{listing.agentWebsite}</div>}
+                  <div style={{fontWeight:900,fontSize:20,color:"var(--navy)",letterSpacing:"-0.3px"}}>{listing.agencyName||listing.agentName}</div>
+                  {listing.agentPhone&&<div style={{fontSize:12,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
+                  {listing.agentAddress&&<div style={{fontSize:11,color:"#888"}}>📍 {listing.agentAddress}</div>}
+                  {listing.agentWebsite&&<div style={{fontSize:11,color:"var(--primary)"}}>{listing.agentWebsite}</div>}
                 </div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:11,color:"#aaa"}}>{td}</div>
-                <div style={{fontSize:11,color:"#aaa",marginTop:2}}>Ref: {ref}</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:11,fontWeight:800,color:"#ccc",letterSpacing:"1px"}}>PHENIQ</div>
+                <div style={{fontSize:10,color:"#bbb",marginTop:2}}>{td}</div>
+                <div style={{fontSize:10,color:"#bbb"}}>Ref: {ref}</div>
               </div>
             </div>
           ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,color:"var(--navy)"}}>PHEN<span style={{color:"var(--primary)"}}>IQ</span></div>
-                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:2,textTransform:"uppercase"}}>Professional Property Marketing</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--navy)"}}>PHEN<span style={{color:"var(--primary)"}}>IQ</span></div>
+                <div style={{fontSize:10,color:"#aaa",letterSpacing:"1.5px",marginTop:1,textTransform:"uppercase"}}>Professional Property Marketing</div>
               </div>
-              <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
+              <div style={{textAlign:"right",fontSize:11,color:"#aaa"}}><div>{td}</div><div style={{marginTop:2}}>Ref: {ref}</div></div>
             </div>
           )}
 
-          {/* ── PHOTOS ── */}
-          {listing.photos?.length>0&&(
-            <div style={{marginBottom:24}}>
-              <div style={{display:"grid",gridTemplateColumns:listing.photos.length===1?"1fr":"1fr 1fr",gap:8}}>
-                {listing.photos.slice(0,4).map((p,i)=>(
-                  <img key={i} src={p} alt="" style={{width:"100%",height:listing.photos.length===1?260:170,objectFit:"cover",borderRadius:10,border:"1px solid #eee"}}/>
-                ))}
+          {/* ── HERO COVER PHOTO ── */}
+          {listing.photos?.[0]&&(
+            <div style={{position:"relative",marginBottom:24,borderRadius:14,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.12)"}}>
+              <img src={listing.photos[0]} alt="Cover" style={{width:"100%",height:300,objectFit:"cover",display:"block"}}/>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(26,20,16,0.75) 0%,transparent 55%)"}}/>
+              <div style={{position:"absolute",bottom:20,left:24,right:24}}>
+                <h1 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:900,color:"#fff",margin:"0 0 4px",lineHeight:1.2,textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>{listing.title}</h1>
+                <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>📍 {listing.location}</div>
               </div>
+              <div style={{position:"absolute",top:14,right:14,background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"4px 14px",borderRadius:20,letterSpacing:"0.3px"}}>For {listing.listingType}</div>
             </div>
           )}
 
-          {/* ── TITLE + PRICE ── */}
-          <h1 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:900,margin:"0 0 4px",color:"var(--navy)"}}>{listing.title}</h1>
-          <div style={{color:"#888",fontSize:14,marginBottom:10}}>📍 {listing.location}</div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--primary)",marginBottom:4}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:15,fontWeight:400,color:"#888"}}>/month</span>}</div>
-          <div style={{display:"inline-block",background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"3px 14px",fontSize:12,fontWeight:700,marginBottom:20}}>For {listing.listingType}</div>
+          {/* ── PRICE + QUICK STATS ── */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:24,padding:"18px 22px",background:"var(--primary-light)",borderRadius:14,border:"1px solid var(--primary-mid)"}}>
+            <div>
+              {!listing.photos?.[0]&&<h1 style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,margin:"0 0 4px",color:"var(--navy)"}}>{listing.title}</h1>}
+              {!listing.photos?.[0]&&<div style={{color:"#888",fontSize:13,marginBottom:8}}>📍 {listing.location}</div>}
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--primary)",lineHeight:1}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:14,fontWeight:400,color:"#888"}}>/month</span>}</div>
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              {listing.bedrooms>0&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🛏</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.bedrooms} Bed{listing.bedrooms>1?"s":""}</div></div>}
+              {listing.bathrooms>0&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🚿</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.bathrooms} Bath{listing.bathrooms>1?"s":""}</div></div>}
+              {listing.sizesqft&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>📐</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.sizesqft} sqft</div></div>}
+              {listing.furnishingStatus&&<div style={{background:"#fff",borderRadius:10,padding:"8px 14px",textAlign:"center",border:"1px solid var(--primary-mid)"}}><div style={{fontSize:18}}>🛋</div><div style={{fontSize:12,fontWeight:700,color:"var(--navy)"}}>{listing.furnishingStatus}</div></div>}
+            </div>
+          </div>
 
           {/* ── DESCRIPTION ── */}
-          {listing.description&&<div style={{background:"#fafafa",padding:16,borderRadius:10,fontSize:13,lineHeight:1.8,marginBottom:20,border:"1px solid #eee",color:"#444"}}>{listing.description}</div>}
+          {listing.description&&<div style={{marginBottom:24}}>
+            <SectionLabel>About this Property</SectionLabel>
+            <p style={{fontSize:13,lineHeight:1.85,color:"#444",margin:0,background:"#fafafa",padding:"14px 16px",borderRadius:10,border:"1px solid #eee"}}>{listing.description}</p>
+          </div>}
 
-          {/* ── DETAILS ── */}
-          {fields.length>0&&<div style={{marginBottom:20}}>
-            <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Property Details</div>
+          {/* ── PROPERTY DETAILS 2-COL TABLE ── */}
+          {fields.length>0&&<div style={{marginBottom:24}}>
+            <SectionLabel>Property Details</SectionLabel>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 40px"}}>
-              {fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f4f4f4",fontSize:13}}><span style={{color:"#888"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}
+              {fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}><span style={{color:"#999"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}
             </div>
           </div>}
 
           {/* ── HIGHLIGHTS ── */}
           {listing.highlights?.length>0&&<div style={{marginBottom:24}}>
-            <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Key Highlights</div>
-            {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
+            <SectionLabel>Key Highlights</SectionLabel>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {listing.highlights.map((h,i)=><div key={i} style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--primary-light)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"5px 14px",fontSize:12,color:"var(--navy)",fontWeight:600}}><span style={{color:"var(--primary)",fontWeight:800}}>✓</span>{h}</div>)}
+            </div>
           </div>}
 
-          {/* ── FOOTER ── */}
-          <div style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
-            <div>
-              <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
-              {listing.agentEmail&&<div style={{fontSize:12,color:"#888"}}>{listing.agentEmail}</div>}
-              {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
+          {/* ── PHOTOS stacked one above the other ── */}
+          {listing.photos?.length>0&&(
+            <div style={{marginBottom:24}}>
+              <SectionLabel>Property Photos</SectionLabel>
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                {listing.photos.map((p,i)=>(
+                  <div key={i} style={{position:"relative",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
+                    <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:300,objectFit:"cover",display:"block"}}/>
+                    {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 12px",borderRadius:20,letterSpacing:"0.3px"}}>⭐ Cover Photo</div>}
+                    <div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,0.45)",color:"#fff",fontSize:10,fontWeight:600,padding:"3px 10px",borderRadius:12,backdropFilter:"blur(4px)"}}>{i+1} / {listing.photos.length}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── GOOGLE MAPS ── */}
+          {listing.location&&<div style={{marginBottom:24}}>
+            <SectionLabel>Location Map</SectionLabel>
+            <div style={{borderRadius:12,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)",position:"relative"}}>
+              <img
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x240&scale=2&maptype=roadmap&markers=color:0xFF6B00%7Clabel:P%7C${encodeURIComponent(listing.location)}&style=feature:poi%7Celement:labels%7Cvisibility:off&key=${MAPS_KEY}`}
+                alt="Property location map"
+                style={{width:"100%",height:220,objectFit:"cover",display:"block"}}
+                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
+              />
+              <div style={{display:"none",width:"100%",height:140,background:"#f5f0ec",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
+                <div style={{fontSize:28}}>🗺️</div>
+                <div style={{fontSize:12,color:"#aaa",fontWeight:600}}>📍 {listing.location}</div>
+              </div>
+              <div style={{position:"absolute",bottom:10,left:12,background:"rgba(255,255,255,0.95)",borderRadius:8,padding:"4px 12px",fontSize:11,fontWeight:600,color:"var(--navy)",border:"1px solid #eee"}}>📍 {listing.location}</div>
+            </div>
+          </div>}
+
+          {/* ── AGENT FOOTER ── */}
+          <div style={{marginTop:8,background:"var(--navy)",borderRadius:14,padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              {listing.logoUrl&&<img src={listing.logoUrl} alt="logo" style={{width:42,height:42,objectFit:"contain",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.1)"}}/>}
+              <div>
+                <div style={{fontWeight:800,fontSize:14,color:"#fff"}}>{listing.agentName||listing.agencyName||""}</div>
+                {listing.agencyName&&listing.agentName&&<div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{listing.agencyName}</div>}
+                <div style={{display:"flex",gap:14,marginTop:4,flexWrap:"wrap"}}>
+                  {listing.agentPhone&&<div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>📞 {listing.agentPhone}</div>}
+                  {listing.agentEmail&&<div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>✉ {listing.agentEmail}</div>}
+                </div>
+              </div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>PHENIQ</div>
-              <div style={{fontSize:10,color:"#ccc"}}>Powered by Pheniq</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.3)",letterSpacing:"1px"}}>PHENIQ</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:1}}>Powered by Pheniq</div>
             </div>
           </div>
 
@@ -571,13 +597,11 @@ const PDFModal = ({listing,onClose}) => {
   );
 };
 
-// ── Secret Admin hook ────────────────────────────────────────────
 const useSecretAdmin = (cb) => {
   const c=useRef(0),t=useRef(null);
   return ()=>{c.current++;clearTimeout(t.current);t.current=setTimeout(()=>{c.current=0;},1500);if(c.current>=5){c.current=0;cb();}};
 };
 
-// ── Secret Admin Modal ───────────────────────────────────────────
 const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   const [email,setEmail]=useState("");const [pass,setPass]=useState("");const [shake,setShake]=useState(false);const [loading,setLoading]=useState(false);
   const attempt=async()=>{
@@ -610,7 +634,6 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-// ── Login Page ───────────────────────────────────────────────────
 const LoginPage = ({onLogin,showToast,onNavigate}) => {
   const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
@@ -701,14 +724,26 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
   );
 };
 
-// ── Form Helpers ─────────────────────────────────────────────────
 const FI=({label,k,form,set,type="text",placeholder="",err,span})=>(<div style={{marginBottom:13,gridColumn:span?"1/-1":"auto"}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<input type={type} placeholder={placeholder} value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp" style={{borderColor:err?"#FCA5A5":"var(--border)"}} />{err&&<div style={{fontSize:11,color:"#DC2626",marginTop:3}}>{err}</div>}</div>);
 const FS=({label,k,form,set,opts})=>(<div style={{marginBottom:13}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<select value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp"><option value="">Select…</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>);
 const FormSec=({title,children})=>(<div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}><h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>{title}</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>{children}</div></div>);
 
-// ── Listing Form ─────────────────────────────────────────────────
+const scorePhotoWithClaude=async(base64,mediaType)=>{
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mediaType,data:base64}},{type:"text",text:`You are a real estate photography expert. Score this property photo for use as a listing cover image. Rate each from 1-10: lighting, angle, appeal, clarity. Respond ONLY with valid JSON no markdown: {"lighting":7,"angle":8,"appeal":9,"clarity":8,"overall":8,"reason":"one sentence"}`}]}]})});
+    const data=await res.json();
+    const text=data.content?.[0]?.text||"{}";
+    return JSON.parse(text.replace(/```json|```/g,"").trim());
+  }catch{return{overall:5,lighting:5,angle:5,appeal:5,clarity:5,reason:"Could not score"};}
+};
+
 const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved}) => {
   const isEdit=!!listingId; const fileRef=useRef(); const [hl,setHl]=useState(""); const [dupModal,setDupModal]=useState(null); const [saving,setSaving]=useState(false); const [photoLoading,setPhotoLoading]=useState(false);
+  const [aiStatus,setAiStatus]=useState("idle"); // idle | analyzing | done
+  const [coverIdx,setCoverIdx]=useState(0);
+  const [aiPick,setAiPick]=useState(null);
+  const [scoringIdx,setScoringIdx]=useState(null);
+  const [photoMeta,setPhotoMeta]=useState([]); // [{url,score}] parallel to form.photos
   const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[]});
   const [errs,setErrs]=useState({});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -720,19 +755,54 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     if((form.photos?.length||0)+files.length>10){showToast("Max 10 photos allowed","error");return;}
     setPhotoLoading(true);
     try{
-      const urls=[];
+      // 1. Upload all to Supabase first
+      const newUrls=[]; const newMeta=[];
       for(const file of files){
         if(file.size>5*1024*1024){showToast(`${file.name} is over 5MB, skipped`,"error");continue;}
         const url=await uploadPhoto(file);
-        urls.push(url);
+        // Read base64 for scoring
+        const b64=await new Promise(res=>{const r=new FileReader();r.onload=ev=>{const[,d]=ev.target.result.split(",");res({base64:d,mediaType:file.type});};r.readAsDataURL(file);});
+        newUrls.push(url);
+        newMeta.push({url,score:null,base64:b64.base64,mediaType:b64.mediaType});
       }
-      setForm(f=>({...f,photos:[...(f.photos||[]),...urls]}));
-      if(urls.length) showToast(`${urls.length} photo(s) uploaded ✓`,"success");
-    }catch(err){showToast("Photo upload failed: "+err.message,"error");}
-    setPhotoLoading(false);
-    e.target.value="";
+      const allUrls=[...(form.photos||[]),...newUrls];
+      const allMeta=[...photoMeta,...newMeta];
+      setForm(f=>({...f,photos:allUrls}));
+      setPhotoMeta(allMeta);
+      setPhotoLoading(false);
+      e.target.value="";
+      if(!newUrls.length) return;
+      // 2. Silently score all unscored photos
+      setAiStatus("analyzing");
+      const scored=[...allMeta];
+      for(let i=0;i<scored.length;i++){
+        if(scored[i].score) continue;
+        setScoringIdx(i);
+        const result=await scorePhotoWithClaude(scored[i].base64,scored[i].mediaType);
+        scored[i]={...scored[i],score:result};
+        setPhotoMeta([...scored]);
+      }
+      setScoringIdx(null);
+      // 3. Pick best, move to index 0
+      const bestIdx=scored.reduce((b,p,i)=>(p.score?.overall||0)>(scored[b].score?.overall||0)?i:b,0);
+      setAiPick(bestIdx);
+      setCoverIdx(bestIdx);
+      // Reorder photos so best is first
+      const reordered=[...allUrls];
+      const [best]=reordered.splice(bestIdx,1);
+      reordered.unshift(best);
+      const reorderedMeta=[...scored];
+      const [bestM]=reorderedMeta.splice(bestIdx,1);
+      reorderedMeta.unshift(bestM);
+      setForm(f=>({...f,photos:reordered}));
+      setPhotoMeta(reorderedMeta);
+      setCoverIdx(0);
+      setAiPick(0);
+      setAiStatus("done");
+      showToast(`✨ Best cover auto-selected (${scored[bestIdx].score?.overall}/10) — you can change it anytime`,"success");
+    }catch(err){showToast("Photo upload failed: "+err.message,"error");setPhotoLoading(false);}
   };
-  const rmPhoto=(i)=>setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));
+  const rmPhoto=(i)=>{setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));setPhotoMeta(m=>m.filter((_,idx)=>idx!==i));if(coverIdx>=( form.photos?.length||1)-1)setCoverIdx(0);};
   const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";if(!form.description||!form.description.trim())e.description="Description is required";if(!form.photos?.length)e.photos="At least 1 photo is required";setErrs(e);return !Object.keys(e).length;};
   const doSave=async()=>{
     setSaving(true);
@@ -808,11 +878,33 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <FI label="Email" k="agentEmail" form={form} set={set} type="email"/>
       </FormSec>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📸 Photos * (min 1, max 10)</h3>
+        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>📸 Photos * (min 1, max 10)</span>
+          {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>Claude picking best cover…</span>}
+          {aiStatus==="done"&&<span style={{fontSize:11,color:"#059669",fontWeight:600,textTransform:"none",letterSpacing:0}}>✨ Best cover auto-selected</span>}
+        </h3>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
-        {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>{form.photos.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} alt="" style={{width:100,height:80,objectFit:"cover",borderRadius:8,border:"1px solid var(--border)"}}/><button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:-6,right:-6,background:"#DC2626",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button></div>)}</div>}
+        {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:12}}>
+          {form.photos.map((p,i)=>{
+            const meta=photoMeta[i];
+            const isCover=coverIdx===i;
+            const isScoring=scoringIdx===i;
+            return(
+              <div key={i} style={{position:"relative",flexShrink:0}}>
+                <img src={p} alt="" style={{width:100,height:80,objectFit:"cover",borderRadius:8,border:`2px solid ${isCover?"var(--primary)":"var(--border)"}`,display:"block",transition:"border 0.2s"}}/>
+                {isScoring&&<div style={{position:"absolute",inset:0,borderRadius:8,background:"rgba(255,107,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}><span className="spin"/></div>}
+                {isCover&&<div style={{position:"absolute",top:4,left:4,background:"var(--primary)",color:"#fff",fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:8}}>⭐ COVER</div>}
+                {meta?.score&&!isScoring&&<div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.6)",color:"#fff",fontSize:8,fontWeight:700,padding:"2px 5px",borderRadius:6}}>{meta.score.overall}/10</div>}
+                <button onClick={()=>rmPhoto(i)} style={{position:"absolute",top:-6,right:-6,background:"#DC2626",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+                {!isCover&&meta?.score&&<button onClick={()=>setCoverIdx(i)} style={{width:"100%",marginTop:3,padding:"3px",borderRadius:6,fontSize:9,fontWeight:700,cursor:"pointer",background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontFamily:"inherit"}}>Set Cover</button>}
+                {isCover&&<div style={{width:"100%",marginTop:3,fontSize:9,fontWeight:700,textAlign:"center",color:"var(--primary)"}}>✓ Cover</div>}
+              </div>
+            );
+          })}
+        </div>}
+        {aiStatus==="done"&&aiPick!==null&&<div style={{marginBottom:10,padding:"8px 12px",background:"var(--primary-light)",borderRadius:8,border:"1px solid var(--primary-mid)",fontSize:11,color:"var(--muted)"}}>🤖 <strong style={{color:"var(--navy)"}}>AI picked Photo {aiPick+1} as cover</strong>{photoMeta[aiPick]?.score?.reason?` — ${photoMeta[aiPick].score.reason}`:""}</div>}
         <input type="file" ref={fileRef} multiple accept="image/*" onChange={handlePhotos} style={{display:"none"}}/>
-        <button onClick={()=>fileRef.current?.click()} disabled={photoLoading} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13,borderColor:errs.photos?"#FCA5A5":"var(--border)"}}>📁 {photoLoading?"Uploading…":"Choose Photos"}</button>
+        <button onClick={()=>fileRef.current?.click()} disabled={photoLoading||aiStatus==="analyzing"} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13,borderColor:errs.photos?"#FCA5A5":"var(--border)"}}>📁 {photoLoading?"Uploading…":aiStatus==="analyzing"?"Analysing…":"Choose Photos"}</button>
         {errs.photos&&<div style={{fontSize:11,color:"#DC2626",marginTop:6}}>{errs.photos}</div>}
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
@@ -827,12 +919,10 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   );
 };
 
-// ── Agent Dashboard ──────────────────────────────────────────────
 const AgentDash = ({currentUser,showToast}) => {
   const isSeller=currentUser.role==="seller";
   const maxListings=isSeller?2:9999;
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
-  // Profile state
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
@@ -843,7 +933,6 @@ const AgentDash = ({currentUser,showToast}) => {
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
-  // #6 Quick status change
   const quickStatus=async(id,newStatus)=>{
     setStatusChanging(id);
     const {error}=await supabase.from("listings").update({status:newStatus}).eq("id",id);
@@ -891,14 +980,11 @@ const AgentDash = ({currentUser,showToast}) => {
           :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
         }
       </div>
-
-      {/* Tabs — agents get Profile tab, sellers don't */}
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
         {[["listings","🏠 Listings"],...(!isSeller?[["profile","🏢 Profile"]]:[])].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none"}}>{l}</button>
         ))}
       </div>
-
       {tab==="listings"&&<>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}} className="gr">
           {stats.map(([label,val,icon])=>(
@@ -924,13 +1010,11 @@ const AgentDash = ({currentUser,showToast}) => {
                   <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--primary)",marginBottom:2}}>{fmtP(l.price)}</div>
                   <h3 style={{fontSize:14,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{l.title}</h3>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>📍 {l.location}</div>
-                  {/* #5 Enquiry counters */}
                   <div style={{display:"flex",gap:10,fontSize:11,marginBottom:10,padding:"6px 10px",background:"var(--gray)",borderRadius:8}}>
                     <span style={{color:"var(--muted)"}}>👁 {l.viewCount||0}</span>
                     <span style={{color:"#25D366",fontWeight:700}}>📲 {l.waCount||0} WA</span>
                     <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
                   </div>
-                  {/* #6 Quick status */}
                   {l.status==="Active"?(
                     <div style={{display:"flex",gap:5,marginBottom:8}}>
                       <button onClick={()=>quickStatus(l.id,"Sold")} disabled={statusChanging===l.id} style={{flex:1,padding:"6px 2px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",color:"#7C3AED",fontFamily:"inherit"}}>🏆 Sold</button>
@@ -954,13 +1038,11 @@ const AgentDash = ({currentUser,showToast}) => {
           </div>
         }
       </>}
-
       {tab==="profile"&&!isSeller&&(
         <div style={{maxWidth:620}}>
           <div className="card" style={{padding:28,marginBottom:16}}>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:20}}>🏢 Agency / Firm Profile</h2>
             <p style={{fontSize:13,color:"var(--muted)",marginBottom:12,background:"var(--primary-light)",padding:"10px 14px",borderRadius:10,border:"1px solid var(--primary-mid)"}}>⭐ Your logo and details will appear as the <strong>header of every PDF brochure</strong> you generate.</p>
-            {/* Public Page Link */}
             <div style={{background:"var(--gray)",borderRadius:10,padding:"12px 14px",marginBottom:20,border:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
               <div>
                 <div style={{fontSize:12,fontWeight:700,color:"var(--navy)",marginBottom:2}}>🔗 Your Public Profile Page</div>
@@ -968,8 +1050,6 @@ const AgentDash = ({currentUser,showToast}) => {
               </div>
               <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}?agent=${currentUser.id}`);showToast("Link copied! Share it on WhatsApp or Instagram bio ✓","success");}} style={{padding:"8px 16px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:"var(--primary)",color:"#fff",border:"none",fontFamily:"inherit",whiteSpace:"nowrap"}}>📋 Copy Link</button>
             </div>
-
-            {/* Logo Upload */}
             <div style={{marginBottom:20}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Company Logo</label>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
@@ -985,20 +1065,16 @@ const AgentDash = ({currentUser,showToast}) => {
                 </div>
               </div>
             </div>
-
             {[["Agency / Firm Name","agencyName","e.g. Sharma Realty"],["Phone","phone","10-digit mobile"],["Office Address","address","Full office address"],["Website","website","https://yoursite.com"]].map(([label,key,placeholder])=>(
               <div key={key} style={{marginBottom:14}}>
                 <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>
                 <input className="inp" placeholder={placeholder} value={profile[key]||""} onChange={e=>setProfile(p=>({...p,[key]:e.target.value}))}/>
               </div>
             ))}
-
             <button onClick={saveProfile} disabled={profileSaving} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8,marginTop:8}}>
               {profileSaving?<><span className="spin"/>Saving…</>:"Save Profile →"}
             </button>
           </div>
-
-          {/* Preview */}
           <div className="card" style={{padding:20}}>
             <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",marginBottom:12,textTransform:"uppercase",letterSpacing:0.5}}>PDF Header Preview</div>
             <div style={{background:"var(--gray)",borderRadius:12,padding:16,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid var(--border)"}}>
@@ -1019,13 +1095,11 @@ const AgentDash = ({currentUser,showToast}) => {
           </div>
         </div>
       )}
-
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
     </div>
   );
 };
 
-// ── User Dashboard ───────────────────────────────────────────────
 const UserDash = ({currentUser,showToast}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
   useEffect(()=>{
@@ -1086,7 +1160,6 @@ const UserDash = ({currentUser,showToast}) => {
   );
 };
 
-// ── Master Dashboard ─────────────────────────────────────────────
 const MasterDash = ({showToast}) => {
   const [listings,setListings]=useState([]);const [agents,setAgents]=useState([]);const [users,setUsers]=useState([]);const [tab,setTab]=useState("overview");const [search,setSearch]=useState("");const [modal,setModal]=useState(null);const [loading,setLoading]=useState(true);const [deleteTarget,setDeleteTarget]=useState(null);
   useEffect(()=>{
@@ -1183,7 +1256,6 @@ const MasterDash = ({showToast}) => {
   );
 };
 
-// ── Feed ─────────────────────────────────────────────────────────
 const Feed = ({currentUser,showToast,onNavigate}) => {
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [modal,setModal]=useState(null);const [open,setOpen]=useState(false);
   const requireAuth=(fn)=>(...args)=>{if(!currentUser){showToast("Please sign in to access this feature","error");onNavigate&&onNavigate("login");return;}fn(...args);};
@@ -1256,7 +1328,6 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
   );
 };
 
-// ── Home Page ────────────────────────────────────────────────────
 const Home = ({currentUser,onNavigate}) => {
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState({type:"",listing:"",location:""});
@@ -1281,32 +1352,29 @@ const Home = ({currentUser,onNavigate}) => {
   ];
   return (
     <div style={{background:"var(--cream)"}}>
-
-      {/* ── ANNOUNCEMENT RIBBON ── */}
-      <div style={{background:"var(--primary)",padding:"10px 24px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
-        <span style={{color:"#fff",fontSize:13,fontWeight:600}}>✨ <strong>India's first instant property brochure platform</strong> — PDF + WhatsApp card in under 2 minutes</span>
-        <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} style={{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",color:"#fff",padding:"4px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>{currentUser?"Open Dashboard →":"Sign Up Free →"}</button>
-      </div>
-
-      {/* ── HERO (compact) ── */}
-      <section style={{background:"#fff",padding:"48px 24px 40px",textAlign:"center",borderBottom:"1px solid var(--border)"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--primary-light)",color:"var(--primary)",padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,marginBottom:18,border:"1px solid var(--primary-mid)"}}>🇮🇳 Built for Indian Real Estate</div>
-        <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:52,color:"var(--navy)",lineHeight:1.08,marginBottom:14,letterSpacing:"-1px"}} className="h1big">
-          <ShinyText text="Buy, Sell & Rent" color="#1a1410" shineColor="#FF6B00" speed={3.5} spread={180}/>{" "}
-          <span style={{color:"var(--primary)"}}><ShinyText text="Properties" color="#FF6B00" shineColor="#ffb366" speed={2.5} spread={140}/></span>
-        </h1>
-        <p style={{fontSize:16,color:"var(--muted)",maxWidth:560,margin:"0 auto 24px",lineHeight:1.7}}>Verified listings with instant PDF brochures and WhatsApp cards — for buyers, sellers, and agents.</p>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-green" style={{padding:"13px 28px",borderRadius:12,fontSize:15}}>
-            {currentUser?"Go to Dashboard →":"List Your Property →"}
-          </button>
-          <button onClick={()=>document.getElementById("prop-grid")?.scrollIntoView({behavior:"smooth"})} className="btn-outline" style={{padding:"13px 24px",borderRadius:12,fontSize:15}}>Browse Properties ↓</button>
+      <section style={{position:"relative",width:"100%",height:"520px",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}} className="h1big-hero">
+        {/* Hero image */}
+        <img src="/hero-city.jpg" alt="Indian cityscape" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}} />
+        {/* Gradient overlay — dark at bottom, semi at top so text reads */}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(20,10,5,0.35) 0%, rgba(20,10,5,0.18) 40%, rgba(20,10,5,0.62) 100%)"}} />
+        {/* Content */}
+        <div style={{position:"relative",zIndex:1,textAlign:"center",padding:"0 24px",maxWidth:780,margin:"0 auto"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"rgba(255,255,255,0.15)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",padding:"6px 16px",borderRadius:24,fontSize:12,fontWeight:700,marginBottom:22,letterSpacing:"0.5px"}}>
+            🇮🇳 India's #1 Property Marketing Platform
+          </div>
+          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:58,color:"#fff",lineHeight:1.07,marginBottom:16,letterSpacing:"-1.5px",textShadow:"0 2px 24px rgba(0,0,0,0.3)"}} className="h1big">
+            Discover, Buy, Sell<br/>&amp; <span style={{color:"var(--primary)"}}>Rent</span>
+          </h1>
+          <p style={{fontSize:17,color:"rgba(255,255,255,0.82)",maxWidth:500,margin:"0 auto 32px",lineHeight:1.7,textShadow:"0 1px 8px rgba(0,0,0,0.3)"}}>Instant PDF brochures and WhatsApp cards — for buyers, sellers &amp; agents across India.</p>
+          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-green" style={{padding:"14px 32px",borderRadius:12,fontSize:15,boxShadow:"0 8px 28px rgba(255,107,0,0.45)"}}>
+              {currentUser?"Go to Dashboard →":"List Your Property →"}
+            </button>
+            <button onClick={()=>document.getElementById("prop-grid")?.scrollIntoView({behavior:"smooth"})} style={{padding:"14px 28px",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1.5px solid rgba(255,255,255,0.45)",backdropFilter:"blur(8px)",fontFamily:"inherit",transition:"all 0.2s"}}>Browse Properties ↓</button>
+          </div>
         </div>
       </section>
-
-      {/* ── PROPERTY GRID ── */}
       <section id="prop-grid" style={{padding:"40px 24px",maxWidth:1180,margin:"0 auto"}}>
-        {/* Filters */}
         <div style={{display:"flex",gap:10,marginBottom:24,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--navy)"}}>
             {loading?"Loading…":`${filtered.length} Propert${filtered.length!==1?"ies":"y"} Available`}
@@ -1325,8 +1393,6 @@ const Home = ({currentUser,onNavigate}) => {
             {(filter.type||filter.listing||filter.location)&&<button onClick={()=>setFilter({type:"",listing:"",location:""})} style={{padding:"8px 14px",borderRadius:9,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕ Clear</button>}
           </div>
         </div>
-
-        {/* Cards */}
         {loading?(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:20}} className="gr">
             {[1,2,3,4,5,6].map(i=><div key={i} style={{height:280,borderRadius:16,background:"linear-gradient(90deg,#f0f0f0 25%,#fafafa 50%,#f0f0f0 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>)}
@@ -1355,7 +1421,7 @@ const Home = ({currentUser,onNavigate}) => {
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
                     {l.bedrooms>0&&<span style={{fontSize:11,fontWeight:600,color:"var(--muted)",background:"var(--gray)",padding:"3px 8px",borderRadius:6}}>🛏 {l.bedrooms} Bed</span>}
                     {l.bathrooms>0&&<span style={{fontSize:11,fontWeight:600,color:"var(--muted)",background:"var(--gray)",padding:"3px 8px",borderRadius:6}}>🚿 {l.bathrooms} Bath</span>}
-                    {l.sizesqft&&<span style={{fontSize:11,fontWeight:600,color:"var(--muted)",background:"var(--gray)",padding:"3px 8px",borderRadius:6}}>📐 {l.sizesqft} sqft</span>}
+                    {l.sizesqft&&<span style={{fontSize:11,fontWeight:600,color:"var(--muted)",background:"var(--gray)",padding:"3px 7px",borderRadius:6}}>📐 {l.sizesqft} sqft</span>}
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}} onClick={e=>e.stopPropagation()}>
                     <button onClick={()=>setWAListing(l)} style={{padding:"8px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WhatsApp</button>
@@ -1367,13 +1433,11 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         )}
       </section>
-
-      {/* ── SELL YOUR PROPERTY CTA ── */}
       <section style={{background:"#fff",padding:"60px 24px",borderTop:"1px solid var(--border)",borderBottom:"1px solid var(--border)"}}>
         <div style={{maxWidth:960,margin:"0 auto",display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}} className="gr">
           {[
-            {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property",role:"seller"},
-            {icon:"🏢",title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent",role:"agent"},
+            {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
+            {icon:"🏢",title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent"},
           ].map(({icon,title,desc,cta})=>(
             <div key={title} style={{background:"var(--primary-light)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"28px 24px",display:"flex",gap:16,alignItems:"flex-start"}}>
               <div style={{width:52,height:52,borderRadius:14,background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{icon}</div>
@@ -1386,8 +1450,6 @@ const Home = ({currentUser,onNavigate}) => {
           ))}
         </div>
       </section>
-
-      {/* ── TESTIMONIALS ── */}
       <section style={{background:"var(--cream)",padding:"60px 24px"}}>
         <div style={{maxWidth:1100,margin:"0 auto"}}>
           <div style={{textAlign:"center",marginBottom:36}}>
@@ -1407,8 +1469,6 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         </div>
       </section>
-
-      {/* ── FOOTER ── */}
       <footer style={{background:"var(--navy)",padding:"36px 24px"}}>
         <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1421,8 +1481,6 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         </div>
       </footer>
-
-      {/* Mobile Bottom Nav */}
       <div style={{display:"none",position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid var(--border)",padding:"8px 0 12px",zIndex:200,justifyContent:"space-around"}} className="mob-nav">
         {[["🏠","Home","home"],["🔍","Browse","feed"],["➕","Sell","dashboard"],["👤","Account","dashboard"]].map(([icon,label,pg])=>(
           <button key={label} onClick={()=>onNavigate(pg)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"inherit",padding:"0 8px"}}>
@@ -1431,14 +1489,13 @@ const Home = ({currentUser,onNavigate}) => {
           </button>
         ))}
       </div>
-
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
     </div>
   );
 };
-// ── #4 Agent Public Profile Page ─────────────────────────────────
+
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
@@ -1455,7 +1512,6 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const copyLink=()=>{navigator.clipboard?.writeText(`${window.location.origin}?agent=${agentId}`);setCopied(true);setTimeout(()=>setCopied(false),2000);};
   return (
     <div style={{background:"var(--cream)",minHeight:"100vh"}}>
-      {/* Hero Banner */}
       <div style={{background:"var(--navy)",padding:"48px 24px 40px"}}>
         <div style={{maxWidth:960,margin:"0 auto",display:"flex",alignItems:"center",gap:24,flexWrap:"wrap"}}>
           <div style={{width:88,height:88,borderRadius:20,background:agent.logo_url?"#fff":"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid rgba(255,255,255,0.15)",flexShrink:0}}>
@@ -1481,8 +1537,6 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
           </div>
         </div>
       </div>
-
-      {/* Listings */}
       <div style={{maxWidth:960,margin:"0 auto",padding:"36px 24px"}}>
         <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:20}}>{listings.length} Active Listing{listings.length!==1?"s":""}</h2>
         {listings.length===0
@@ -1521,7 +1575,6 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
   );
 };
 
-// ── Navbar ───────────────────────────────────────────────────────
 const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const [scrolled,setScrolled]=useState(false);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
@@ -1549,7 +1602,6 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   );
 };
 
-// ── Error Boundary ───────────────────────────────────────────────
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { crashed: false, error: null }; }
   static getDerivedStateFromError(error) { return { crashed: true, error }; }
@@ -1573,7 +1625,6 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ── App Root ─────────────────────────────────────────────────────
 export default function App() {
   const [page,setPage]=useState("home");
   const [agentPageId,setAgentPageId]=useState(null);
@@ -1585,11 +1636,9 @@ export default function App() {
   const [pdfListing,setPDFListing]=useState(null);
 
   useEffect(()=>{
-    // Check for ?agent= URL param
     const params=new URLSearchParams(window.location.search);
     const agentParam=params.get("agent");
     if(agentParam){setAgentPageId(agentParam);setPage("agentpage");}
-    // Restore session on page load
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
