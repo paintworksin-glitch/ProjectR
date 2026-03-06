@@ -133,8 +133,10 @@ const getVisitorId = () => {
 };
 const ensureShareSlug = async (listing) => {
   if(listing?.shareSlug) return listing.shareSlug;
+  if(!listing?.id) return generateShareSlug();
   const nextSlug = generateShareSlug();
-  await supabase.from("listings").update({share_slug: nextSlug}).eq("id", listing.id);
+  const { error } = await supabase.from("listings").update({share_slug: nextSlug}).eq("id", listing.id);
+  if(error) return listing.shareSlug || String(listing.id).slice(0,8);
   return nextSlug;
 };
 
