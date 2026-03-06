@@ -1357,7 +1357,7 @@ const Home = ({currentUser,onNavigate}) => {
           {/* Left side — text */}
           <div style={{flex:"1 1 400px",maxWidth:600}}>
             <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:48,color:"var(--navy)",lineHeight:1.1,letterSpacing:"-1.5px"}} className="h1big">
-              Find Your Dream Property
+              Northing to your dream home
             </h1>
             <p style={{fontSize:15,color:"var(--muted)",marginTop:14,lineHeight:1.7,maxWidth:480}}>
               Browse thousands of listings, connect with agents, and find the perfect home.
