@@ -118,10 +118,27 @@ const mapListing = (l) => !l ? null : ({
   pdfCount: l.pdf_count||0,
   amenities: l.amenities || l.details?.amenities || [],
   reraNumber: l.rera_number || l.details?.reraNumber || null,
+  shareSlug: l.share_slug || null,
   latitude: l.latitude ?? l.details?.latitude ?? null,
   longitude: l.longitude ?? l.details?.longitude ?? null,
 });
-const formToDb = (form, agentId) => ({
+const generateShareSlug = () => Math.random().toString(36).slice(2,8);
+const getVisitorId = () => {
+  const key = "northing_visitor_id";
+  const existing = localStorage.getItem(key);
+  if (existing) return existing;
+  const next = crypto.randomUUID();
+  localStorage.setItem(key, next);
+  return next;
+};
+const ensureShareSlug = async (listing) => {
+  if(listing?.shareSlug) return listing.shareSlug;
+  const nextSlug = generateShareSlug();
+  await supabase.from("listings").update({share_slug: nextSlug}).eq("id", listing.id);
+  return nextSlug;
+};
+
+const formToDb = (form, agentId, shareSlug) => ({
   agent_id: agentId, title: form.title, location: form.location,
   property_type: form.propertyType, listing_type: form.listingType,
   price: Number(form.price) || 0, size_sqft: Number(form.sizesqft) || null,
@@ -132,6 +149,7 @@ const formToDb = (form, agentId) => ({
   agent_email: form.agentEmail, agency_name: form.agencyName,
   photos: form.photos || [],
   amenities: form.amenities || [],
+  share_slug: shareSlug || form.shareSlug || generateShareSlug(),
   rera_number: form.reraNumber || null,
   latitude: form.latitude ? Number(form.latitude) : null,
   longitude: form.longitude ? Number(form.longitude) : null,
@@ -150,6 +168,7 @@ const dbToForm = (l) => ({
   status:l.status, description:l.description, highlights:l.highlights||[],
   agentName:l.agent_name, agentPhone:l.agent_phone, agentEmail:l.agent_email,
   agencyName:l.agency_name, photos:l.photos||[],
+  shareSlug:l.share_slug||"",
   amenities:l.amenities||l.details?.amenities||[],
   reraNumber:l.rera_number||l.details?.reraNumber||"",
   latitude:l.latitude??l.details?.latitude??"",
@@ -165,13 +184,28 @@ const uploadPhoto = async (file) => {
   return data.publicUrl;
 };
 
-const _h = { openWA: ()=>{}, openPDF: ()=>{} };
-const showWACard = (l) => _h.openWA(l);
-const showPDF    = (l) => _h.openPDF(l);
+const _h = { openWA: ()=>{}, openPDF: ()=>{}, requireAuth: ()=>false };
+const showWACard = (l) => {
+  if(_h.requireAuth(`/v/${l?.shareSlug||l?.id||""}`)) return;
+  _h.openWA(l);
+};
+const showPDF    = (l) => {
+  if(_h.requireAuth(`/v/${l?.shareSlug||l?.id||""}`)) return;
+  _h.openPDF(l);
+};
 
-const track = (listingId, type) => {
+const track = async (listingId, type, platform = "web", brokerId = null) => {
   if(!listingId) return;
-  const col = type==="view"?"view_count":type==="wa"?"wa_count":"pdf_count";
+  const visitorId = getVisitorId();
+  await supabase.from("share_events").insert({
+    listing_id: listingId,
+    broker_id: brokerId,
+    visitor_id: visitorId,
+    event_type: type,
+    platform,
+  });
+  const col = type==="page_view"?"view_count":type==="whatsapp_click"?"wa_count":type==="brochure_download"?"pdf_count":null;
+  if(!col) return;
   supabase.rpc("increment_count",{row_id:listingId,col_name:col}).then(({error})=>{
     if(error){
       supabase.from("listings").select(col).eq("id",listingId).single().then(({data})=>{
@@ -185,6 +219,14 @@ const WALogo = ({size=16}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="#fff" style={{flexShrink:0}}>
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
   </svg>
+);
+
+const NorthingLogo = ({height=26, muted=false}) => (
+  <img
+    src="/logo.svg"
+    alt="Northing"
+    style={{height, width:"auto", display:"block", opacity: muted ? 0.6 : 1}}
+  />
 );
 
 const Toast = ({msg,type,onClose}) => (
@@ -235,6 +277,20 @@ const DupModal = ({dups,onProceed,onCancel}) => (
   </div>
 );
 
+
+const AuthRequiredModal = ({onLogin,onClose}) => (
+  <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.4)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
+    <div className="card asl" style={{padding:28,maxWidth:360,width:"100%"}} onClick={e=>e.stopPropagation()}>
+      <h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>Login required</h3>
+      <p style={{fontSize:14,color:"var(--muted)",marginBottom:16}}>Login to generate marketing assets</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <button onClick={onClose} className="btn-ghost" style={{padding:"10px",borderRadius:9,fontSize:14}}>Close</button>
+        <button onClick={onLogin} className="btn-primary" style={{padding:"10px",borderRadius:9,fontSize:14}}>Go to login</button>
+      </div>
+    </div>
+  </div>
+);
+
 const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
   const isSaved = savedIds?.includes(listing.id);
   const statusNorm = normalizeListingStatus(listing.status);
@@ -275,7 +331,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
 };
 
 const PropModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id)track(listing.id,"view");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"page_view","web",listing.agentId);},[listing?.id]);
   if(!listing) return null;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   return (
@@ -296,9 +352,9 @@ const PropModal = ({listing,onClose}) => {
           <p className="section-label">Contact Agent</p>
           <div style={{fontSize:14,color:"var(--text)",display:"flex",flexDirection:"column",gap:8}}>
             <div style={{fontWeight:700,fontSize:15}}>👤 {listing.agentName} <span style={{fontWeight:400,color:"var(--muted)"}}>· {listing.agencyName}</span></div>
-            {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
+            {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} onClick={()=>track(listing.id,"contact_click","phone",listing.agentId)} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
             <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
-              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
+              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} onClick={()=>track(listing.id,"contact_click","whatsapp_agent",listing.agentId)} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
             </div>
@@ -310,136 +366,74 @@ const PropModal = ({listing,onClose}) => {
 };
 
 const WACardModal = ({listing,onClose}) => {
-  const [copied,setCopied]=useState(false);
-  const [downloading,setDownloading]=useState(false);
-  const [fmt,setFmt]=useState("square"); // square | portrait
-  useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"gallery_view","whatsapp_card",listing.agentId);},[listing?.id]);
   if(!listing) return null;
 
-  const loadH2C=()=>new Promise((res,rej)=>{
-    if(window.html2canvas){res(window.html2canvas);return;}
-    const s=document.createElement("script");
-    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    s.onload=()=>res(window.html2canvas); s.onerror=rej;
-    document.head.appendChild(s);
-  });
+  const [shareSlug,setShareSlug]=useState(listing.shareSlug||"");
+  const priceValue = Number(listing.price || 0);
+  const priceLine = priceValue ? `₹${priceValue.toLocaleString("en-IN")}` : "Price on request";
+  const locality = listing.location?.split(",")[0]?.trim() || listing.location || "Location not provided";
+  const specs = `${listing.bedrooms||0} Bed | 🚿 ${listing.bathrooms||0} Bath | 📐 ${listing.sizesqft||"--"} sqft`;
 
-  const captureCard=async()=>{
-    const h2c=await loadH2C();
-    const card=document.getElementById("wa-card");
-    return h2c(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
-  };
+  useEffect(()=>{
+    let active=true;
+    if(!shareSlug&&listing?.id){
+      ensureShareSlug(listing).then((slug)=>{ if(active) setShareSlug(slug); });
+    }
+    return ()=>{active=false;};
+  },[listing,shareSlug]);
 
-  const downloadImage=async()=>{
-    setDownloading(true);
-    try{
-      const canvas=await captureCard();
-      const a=document.createElement("a");
-      a.download=`Northing-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
-      a.href=canvas.toDataURL("image/png",0.95);
-      a.click();
-    }catch(e){alert("Download failed — try screenshotting the card manually.");}
-    setDownloading(false);
-  };
+  const buildText=()=>[
+    `🏡 ${listing.title||"Property"}`,
+    `💰 ${priceLine}`,
+    "",
+    `📍 ${locality}`,
+    "",
+    `🛏 ${specs}`,
+    "",
+    "View details:",
+    `https://northing.in/v/${shareSlug||listing.id}`,
+    "",
+    "Contact:",
+    `${listing.agentName||"Broker"}`,
+    `${listing.agentPhone?`📞 ${listing.agentPhone}`:""}`,
+  ].filter(Boolean).join("\n");
 
   const shareOnWA=async()=>{
-    setDownloading(true);
-    try{
-      const canvas=await captureCard();
-      canvas.toBlob(async(blob)=>{
-        const file=new File([blob],"Northing-card.png",{type:"image/png"});
-        if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-          await navigator.share({files:[file],title:listing.title,text:buildText()});
-        } else {
-          const a=document.createElement("a"); a.download="Northing-card.png";
-          a.href=canvas.toDataURL(); a.click();
-          setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank"),800);
-        }
-      },"image/png");
-    }catch(e){alert("Share failed — try downloading the image instead.");}
-    setDownloading(false);
+    await track(listing.id,"whatsapp_click","whatsapp",listing.agentId);
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank");
   };
 
-  const price=fmtP(listing.price);
-  const details=[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
-  const highlights=(listing.highlights||[]).slice(0,3);
-
-  const buildText=()=>{
-    const lines=[];
-    lines.push('*' + listing.title + '*');
-    lines.push('Location: ' + listing.location);
-    lines.push('');
-    lines.push('Price: *' + price + '*' + (listing.listingType==='Rent' ? ' / month' : ''));
-    lines.push('Type: For ' + listing.listingType);
-    const dc=details.map(d=>d.replace(/[^\w\s.,:%\/\-]/g,'').trim()).filter(Boolean);
-    if(dc.length>0) lines.push('Details: ' + dc.join(' | '));
-    if(listing.description){lines.push('');lines.push(listing.description);}
-    if(highlights.length>0){lines.push('');lines.push('Highlights:');highlights.forEach(h=>lines.push('  - '+h));}
-    lines.push('');
-    lines.push('Contact:');
-    lines.push('  Agent: *' + (listing.agentName||'') + '*');
-    if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
-    if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
-    lines.push('');
-    lines.push('_Powered by Northing_');
-    return lines.join('\n');
-  };
-
-  const copyText=()=>{
-    navigator.clipboard?.writeText(buildText()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
-  };
-  const openWA=()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank");
-
-  // Card dimensions: square=420x420, portrait=340x425
-  const isSquare=fmt==="square";
-  const cardW=isSquare?420:340;
-  const cardH=isSquare?420:425;
-  const btnW=cardW;
+  // 1080 x 1350 portrait ratio preview
+  const cardW=324;
+  const cardH=405;
 
   return (
     <div className="afd" style={{position:"fixed",inset:0,background:"rgba(10,5,2,0.75)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(8px)"}} onClick={onClose}>
       <div className="asl" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,maxHeight:"95vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}>
-
-        {/* Format toggle */}
-        <div style={{display:"flex",gap:4,background:"rgba(255,255,255,0.08)",padding:4,borderRadius:12,border:"1px solid rgba(255,255,255,0.12)"}}>
-          {[["square","⬜ Square"],["portrait","▭ Portrait"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setFmt(v)} style={{padding:"7px 18px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:fmt===v?"var(--primary)":"transparent",color:fmt===v?"#fff":"rgba(255,255,255,0.5)",border:"none",fontFamily:"inherit",transition:"all 0.2s"}}>{l}</button>
-          ))}
-        </div>
-
-        {/* THE CARD */}
         <div id="wa-card" style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
-          {/* Photo */}
           {listing.photos?.[0]
             ?<img src={listing.photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
             :<div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#2d2118,#1a1410)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:72,opacity:0.08}}>🏠</div></div>
           }
-          {/* Gradient overlay */}
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.2) 45%,rgba(10,5,2,0.94) 74%,rgba(10,5,2,1) 100%)"}}/>
 
-          {/* Top badges */}
-          <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR {listing.listingType?.toUpperCase()}</span>
-            <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"4px 10px"}}>
-              <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:13,color:"var(--primary)"}}>Northing</span>
-            </div>
+          <div style={{position:"absolute",top:14,right:14,opacity:0.45,background:"rgba(255,255,255,0.88)",padding:"6px 8px",borderRadius:10}}>
+            <NorthingLogo height={14} muted />
           </div>
 
-          {/* Bottom content */}
           <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:isSquare?34:30,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
-              {price}{listing.listingType==="Rent"&&<span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>}
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{priceLine}</div>
+            <div style={{fontWeight:800,fontSize:16,color:"#fff",marginBottom:4,lineHeight:1.3}}>{listing.title}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.72)",marginBottom:10}}>📍 {listing.location}</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {[listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null].filter(Boolean).map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
             </div>
-            <div style={{fontWeight:800,fontSize:isSquare?15:13,color:"#fff",marginBottom:3,lineHeight:1.3}}>{listing.title}</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 {listing.location}</div>
-            {details.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {details.map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
-            </div>}
-            <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+            <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:10}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{listing.agentName}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>{listing.agencyName}{listing.agentPhone?` · ${listing.agentPhone}`:""}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.66)"}}>{listing.agentPhone||""}</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:5,background:"#25D366",borderRadius:8,padding:"6px 10px"}}>
                 <WALogo size={13}/><span style={{fontSize:11,fontWeight:700,color:"#fff"}}>WhatsApp</span>
@@ -448,28 +442,19 @@ const WACardModal = ({listing,onClose}) => {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <button onClick={downloadImage} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.6:1}}>
-          {downloading?"Processing...":"⬇️ Download Card (PNG)"}
+        <button onClick={shareOnWA} style={{width:cardW,padding:"12px 10px",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <WALogo size={15}/>Share on WhatsApp
         </button>
-        <button onClick={shareOnWA} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
-          {downloading?"⏳ Processing…":<><WALogo size={15}/>Share on WhatsApp</>}
+        <button onClick={onClose} style={{width:cardW,padding:"11px 10px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",fontFamily:"inherit"}}>
+          Close
         </button>
-        <div style={{width:btnW,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-          <button onClick={copyText} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:copied?"#059669":"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.18)",fontFamily:"inherit",transition:"all 0.2s"}}>{copied?"✅ Copied!":"📋 Copy Text"}</button>
-          <button onClick={openWA} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(18,140,126,0.7)",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={11}/>Text Only</button>
-          <button onClick={onClose} style={{padding:"10px 8px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#fff",border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit"}}>✕ Close</button>
-        </div>
-        <div style={{width:btnW,background:"rgba(255,255,255,0.05)",borderRadius:8,padding:"7px 12px",fontSize:10,color:"rgba(255,255,255,0.4)",textAlign:"center",lineHeight:1.5}}>
-          Square = 1080×1080 · Portrait = 1080×1350 · Both work on WhatsApp &amp; Instagram
-        </div>
       </div>
     </div>
   );
 };
 
 const PDFModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"gallery_view","pdf_modal",listing.agentId);},[listing?.id]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
@@ -478,6 +463,7 @@ const PDFModal = ({listing,onClose}) => {
   const [pdfLoading,setPdfLoading]=useState(false);
 
   const downloadPDF=async()=>{
+    track(listing.id,"brochure_download","pdf",listing.agentId);
     const el=document.getElementById('pdf-print-area');
     if(!el) return;
     setPdfLoading(true);
@@ -611,7 +597,7 @@ const PDFModal = ({listing,onClose}) => {
               {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
+              <NorthingLogo height={16} muted />
               <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
             </div>
           </div>
@@ -658,8 +644,8 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-const LoginPage = ({onLogin,showToast,onNavigate}) => {
-  const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
+const LoginPage = ({onLogin,showToast,onNavigate,initialMode="login"}) => {
+  const [mode,setMode]=useState(initialMode);const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
   const submit=async()=>{
@@ -722,7 +708,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#1a1410" shineColor="#FF6B00" speed={3} spread={140}/></h2>
             <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Northing today — it's free"}</p>
           </div>
-          {mode==="register"&&(
+          {mode==="signup"&&(
             <div style={{marginBottom:18}}>
               <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>I am a…</div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -735,13 +721,13 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
               </div>
             </div>
           )}
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
+          {mode==="signup"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
           <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-          <div style={{marginBottom:mode==="register"?12:20}}><input className="inp" type="password" placeholder={mode==="register"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
-          {mode==="register"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
+          <div style={{marginBottom:mode==="signup"?12:20}}><input className="inp" type="password" placeholder={mode==="signup"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
+          {mode==="signup"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
+          {mode==="signup"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
           <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:(mode==="login"?"Sign In →":"Create Account →")}</button>
-          <button onClick={()=>setMode(m=>m==="login"?"register":"login")} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
+          <button onClick={()=>setMode(m=>m==="login"?"signup":"login")} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
         </div>
       </div>
     </div>
@@ -864,7 +850,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         const {error}=await supabase.from("listings").update(formToDb(form,currentUser.id)).eq("id",listingId);
         if(error) throw error;
       } else {
-        const {error}=await supabase.from("listings").insert(formToDb(form,currentUser.id));
+        const shareSlug=generateShareSlug();
+        const {error}=await supabase.from("listings").insert(formToDb(form,currentUser.id,shareSlug));
         if(error) throw error;
       }
       showToast(isEdit?"Listing updated!":"Listing created!","success");
@@ -993,10 +980,35 @@ const AgentDash = ({currentUser,showToast}) => {
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
   const [leadRows,setLeadRows]=useState([]);
+  const [metricsByListing,setMetricsByListing]=useState({});
   const load=async()=>{
     setLoading(true);
     const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
-    if(!error) setListings(data||[]);
+    if(!error){
+      const rows=data||[];
+      setListings(rows);
+      const ids=rows.map(r=>r.id);
+      if(ids.length){
+        const {data:events}=await supabase.from("share_events").select("listing_id, visitor_id, event_type").in("listing_id",ids);
+        const agg={};
+        (events||[]).forEach((e)=>{
+          if(!agg[e.listing_id]) agg[e.listing_id]={views:0,uniqueVisitors:new Set(),whatsappClicks:0,brochureDownloads:0,contactClicks:0,visitRequests:0};
+          const a=agg[e.listing_id];
+          if(e.event_type==="page_view") a.views+=1;
+          if(e.event_type==="whatsapp_click") a.whatsappClicks+=1;
+          if(e.event_type==="brochure_download") a.brochureDownloads+=1;
+          if(e.event_type==="contact_click") a.contactClicks+=1;
+          if(e.visitor_id) a.uniqueVisitors.add(e.visitor_id);
+        });
+        const flat={};
+        Object.entries(agg).forEach(([k,v])=>{
+          const uniqueVisitors=v.uniqueVisitors.size;
+          const score=v.views + (v.contactClicks*5) + (v.visitRequests*10);
+          flat[k]={...v,uniqueVisitors,score};
+        });
+        setMetricsByListing(flat);
+      }
+    }
     setLoading(false);
   };
   useEffect(()=>{load();(async()=>{const {data}=await supabase.from("leads").select("*").eq("broker_id",currentUser.id);setLeadRows(data||[]);})();},[]);
@@ -1045,7 +1057,7 @@ const AgentDash = ({currentUser,showToast}) => {
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {!isSeller&&<button onClick={()=>setTab("profile")} className="btn-ghost" style={{padding:"10px 16px",borderRadius:10,fontSize:13}}>🏢 Profile</button>}
           {canAddMore
-            ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
+            ?<button onClick={()=>{if(_h.requireAuth(window.location.href)) return; setView("create");}} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
             :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
           }
         </div>
@@ -1062,7 +1074,7 @@ const AgentDash = ({currentUser,showToast}) => {
           ))}
         </div>
         {loading?<div style={{textAlign:"center",padding:48,color:"var(--muted)"}}>Loading…</div>:listings.length===0
-          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>Create your first listing and start marketing it instantly.</p><button onClick={()=>setView("create")} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button></div>
+          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>Create your first listing and start marketing it instantly.</p><button onClick={()=>{if(_h.requireAuth(window.location.href)) return; setView("create");}} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button></div>
           :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:20}} className="gr">
             {listings.map(raw=>{const l=mapListing(raw);return(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
@@ -1077,10 +1089,11 @@ const AgentDash = ({currentUser,showToast}) => {
                   <h3 style={{fontSize:14,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{l.title}</h3>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>📍 {l.location}</div>
                   <div style={{display:"flex",gap:10,fontSize:11,marginBottom:10,padding:"6px 10px",background:"var(--gray)",borderRadius:8}}>
-                    <span style={{color:"var(--muted)"}}>👁 {l.viewCount||0}</span>
-                    <span style={{color:"#25D366",fontWeight:700}}>📲 {l.waCount||0} WA</span>
-                    <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
+                    <span style={{color:"var(--muted)"}}>👁 {metricsByListing[l.id]?.views ?? l.viewCount ?? 0}</span>
+                    <span style={{color:"#25D366",fontWeight:700}}>📲 {metricsByListing[l.id]?.whatsappClicks ?? l.waCount ?? 0} WA</span>
+                    <span style={{color:"var(--muted)"}}>📄 {metricsByListing[l.id]?.brochureDownloads ?? l.pdfCount ?? 0} PDF</span>
                   </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10,color:"var(--muted)",marginBottom:10}}><span>Unique: {metricsByListing[l.id]?.uniqueVisitors||0}</span><span>Contacts: {metricsByListing[l.id]?.contactClicks||0}</span><span>Score: {metricsByListing[l.id]?.score||0}</span><span>Views: {metricsByListing[l.id]?.views||0}</span></div>
                   {l.status==="Active"?(
                     <div style={{display:"flex",gap:5,marginBottom:8}}>
                       <button onClick={()=>quickStatus(l.id,"Sold")} disabled={statusChanging===l.id} style={{flex:1,padding:"6px 2px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",color:"#7C3AED",fontFamily:"inherit"}}>🏆 Sold</button>
@@ -1158,7 +1171,7 @@ const AgentDash = ({currentUser,showToast}) => {
                 </div>
               </div>
               <div style={{textAlign:"right",fontSize:10,color:"var(--muted)"}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"var(--muted)"}}>Northing</div>
+                <NorthingLogo height={16} muted />
                 <div>Powered by Northing</div>
               </div>
             </div>
@@ -1700,8 +1713,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   return (
     <nav style={{position:"sticky",top:0,zIndex:100,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{width:36,height:36,background:"var(--primary)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 12px rgba(255,107,0,0.3)"}}><span style={{color:"#fff",fontSize:17,fontWeight:900,fontFamily:"'Fraunces',serif"}}>N</span></div>
-        <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:"var(--navy)",letterSpacing:"-0.5px"}}>Northing</span>
+        <NorthingLogo height={26} />
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -1714,7 +1726,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button onClick={onLogout} style={{padding:"7px 13px",borderRadius:8,fontWeight:600,fontSize:12,cursor:"pointer",background:"var(--gray)",color:"var(--muted)",border:"1px solid var(--border)",transition:"all 0.2s"}}>Sign Out</button>
         </>:<>
           <button onClick={()=>onNavigate("login")} style={{padding:"7px 16px",borderRadius:9,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--primary)",border:"none"}}>Log In</button>
-          <button onClick={()=>onNavigate("login")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
+          <button onClick={()=>onNavigate("signup")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
         </>}
       </div>
     </nav>
@@ -1753,11 +1765,24 @@ export default function App() {
   const [adminModal,setAdminModal]=useState(false);
   const [waListing,setWAListing]=useState(null);
   const [pdfListing,setPDFListing]=useState(null);
+  const [authGate,setAuthGate]=useState(null);
+  const [sharedListing,setSharedListing]=useState(null);
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     const agentParam=params.get("agent");
-    if(agentParam){setAgentPageId(agentParam);setPage("agentpage");}
+    const { pathname } = window.location;
+    if(pathname.startsWith("/v/")){
+      setPage("shared");
+      const slug=pathname.split("/v/")[1];
+      supabase.from("listings").select("*").eq("share_slug",slug).single().then(({data})=>setSharedListing(mapListing(data)));
+    } else if(pathname==="/signup"){
+      setPage("signup");
+    } else if(pathname==="/login"){
+      setPage("login");
+    } else if(agentParam){
+      setAgentPageId(agentParam);setPage("agentpage");
+    }
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
@@ -1765,17 +1790,35 @@ export default function App() {
           const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",profile.id);
           const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
           setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
-          if(!agentParam) setPage("dashboard");
+          const returnTo=localStorage.getItem("northing_return_to");
+          if(returnTo){localStorage.removeItem("northing_return_to");window.location.href=returnTo;return;}
+          if(!agentParam&&window.location.pathname.indexOf("/v/")!==0) setPage("dashboard");
         }
       }
       setAuthLoading(false);
     }).catch(()=>setAuthLoading(false));
+    supabase.auth.onAuthStateChange(async(_event,session)=>{
+      if(session?.user&&!user){
+        const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        if(profile) setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:[]});
+      }
+    });
     _h.openWA=(l)=>setWAListing(l);
     _h.openPDF=(l)=>setPDFListing(l);
   },[]);
 
+
+  useEffect(()=>{
+    _h.requireAuth=(actionPath)=>{
+      if(user) return false;
+      localStorage.setItem("northing_return_to",actionPath||window.location.href);
+      setAuthGate(actionPath||window.location.href);
+      return true;
+    };
+  },[user]);
+
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
-  const nav=(p)=>{setPage(p);window.scrollTo(0,0);};
+  const nav=(p)=>{setPage(p); if(p==="login")window.history.pushState({},"","/login"); else if(p==="signup")window.history.pushState({},"","/signup"); else if(p!=="shared")window.history.pushState({},"","/"); window.scrollTo(0,0);};
   const login=(u)=>{setUser(u);nav("dashboard");};
   const logout=async()=>{await supabase.auth.signOut();setUser(null);nav("home");showToast("Signed out successfully","success");};
   const secretTrigger=useSecretAdmin(()=>{if(!user||user.role!=="master") setAdminModal(true);});
@@ -1791,19 +1834,22 @@ export default function App() {
     <ErrorBoundary>
     <div style={{minHeight:"100vh",background:"var(--cream)",color:"var(--text)"}}>
       <style>{G}</style>
-      {page!=="login"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
+      {page!=="login"&&page!=="signup"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
       {page==="home"&&<Home currentUser={user} onNavigate={nav}/>}
       {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
-      {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
+      {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="login"/>}
+      {page==="signup"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="signup"/>}
       {page==="agentpage"&&agentPageId&&<AgentPage agentId={agentPageId} onNavigate={nav} currentUser={user}/>}
       {page==="dashboard"&&user?.role==="agent"&&<AgentDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="seller"&&<AgentDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
-      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
+      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="login"/>}
+      {page==="shared"&&sharedListing&&<div style={{maxWidth:980,margin:"0 auto",padding:"24px 20px"}}><PropModal listing={sharedListing} onClose={()=>nav("feed")}/></div>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
+      {authGate&&<AuthRequiredModal onClose={()=>setAuthGate(null)} onLogin={()=>{setAuthGate(null);nav("login");}}/>}
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
     </ErrorBoundary>

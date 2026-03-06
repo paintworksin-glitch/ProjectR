@@ -1,0 +1,13 @@
+<svg width="220" height="44" viewBox="0 0 220 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .txt { font: 700 30px 'Inter', Arial, sans-serif; fill: #2F2F2F; letter-spacing: 0.2px; }
+  </style>
+  <text x="0" y="32" class="txt">N</text>
+  <g transform="translate(32,8)">
+    <circle cx="14" cy="14" r="12.5" stroke="#5A5A5A" stroke-width="1.6" fill="none"/>
+    <line x1="14" y1="4.5" x2="14" y2="23.5" stroke="#5A5A5A" stroke-width="1.1"/>
+    <polygon points="14,2 10.7,10.2 17.3,10.2" fill="#FF3B30"/>
+    <polygon points="14,26 10.7,17.8 17.3,17.8" fill="#7FB3D5"/>
+  </g>
+  <text x="52" y="32" class="txt">rthing</text>
+</svg>
