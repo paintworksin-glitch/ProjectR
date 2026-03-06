@@ -308,7 +308,7 @@ const WACardModal = ({listing,onClose}) => {
     try{
       const canvas=await captureCard();
       const a=document.createElement("a");
-      a.download=`pheniq-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
+      a.download=`Northing-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
       a.href=canvas.toDataURL("image/png",0.95);
       a.click();
     }catch(e){alert("Download failed — try screenshotting the card manually.");}
@@ -320,11 +320,11 @@ const WACardModal = ({listing,onClose}) => {
     try{
       const canvas=await captureCard();
       canvas.toBlob(async(blob)=>{
-        const file=new File([blob],"pheniq-card.png",{type:"image/png"});
+        const file=new File([blob],"Northing-card.png",{type:"image/png"});
         if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
           await navigator.share({files:[file],title:listing.title,text:buildText()});
         } else {
-          const a=document.createElement("a"); a.download="pheniq-card.png";
+          const a=document.createElement("a"); a.download="Northing-card.png";
           a.href=canvas.toDataURL(); a.click();
           setTimeout(()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank"),800);
         }
@@ -354,7 +354,7 @@ const WACardModal = ({listing,onClose}) => {
     if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
     if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
     lines.push('');
-    lines.push('_Powered by Pheniq_');
+    lines.push('_Powered by Northing_');
     return lines.join('\n');
   };
 
@@ -394,7 +394,7 @@ const WACardModal = ({listing,onClose}) => {
           <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR {listing.listingType?.toUpperCase()}</span>
             <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"4px 10px"}}>
-              <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:13,color:"var(--primary)"}}>PHENIQ</span>
+              <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:13,color:"var(--primary)"}}>Northing</span>
             </div>
           </div>
 
@@ -478,7 +478,7 @@ const PDFModal = ({listing,onClose}) => {
         pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
         y+=pageH;
       }
-      pdf.save('pheniq-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
+      pdf.save('Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
     }catch(err){console.error(err);window.print();}
     setPdfLoading(false);
   };
@@ -584,8 +584,8 @@ const PDFModal = ({listing,onClose}) => {
               {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>PHENIQ</div>
-              <div style={{fontSize:10,color:"#ccc"}}>Powered by Pheniq</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
+              <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
             </div>
           </div>
         </div>
@@ -671,7 +671,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
       <div className="hm" style={{width:"45%",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(255,107,0,0.12)"}}/>
         <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(255,107,0,0.08)"}}/>
-        <div style={{position:"relative"}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>PHENIQ</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
+        <div style={{position:"relative"}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
         <div style={{position:"relative"}}>
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:700,color:"#fff",lineHeight:1.25,marginBottom:16}}>Buy, Sell, or Rent — all in one place.</h2>
           <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Instant brochures, WhatsApp cards, and verified listings — built for Indian real estate.</p>
@@ -691,9 +691,9 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
             <button onClick={()=>onNavigate&&onNavigate("home")} style={{background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",fontWeight:600}}>← Back to Home</button>
           </div>
           <div style={{marginBottom:28}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"var(--navy)",marginBottom:2}}>PHENIQ</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"var(--navy)",marginBottom:2}}>Northing</div>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#1a1410" shineColor="#FF6B00" speed={3} spread={140}/></h2>
-            <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Pheniq today — it's free"}</p>
+            <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Northing today — it's free"}</p>
           </div>
           {mode==="register"&&(
             <div style={{marginBottom:18}}>
@@ -1085,8 +1085,8 @@ const AgentDash = ({currentUser,showToast}) => {
                 </div>
               </div>
               <div style={{textAlign:"right",fontSize:10,color:"var(--muted)"}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"var(--muted)"}}>PHENIQ</div>
-                <div>Powered by Pheniq</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"var(--muted)"}}>Northing</div>
+                <div>Powered by Northing</div>
               </div>
             </div>
           </div>
@@ -1509,9 +1509,9 @@ const Home = ({currentUser,onNavigate}) => {
         <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:32,height:32,background:"var(--primary)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:15}}>P</span></div>
-            <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:18,color:"#fff"}}>PHENIQ</span>
+            <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:18,color:"#fff"}}>Northing</span>
           </div>
-          <p style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>© 2026 Pheniq · Professional Property Marketing · Made in India</p>
+          <p style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
           <div style={{display:"flex",gap:20,fontSize:12,color:"rgba(255,255,255,0.3)"}}>
             <span style={{cursor:"pointer"}}>Privacy</span><span>·</span><span style={{cursor:"pointer"}}>Terms</span>
           </div>
@@ -1554,7 +1554,7 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
             {agent.logo_url?<img src={agent.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:36}}>{agent.name?.charAt(0)}</span>}
           </div>
           <div style={{flex:1,minWidth:200}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>Verified Agent · Pheniq</div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>Verified Agent · Northing</div>
             <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:900,color:"#fff",margin:"0 0 4px"}}>{agent.agency_name||agent.name}</h1>
             {agent.agency_name&&<div style={{fontSize:14,color:"rgba(255,255,255,0.5)",marginBottom:8}}>{agent.name}</div>}
             <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:6}}>
@@ -1569,7 +1569,7 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
               <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:0.8}}>Active Listings</div>
             </div>
             <button onClick={copyLink} style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",background:copied?"#059669":"var(--primary)",color:"#fff",border:"none",fontFamily:"inherit",transition:"background 0.2s"}}>{copied?"✅ Copied!":"🔗 Copy Profile Link"}</button>
-            {agent.phone&&<a href={`https://wa.me/${agent.phone.replace(/\D/g,"")}?text=${encodeURIComponent("Hi, I found your profile on Pheniq and would like to enquire about your properties.")}`} target="_blank" rel="noreferrer" style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WALogo size={12}/>WhatsApp Agent</a>}
+            {agent.phone&&<a href={`https://wa.me/${agent.phone.replace(/\D/g,"")}?text=${encodeURIComponent("Hi, I found your profile on Northing and would like to enquire about your properties.")}`} target="_blank" rel="noreferrer" style={{padding:"9px 14px",borderRadius:9,fontSize:12,fontWeight:700,background:"#25D366",color:"#fff",border:"none",fontFamily:"inherit",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WALogo size={12}/>WhatsApp Agent</a>}
           </div>
         </div>
       </div>
@@ -1618,7 +1618,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
     <nav style={{position:"sticky",top:0,zIndex:100,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:36,height:36,background:"var(--primary)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 12px rgba(255,107,0,0.3)"}}><span style={{color:"#fff",fontSize:17,fontWeight:900,fontFamily:"'Fraunces',serif"}}>P</span></div>
-        <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:"var(--navy)",letterSpacing:"-0.5px"}}>PHENIQ</span>
+        <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:"var(--navy)",letterSpacing:"-0.5px"}}>Northing</span>
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -1641,13 +1641,13 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { crashed: false, error: null }; }
   static getDerivedStateFromError(error) { return { crashed: true, error }; }
-  componentDidCatch(error, info) { console.error("Pheniq crash:", error, info); }
+  componentDidCatch(error, info) { console.error("Northing crash:", error, info); }
   render() {
     if (this.state.crashed) {
       return (
         <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff8f4",fontFamily:"'Inter',sans-serif",padding:24}}>
           <div style={{textAlign:"center",maxWidth:420}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"#1a1410",marginBottom:8}}>PHENIQ</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"#1a1410",marginBottom:8}}>Northing</div>
             <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"#1a1410",marginBottom:8}}>Something went wrong</h2>
             <p style={{fontSize:14,color:"#78716c",marginBottom:24,lineHeight:1.6}}>The app encountered an unexpected error. Your data is safe — just reload to continue.</p>
@@ -1700,7 +1700,7 @@ export default function App() {
   if(authLoading) return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cream)",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
       <style>{G}</style>
-      <div style={{textAlign:"center"}}><div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",marginBottom:12}}>PHENIQ</div><div style={{width:28,height:28,border:"3px solid var(--border)",borderTopColor:"var(--green)",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}></div></div>
+      <div style={{textAlign:"center"}}><div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",marginBottom:12}}>Northing</div><div style={{width:28,height:28,border:"3px solid var(--border)",borderTopColor:"var(--green)",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}></div></div>
     </div>
   );
 
