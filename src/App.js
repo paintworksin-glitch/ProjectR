@@ -368,6 +368,9 @@ const PropModal = ({listing,onClose}) => {
 };
 
 const WACardModal = ({listing,onClose}) => {
+  const [copied,setCopied]=useState(false);
+  const [downloading,setDownloading]=useState(false);
+  const [fmt,setFmt]=useState("square"); // square | portrait
   useEffect(()=>{if(listing?.id)track(listing.id,"gallery_view","whatsapp_card",listing.agentId);},[listing?.id]);
   if(!listing) return null;
 
