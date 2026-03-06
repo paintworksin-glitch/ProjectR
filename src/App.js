@@ -118,10 +118,20 @@ const mapListing = (l) => !l ? null : ({
   pdfCount: l.pdf_count||0,
   amenities: l.amenities || l.details?.amenities || [],
   reraNumber: l.rera_number || l.details?.reraNumber || null,
+  shareSlug: l.share_slug || null,
   latitude: l.latitude ?? l.details?.latitude ?? null,
   longitude: l.longitude ?? l.details?.longitude ?? null,
 });
-const formToDb = (form, agentId) => ({
+const generateShareSlug = () => Math.random().toString(36).slice(2,8);
+const getVisitorId = () => {
+  const key = "northing_visitor_id";
+  const existing = localStorage.getItem(key);
+  if (existing) return existing;
+  const next = crypto.randomUUID();
+  localStorage.setItem(key, next);
+  return next;
+};
+const formToDb = (form, agentId, shareSlug) => ({
   agent_id: agentId, title: form.title, location: form.location,
   property_type: form.propertyType, listing_type: form.listingType,
   price: Number(form.price) || 0, size_sqft: Number(form.sizesqft) || null,
@@ -132,6 +142,7 @@ const formToDb = (form, agentId) => ({
   agent_email: form.agentEmail, agency_name: form.agencyName,
   photos: form.photos || [],
   amenities: form.amenities || [],
+  share_slug: shareSlug || form.shareSlug || generateShareSlug(),
   rera_number: form.reraNumber || null,
   latitude: form.latitude ? Number(form.latitude) : null,
   longitude: form.longitude ? Number(form.longitude) : null,
@@ -150,6 +161,7 @@ const dbToForm = (l) => ({
   status:l.status, description:l.description, highlights:l.highlights||[],
   agentName:l.agent_name, agentPhone:l.agent_phone, agentEmail:l.agent_email,
   agencyName:l.agency_name, photos:l.photos||[],
+  shareSlug:l.share_slug||"",
   amenities:l.amenities||l.details?.amenities||[],
   reraNumber:l.rera_number||l.details?.reraNumber||"",
   latitude:l.latitude??l.details?.latitude??"",
@@ -165,13 +177,28 @@ const uploadPhoto = async (file) => {
   return data.publicUrl;
 };
 
-const _h = { openWA: ()=>{}, openPDF: ()=>{} };
-const showWACard = (l) => _h.openWA(l);
-const showPDF    = (l) => _h.openPDF(l);
+const _h = { openWA: ()=>{}, openPDF: ()=>{}, requireAuth: ()=>false };
+const showWACard = (l) => {
+  if(_h.requireAuth(`/v/${l?.shareSlug||l?.id||""}`)) return;
+  _h.openWA(l);
+};
+const showPDF    = (l) => {
+  if(_h.requireAuth(`/v/${l?.shareSlug||l?.id||""}`)) return;
+  _h.openPDF(l);
+};
 
-const track = (listingId, type) => {
+const track = async (listingId, type, platform = "web", brokerId = null) => {
   if(!listingId) return;
-  const col = type==="view"?"view_count":type==="wa"?"wa_count":"pdf_count";
+  const visitorId = getVisitorId();
+  await supabase.from("share_events").insert({
+    listing_id: listingId,
+    broker_id: brokerId,
+    visitor_id: visitorId,
+    event_type: type,
+    platform,
+  });
+  const col = type==="page_view"?"view_count":type==="whatsapp_click"?"wa_count":type==="brochure_download"?"pdf_count":null;
+  if(!col) return;
   supabase.rpc("increment_count",{row_id:listingId,col_name:col}).then(({error})=>{
     if(error){
       supabase.from("listings").select(col).eq("id",listingId).single().then(({data})=>{
@@ -235,6 +262,20 @@ const DupModal = ({dups,onProceed,onCancel}) => (
   </div>
 );
 
+
+const AuthRequiredModal = ({onLogin,onClose}) => (
+  <div className="afd" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.4)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
+    <div className="card asl" style={{padding:28,maxWidth:360,width:"100%"}} onClick={e=>e.stopPropagation()}>
+      <h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>Login required</h3>
+      <p style={{fontSize:14,color:"var(--muted)",marginBottom:16}}>Login to generate marketing assets</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <button onClick={onClose} className="btn-ghost" style={{padding:"10px",borderRadius:9,fontSize:14}}>Close</button>
+        <button onClick={onLogin} className="btn-primary" style={{padding:"10px",borderRadius:9,fontSize:14}}>Go to login</button>
+      </div>
+    </div>
+  </div>
+);
+
 const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
   const isSaved = savedIds?.includes(listing.id);
   const statusNorm = normalizeListingStatus(listing.status);
@@ -275,7 +316,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
 };
 
 const PropModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id)track(listing.id,"view");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"page_view","web",listing.agentId);},[listing?.id]);
   if(!listing) return null;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   return (
@@ -296,9 +337,9 @@ const PropModal = ({listing,onClose}) => {
           <p className="section-label">Contact Agent</p>
           <div style={{fontSize:14,color:"var(--text)",display:"flex",flexDirection:"column",gap:8}}>
             <div style={{fontWeight:700,fontSize:15}}>👤 {listing.agentName} <span style={{fontWeight:400,color:"var(--muted)"}}>· {listing.agencyName}</span></div>
-            {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
+            {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} onClick={()=>track(listing.id,"contact_click","phone",listing.agentId)} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
             <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
-              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
+              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} onClick={()=>track(listing.id,"contact_click","whatsapp_agent",listing.agentId)} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
             </div>
@@ -313,7 +354,7 @@ const WACardModal = ({listing,onClose}) => {
   const [copied,setCopied]=useState(false);
   const [downloading,setDownloading]=useState(false);
   const [fmt,setFmt]=useState("square"); // square | portrait
-  useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"gallery_view","whatsapp_card",listing.agentId);},[listing?.id]);
   if(!listing) return null;
 
   const loadH2C=()=>new Promise((res,rej)=>{
@@ -331,6 +372,7 @@ const WACardModal = ({listing,onClose}) => {
   };
 
   const downloadImage=async()=>{
+    track(listing.id,"gallery_view","whatsapp_download",listing.agentId);
     setDownloading(true);
     try{
       const canvas=await captureCard();
@@ -343,6 +385,7 @@ const WACardModal = ({listing,onClose}) => {
   };
 
   const shareOnWA=async()=>{
+    track(listing.id,"whatsapp_click","share_sheet",listing.agentId);
     setDownloading(true);
     try{
       const canvas=await captureCard();
@@ -366,29 +409,23 @@ const WACardModal = ({listing,onClose}) => {
 
   const buildText=()=>{
     const lines=[];
-    lines.push('*' + listing.title + '*');
-    lines.push('Location: ' + listing.location);
+    const shareUrl=`${window.location.origin}/v/${listing.shareSlug||listing.id}`;
+    lines.push((listing.title||"Property").toUpperCase());
+    lines.push(`${price}${listing.sizesqft?` | ${listing.sizesqft} sqft`:""}`);
+    lines.push(listing.location||"");
     lines.push('');
-    lines.push('Price: *' + price + '*' + (listing.listingType==='Rent' ? ' / month' : ''));
-    lines.push('Type: For ' + listing.listingType);
-    const dc=details.map(d=>d.replace(/[^\w\s.,:%\/\-]/g,'').trim()).filter(Boolean);
-    if(dc.length>0) lines.push('Details: ' + dc.join(' | '));
-    if(listing.description){lines.push('');lines.push(listing.description);}
-    if(highlights.length>0){lines.push('');lines.push('Highlights:');highlights.forEach(h=>lines.push('  - '+h));}
+    lines.push('View details:');
+    lines.push(shareUrl);
     lines.push('');
-    lines.push('Contact:');
-    lines.push('  Agent: *' + (listing.agentName||'') + '*');
-    if(listing.agentPhone) lines.push('  Phone: ' + listing.agentPhone);
-    if(listing.agencyName) lines.push('  Agency: ' + listing.agencyName);
-    lines.push('');
-    lines.push('_Powered by Northing_');
-    return lines.join('\n');
+    lines.push(`Contact: ${listing.agentName||"Broker"}`);
+    if(listing.agentPhone) lines.push(listing.agentPhone);
+    return lines.filter(Boolean).join('\n');
   };
 
   const copyText=()=>{
     navigator.clipboard?.writeText(buildText()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
   };
-  const openWA=()=>window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank");
+  const openWA=()=>{track(listing.id,"whatsapp_click","whatsapp",listing.agentId);window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`,"_blank");};
 
   // Card dimensions: square=420x420, portrait=340x425
   const isSquare=fmt==="square";
@@ -469,7 +506,7 @@ const WACardModal = ({listing,onClose}) => {
 };
 
 const PDFModal = ({listing,onClose}) => {
-  useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
+  useEffect(()=>{if(listing?.id)track(listing.id,"gallery_view","pdf_modal",listing.agentId);},[listing?.id]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
@@ -478,6 +515,7 @@ const PDFModal = ({listing,onClose}) => {
   const [pdfLoading,setPdfLoading]=useState(false);
 
   const downloadPDF=async()=>{
+    track(listing.id,"brochure_download","pdf",listing.agentId);
     const el=document.getElementById('pdf-print-area');
     if(!el) return;
     setPdfLoading(true);
@@ -658,8 +696,8 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-const LoginPage = ({onLogin,showToast,onNavigate}) => {
-  const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
+const LoginPage = ({onLogin,showToast,onNavigate,initialMode="login"}) => {
+  const [mode,setMode]=useState(initialMode);const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
   const submit=async()=>{
@@ -722,7 +760,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#1a1410" shineColor="#FF6B00" speed={3} spread={140}/></h2>
             <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Northing today — it's free"}</p>
           </div>
-          {mode==="register"&&(
+          {mode==="signup"&&(
             <div style={{marginBottom:18}}>
               <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>I am a…</div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -735,13 +773,13 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
               </div>
             </div>
           )}
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
+          {mode==="signup"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
           <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-          <div style={{marginBottom:mode==="register"?12:20}}><input className="inp" type="password" placeholder={mode==="register"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
-          {mode==="register"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
+          <div style={{marginBottom:mode==="signup"?12:20}}><input className="inp" type="password" placeholder={mode==="signup"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
+          {mode==="signup"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
+          {mode==="signup"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
           <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:(mode==="login"?"Sign In →":"Create Account →")}</button>
-          <button onClick={()=>setMode(m=>m==="login"?"register":"login")} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
+          <button onClick={()=>setMode(m=>m==="login"?"signup":"login")} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
         </div>
       </div>
     </div>
@@ -864,7 +902,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         const {error}=await supabase.from("listings").update(formToDb(form,currentUser.id)).eq("id",listingId);
         if(error) throw error;
       } else {
-        const {error}=await supabase.from("listings").insert(formToDb(form,currentUser.id));
+        const shareSlug=generateShareSlug();
+        const {error}=await supabase.from("listings").insert(formToDb(form,currentUser.id,shareSlug));
         if(error) throw error;
       }
       showToast(isEdit?"Listing updated!":"Listing created!","success");
@@ -993,10 +1032,35 @@ const AgentDash = ({currentUser,showToast}) => {
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
   const [leadRows,setLeadRows]=useState([]);
+  const [metricsByListing,setMetricsByListing]=useState({});
   const load=async()=>{
     setLoading(true);
     const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
-    if(!error) setListings(data||[]);
+    if(!error){
+      const rows=data||[];
+      setListings(rows);
+      const ids=rows.map(r=>r.id);
+      if(ids.length){
+        const {data:events}=await supabase.from("share_events").select("listing_id, visitor_id, event_type").in("listing_id",ids);
+        const agg={};
+        (events||[]).forEach((e)=>{
+          if(!agg[e.listing_id]) agg[e.listing_id]={views:0,uniqueVisitors:new Set(),whatsappClicks:0,brochureDownloads:0,contactClicks:0,visitRequests:0};
+          const a=agg[e.listing_id];
+          if(e.event_type==="page_view") a.views+=1;
+          if(e.event_type==="whatsapp_click") a.whatsappClicks+=1;
+          if(e.event_type==="brochure_download") a.brochureDownloads+=1;
+          if(e.event_type==="contact_click") a.contactClicks+=1;
+          if(e.visitor_id) a.uniqueVisitors.add(e.visitor_id);
+        });
+        const flat={};
+        Object.entries(agg).forEach(([k,v])=>{
+          const uniqueVisitors=v.uniqueVisitors.size;
+          const score=v.views + (v.contactClicks*5) + (v.visitRequests*10);
+          flat[k]={...v,uniqueVisitors,score};
+        });
+        setMetricsByListing(flat);
+      }
+    }
     setLoading(false);
   };
   useEffect(()=>{load();(async()=>{const {data}=await supabase.from("leads").select("*").eq("broker_id",currentUser.id);setLeadRows(data||[]);})();},[]);
@@ -1045,7 +1109,7 @@ const AgentDash = ({currentUser,showToast}) => {
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {!isSeller&&<button onClick={()=>setTab("profile")} className="btn-ghost" style={{padding:"10px 16px",borderRadius:10,fontSize:13}}>🏢 Profile</button>}
           {canAddMore
-            ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
+            ?<button onClick={()=>{if(_h.requireAuth(window.location.href)) return; setView("create");}} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
             :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
           }
         </div>
@@ -1062,7 +1126,7 @@ const AgentDash = ({currentUser,showToast}) => {
           ))}
         </div>
         {loading?<div style={{textAlign:"center",padding:48,color:"var(--muted)"}}>Loading…</div>:listings.length===0
-          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>Create your first listing and start marketing it instantly.</p><button onClick={()=>setView("create")} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button></div>
+          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>Create your first listing and start marketing it instantly.</p><button onClick={()=>{if(_h.requireAuth(window.location.href)) return; setView("create");}} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button></div>
           :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:20}} className="gr">
             {listings.map(raw=>{const l=mapListing(raw);return(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
@@ -1077,10 +1141,11 @@ const AgentDash = ({currentUser,showToast}) => {
                   <h3 style={{fontSize:14,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{l.title}</h3>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>📍 {l.location}</div>
                   <div style={{display:"flex",gap:10,fontSize:11,marginBottom:10,padding:"6px 10px",background:"var(--gray)",borderRadius:8}}>
-                    <span style={{color:"var(--muted)"}}>👁 {l.viewCount||0}</span>
-                    <span style={{color:"#25D366",fontWeight:700}}>📲 {l.waCount||0} WA</span>
-                    <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
+                    <span style={{color:"var(--muted)"}}>👁 {metricsByListing[l.id]?.views ?? l.viewCount ?? 0}</span>
+                    <span style={{color:"#25D366",fontWeight:700}}>📲 {metricsByListing[l.id]?.whatsappClicks ?? l.waCount ?? 0} WA</span>
+                    <span style={{color:"var(--muted)"}}>📄 {metricsByListing[l.id]?.brochureDownloads ?? l.pdfCount ?? 0} PDF</span>
                   </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10,color:"var(--muted)",marginBottom:10}}><span>Unique: {metricsByListing[l.id]?.uniqueVisitors||0}</span><span>Contacts: {metricsByListing[l.id]?.contactClicks||0}</span><span>Score: {metricsByListing[l.id]?.score||0}</span><span>Views: {metricsByListing[l.id]?.views||0}</span></div>
                   {l.status==="Active"?(
                     <div style={{display:"flex",gap:5,marginBottom:8}}>
                       <button onClick={()=>quickStatus(l.id,"Sold")} disabled={statusChanging===l.id} style={{flex:1,padding:"6px 2px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",color:"#7C3AED",fontFamily:"inherit"}}>🏆 Sold</button>
@@ -1714,7 +1779,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button onClick={onLogout} style={{padding:"7px 13px",borderRadius:8,fontWeight:600,fontSize:12,cursor:"pointer",background:"var(--gray)",color:"var(--muted)",border:"1px solid var(--border)",transition:"all 0.2s"}}>Sign Out</button>
         </>:<>
           <button onClick={()=>onNavigate("login")} style={{padding:"7px 16px",borderRadius:9,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--primary)",border:"none"}}>Log In</button>
-          <button onClick={()=>onNavigate("login")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
+          <button onClick={()=>onNavigate("signup")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
         </>}
       </div>
     </nav>
@@ -1753,11 +1818,24 @@ export default function App() {
   const [adminModal,setAdminModal]=useState(false);
   const [waListing,setWAListing]=useState(null);
   const [pdfListing,setPDFListing]=useState(null);
+  const [authGate,setAuthGate]=useState(null);
+  const [sharedListing,setSharedListing]=useState(null);
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     const agentParam=params.get("agent");
-    if(agentParam){setAgentPageId(agentParam);setPage("agentpage");}
+    const { pathname } = window.location;
+    if(pathname.startsWith("/v/")){
+      setPage("shared");
+      const slug=pathname.split("/v/")[1];
+      supabase.from("listings").select("*").eq("share_slug",slug).single().then(({data})=>setSharedListing(mapListing(data)));
+    } else if(pathname==="/signup"){
+      setPage("signup");
+    } else if(pathname==="/login"){
+      setPage("login");
+    } else if(agentParam){
+      setAgentPageId(agentParam);setPage("agentpage");
+    }
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
@@ -1765,17 +1843,35 @@ export default function App() {
           const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",profile.id);
           const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
           setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
-          if(!agentParam) setPage("dashboard");
+          const returnTo=localStorage.getItem("northing_return_to");
+          if(returnTo){localStorage.removeItem("northing_return_to");window.location.href=returnTo;return;}
+          if(!agentParam&&window.location.pathname.indexOf("/v/")!==0) setPage("dashboard");
         }
       }
       setAuthLoading(false);
     }).catch(()=>setAuthLoading(false));
+    supabase.auth.onAuthStateChange(async(_event,session)=>{
+      if(session?.user&&!user){
+        const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        if(profile) setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:[]});
+      }
+    });
     _h.openWA=(l)=>setWAListing(l);
     _h.openPDF=(l)=>setPDFListing(l);
   },[]);
 
+
+  useEffect(()=>{
+    _h.requireAuth=(actionPath)=>{
+      if(user) return false;
+      localStorage.setItem("northing_return_to",actionPath||window.location.href);
+      setAuthGate(actionPath||window.location.href);
+      return true;
+    };
+  },[user]);
+
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
-  const nav=(p)=>{setPage(p);window.scrollTo(0,0);};
+  const nav=(p)=>{setPage(p); if(p==="login")window.history.pushState({},"","/login"); else if(p==="signup")window.history.pushState({},"","/signup"); else if(p!=="shared")window.history.pushState({},"","/"); window.scrollTo(0,0);};
   const login=(u)=>{setUser(u);nav("dashboard");};
   const logout=async()=>{await supabase.auth.signOut();setUser(null);nav("home");showToast("Signed out successfully","success");};
   const secretTrigger=useSecretAdmin(()=>{if(!user||user.role!=="master") setAdminModal(true);});
@@ -1791,19 +1887,22 @@ export default function App() {
     <ErrorBoundary>
     <div style={{minHeight:"100vh",background:"var(--cream)",color:"var(--text)"}}>
       <style>{G}</style>
-      {page!=="login"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
+      {page!=="login"&&page!=="signup"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
       {page==="home"&&<Home currentUser={user} onNavigate={nav}/>}
       {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
-      {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
+      {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="login"/>}
+      {page==="signup"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="signup"/>}
       {page==="agentpage"&&agentPageId&&<AgentPage agentId={agentPageId} onNavigate={nav} currentUser={user}/>}
       {page==="dashboard"&&user?.role==="agent"&&<AgentDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="seller"&&<AgentDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast}/>}
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
-      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
+      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="login"/>}
+      {page==="shared"&&sharedListing&&<div style={{maxWidth:980,margin:"0 auto",padding:"24px 20px"}}><PropModal listing={sharedListing} onClose={()=>nav("feed")}/></div>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
+      {authGate&&<AuthRequiredModal onClose={()=>setAuthGate(null)} onLogin={()=>{setAuthGate(null);nav("login");}}/>}
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
     </ErrorBoundary>
