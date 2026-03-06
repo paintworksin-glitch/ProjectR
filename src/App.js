@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { createClient } from "@supabase/supabase-js";
+import BrokerBottomTabs from "./modules/BrokerBottomTabs";
+import LeadsModule from "./modules/LeadsModule";
+import DocsModule from "./modules/DocsModule";
+import InsightsModule from "./modules/InsightsModule";
+import CommissionsModule from "./modules/CommissionsModule";
+import MarketModule from "./modules/MarketModule";
+import { normalizeListingStatus } from "./modules/brokerData";
 
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
@@ -98,7 +105,7 @@ const mapListing = (l) => !l ? null : ({
   id: l.id, agentId: l.agent_id, title: l.title, location: l.location,
   propertyType: l.property_type, listingType: l.listing_type,
   price: l.price, sizesqft: l.size_sqft, bedrooms: l.bedrooms, bathrooms: l.bathrooms,
-  furnishingStatus: l.furnishing_status, status: l.status,
+  furnishingStatus: l.furnishing_status, status: normalizeListingStatus(l.status),
   description: l.description, highlights: l.highlights || [],
   agentName: l.agent_name, agentPhone: l.agent_phone, agentEmail: l.agent_email,
   agencyName: l.agency_name, photos: l.photos || [], createdAt: l.created_at,
@@ -109,23 +116,31 @@ const mapListing = (l) => !l ? null : ({
   viewCount: l.view_count||0,
   waCount: l.wa_count||0,
   pdfCount: l.pdf_count||0,
+  amenities: l.amenities || l.details?.amenities || [],
+  reraNumber: l.rera_number || l.details?.reraNumber || null,
+  latitude: l.latitude ?? l.details?.latitude ?? null,
+  longitude: l.longitude ?? l.details?.longitude ?? null,
 });
 const formToDb = (form, agentId) => ({
   agent_id: agentId, title: form.title, location: form.location,
   property_type: form.propertyType, listing_type: form.listingType,
   price: Number(form.price) || 0, size_sqft: Number(form.sizesqft) || null,
   bedrooms: Number(form.bedrooms) || 0, bathrooms: Number(form.bathrooms) || 0,
-  furnishing_status: form.furnishingStatus, status: form.status || "Active",
+  furnishing_status: form.furnishingStatus, status: form.status || "active",
   description: form.description, highlights: form.highlights || [],
   agent_name: form.agentName, agent_phone: form.agentPhone,
   agent_email: form.agentEmail, agency_name: form.agencyName,
   photos: form.photos || [],
+  amenities: form.amenities || [],
+  rera_number: form.reraNumber || null,
+  latitude: form.latitude ? Number(form.latitude) : null,
+  longitude: form.longitude ? Number(form.longitude) : null,
   details: { toilets:form.toilets, condition:form.condition, builtYear:form.builtYear,
     modernKitchen:form.modernKitchen, wcType:form.wcType, superBuiltUp:form.superBuiltUp,
     carpetArea:form.carpetArea, parkingType:form.parkingType, vastuDirection:form.vastuDirection,
     totalFloors:form.totalFloors, propertyFloor:form.propertyFloor, maintenance:form.maintenance,
     societyFormed:form.societyFormed, ocReceived:form.ocReceived,
-    reraRegistered:form.reraRegistered, reraNumber:form.reraNumber,
+    reraRegistered:form.reraRegistered,
     logoUrl:form.logoUrl||null, agentAddress:form.agentAddress||null, agentWebsite:form.agentWebsite||null }
 });
 const dbToForm = (l) => ({
@@ -134,7 +149,11 @@ const dbToForm = (l) => ({
   bedrooms:l.bedrooms, bathrooms:l.bathrooms, furnishingStatus:l.furnishing_status,
   status:l.status, description:l.description, highlights:l.highlights||[],
   agentName:l.agent_name, agentPhone:l.agent_phone, agentEmail:l.agent_email,
-  agencyName:l.agency_name, photos:l.photos||[]
+  agencyName:l.agency_name, photos:l.photos||[],
+  amenities:l.amenities||l.details?.amenities||[],
+  reraNumber:l.rera_number||l.details?.reraNumber||"",
+  latitude:l.latitude??l.details?.latitude??"",
+  longitude:l.longitude??l.details?.longitude??""
 });
 
 const uploadPhoto = async (file) => {
@@ -218,8 +237,9 @@ const DupModal = ({dups,onProceed,onCancel}) => (
 
 const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
   const isSaved = savedIds?.includes(listing.id);
-  const statusColor = listing.status==="Active"?"#059669":listing.status==="Rented"?"#D97706":"#7C3AED";
-  const statusBg = listing.status==="Active"?"#ECFDF5":listing.status==="Rented"?"#FFFBEB":"#F5F3FF";
+  const statusNorm = normalizeListingStatus(listing.status);
+  const statusColor = statusNorm==="active"?"#059669":statusNorm==="offer"?"#D97706":"#7C3AED";
+  const statusBg = statusNorm==="active"?"#ECFDF5":statusNorm==="offer"?"#FFFBEB":"#F5F3FF";
   return (
     <div className="card" style={{overflow:"hidden"}}>
       <div style={{height:195,position:"relative",background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -229,7 +249,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           <span className="badge" style={{background:listing.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:listing.listingType==="Rent"?"#B45309":"#059669",border:`1px solid ${listing.listingType==="Rent"?"#FDE68A":"#A7F3D0"}`}}>{listing.listingType}</span>
         </div>
         <div style={{position:"absolute",top:12,right:12}}>
-          <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
+          <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${statusNorm==="active"?"#A7F3D0":statusNorm==="offer"?"#FDE68A":"#DDD6FE"}`}}>{statusNorm}</span>
         </div>
         {currentUser?.role==="user"&&(
           <button onClick={e=>{e.stopPropagation();onSave(listing.id)}} style={{position:"absolute",bottom:12,right:12,background:"rgba(255,255,255,0.92)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",fontSize:16,boxShadow:"0 2px 8px rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>{isSaved?"❤️":"🤍"}</button>
@@ -732,6 +752,35 @@ const FI=({label,k,form,set,type="text",placeholder="",err,span})=>(<div style={
 const FS=({label,k,form,set,opts})=>(<div style={{marginBottom:13}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<select value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp"><option value="">Select…</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>);
 const FormSec=({title,children})=>(<div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}><h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>{title}</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>{children}</div></div>);
 
+const GoogleLocationInput=({value,onSelect})=>{
+  const ref=useRef(null);
+  useEffect(()=>{
+    const key=process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    if(!key||!ref.current) return;
+    const setup=()=>{
+      if(!window.google?.maps?.places||!ref.current) return;
+      const ac=new window.google.maps.places.Autocomplete(ref.current,{fields:["formatted_address","geometry"]});
+      ac.addListener("place_changed",()=>{
+        const p=ac.getPlace();
+        onSelect({
+          location:p.formatted_address||ref.current.value,
+          lat:p.geometry?.location?.lat?.()||"",
+          lng:p.geometry?.location?.lng?.()||"",
+        });
+      });
+    };
+    if(window.google?.maps?.places){setup();return;}
+    if(document.getElementById("gmaps-places")) return;
+    const script=document.createElement("script");
+    script.id="gmaps-places";
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+    script.async=true;
+    script.onload=setup;
+    document.body.appendChild(script);
+  },[onSelect]);
+  return <input ref={ref} className="inp" placeholder="Search location" defaultValue={value||""} onBlur={e=>onSelect({location:e.target.value})}/>;
+};
+
 const scorePhotoWithClaude=async(base64,mediaType)=>{
   try{
     const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mediaType,data:base64}},{type:"text",text:`You are a real estate photography expert. Score this property photo for use as a listing cover image. Rate each from 1-10: lighting, angle, appeal, clarity. Respond ONLY with valid JSON no markdown: {"lighting":7,"angle":8,"appeal":9,"clarity":8,"overall":8,"reason":"one sentence"}`}]}]})});
@@ -748,7 +797,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const [aiPick,setAiPick]=useState(null);
   const [scoringIdx,setScoringIdx]=useState(null);
   const [photoMeta,setPhotoMeta]=useState([]); // [{url,score}] parallel to form.photos
-  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[]});
+  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",amenities:[],latitude:"",longitude:"",description:"",highlights:[],status:"active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[]});
   const [errs,setErrs]=useState({});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   useEffect(()=>{if(isEdit){const raw=allListings.find(l=>l.id===listingId);if(raw)setForm(dbToForm(raw));}},[listingId,allListings]);
@@ -875,6 +924,19 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <div style={{display:"flex",gap:8,marginBottom:10}}><input value={hl} onChange={e=>setHl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(e.preventDefault(),addHl())} placeholder="e.g. Sea View" className="inp"/><button onClick={addHl} className="btn-green" style={{padding:"10px 16px",borderRadius:10,fontSize:13,whiteSpace:"nowrap"}}>+ Add</button></div>
         {(form.highlights||[]).map((h,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:"var(--green-light)",borderRadius:8,marginBottom:5,border:"1px solid var(--green-mid)"}}><span style={{fontSize:13,color:"var(--text)"}}>{h}</span><button onClick={()=>rmHl(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:16}}>×</button></div>)}
       </div>
+      <FormSec title="🧩 Compliance & Location">
+        <div style={{marginBottom:13}}>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Google Location</label>
+          <GoogleLocationInput value={form.location} onSelect={({location,lat,lng})=>{if(location!==undefined)set("location",location);if(lat!==undefined)set("latitude",lat);if(lng!==undefined)set("longitude",lng);}}/>
+        </div>
+        <FI label="RERA Number" k="reraNumber" form={form} set={set} placeholder="e.g. PRM/KA/RERA/1251/446"/>
+        <FI label="Latitude" k="latitude" form={form} set={set} type="number"/>
+        <FI label="Longitude" k="longitude" form={form} set={set} type="number"/>
+        <div style={{marginBottom:13,gridColumn:"1/-1"}}>
+          <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Amenities (comma separated)</label>
+          <input className="inp" value={(form.amenities||[]).join(", ")} onChange={e=>set("amenities",e.target.value.split(",").map(x=>x.trim()).filter(Boolean))} placeholder="Lift, Parking, Gym, Power Backup"/>
+        </div>
+      </FormSec>
       <FormSec title="👤 Agent Contact">
         <FI label="Agent Name" k="agentName" form={form} set={set}/>
         <FI label="Phone" k="agentPhone" form={form} set={set} type="tel"/>
@@ -913,7 +975,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
         <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>Status</h3>
-        <div style={{display:"flex",gap:8}}>{["Active","Rented","Sold"].map(s=><button key={s} onClick={()=>set("status",s)} style={{padding:"8px 18px",borderRadius:9,border:`2px solid ${form.status===s?"var(--green)":"var(--border)"}`,background:form.status===s?"var(--green-light)":"var(--white)",color:form.status===s?"var(--green2)":"var(--muted)",fontWeight:700,fontSize:13,cursor:"pointer"}}>{s}</button>)}</div>
+        <div style={{display:"flex",gap:8}}>{["active","offer","sold"].map(s=><button key={s} onClick={()=>set("status",s)} style={{padding:"8px 18px",borderRadius:9,border:`2px solid ${form.status===s?"var(--green)":"var(--border)"}`,background:form.status===s?"var(--green-light)":"var(--white)",color:form.status===s?"var(--green2)":"var(--muted)",fontWeight:700,fontSize:13,cursor:"pointer"}}>{s}</button>)}</div>
       </div>
       <div style={{display:"flex",gap:12,justifyContent:"flex-end"}}>
         <button onClick={onBack} className="btn-ghost" style={{padding:"12px 24px",borderRadius:10,fontSize:14}}>Cancel</button>
@@ -930,13 +992,14 @@ const AgentDash = ({currentUser,showToast}) => {
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
+  const [leadRows,setLeadRows]=useState([]);
   const load=async()=>{
     setLoading(true);
     const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
     if(!error) setListings(data||[]);
     setLoading(false);
   };
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{load();(async()=>{const {data}=await supabase.from("leads").select("*").eq("broker_id",currentUser.id);setLeadRows(data||[]);})();},[]);
   const quickStatus=async(id,newStatus)=>{
     setStatusChanging(id);
     const {error}=await supabase.from("listings").update({status:newStatus}).eq("id",id);
@@ -969,7 +1032,7 @@ const AgentDash = ({currentUser,showToast}) => {
   const enrichedUser={...currentUser,...profile};
   if(editId!==undefined&&editId!==null) return <ListingForm currentUser={enrichedUser} listingId={editId} allListings={listings} showToast={showToast} onBack={()=>setEditId(null)} onSaved={()=>{setEditId(null);load();}}/>;
   if(view==="create") return <ListingForm currentUser={enrichedUser} listingId={null} allListings={listings} showToast={showToast} onBack={()=>setView("grid")} onSaved={()=>{setView("grid");load();}}/>;
-  const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Rented",listings.filter(l=>l.status==="Rented").length,"🏠"],["Sold",listings.filter(l=>l.status==="Sold").length,"🏆"]];
+  const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>normalizeListingStatus(l.status)==="active").length,"✅"],["Offer",listings.filter(l=>normalizeListingStatus(l.status)==="offer").length,"🤝"],["Sold",listings.filter(l=>normalizeListingStatus(l.status)==="sold").length,"🏆"]];
   const canAddMore=listings.length<maxListings;
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"32px 20px"}}>
@@ -979,16 +1042,15 @@ const AgentDash = ({currentUser,showToast}) => {
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>{isSeller?"My Properties":"My Listings"}</h1>
           <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>{isSeller?`Individual seller · ${listings.length}/${maxListings} properties used`:"Manage and market your properties"}</p>
         </div>
-        {canAddMore
-          ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
-          :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
-        }
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {!isSeller&&<button onClick={()=>setTab("profile")} className="btn-ghost" style={{padding:"10px 16px",borderRadius:10,fontSize:13}}>🏢 Profile</button>}
+          {canAddMore
+            ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
+            :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
+          }
+        </div>
       </div>
-      <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
-        {[["listings","🏠 Listings"],...(!isSeller?[["profile","🏢 Profile"]]:[])].map(([t,l])=>(
-          <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none"}}>{l}</button>
-        ))}
-      </div>
+      <div style={{marginBottom:20}}><BrokerBottomTabs tab={tab} setTab={setTab}/></div>
       {tab==="listings"&&<>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}} className="gr">
           {stats.map(([label,val,icon])=>(
@@ -1042,6 +1104,10 @@ const AgentDash = ({currentUser,showToast}) => {
           </div>
         }
       </>}
+      {tab==="market"&&<MarketModule listings={listings.map(mapListing)} brand={{logoUrl:profile.logoUrl,color:"#FF6B00"}}/>}
+      {tab==="leads"&&<LeadsModule supabase={supabase} brokerId={currentUser.id} showToast={showToast}/>}
+      {tab==="docs"&&<DocsModule supabase={supabase} brokerId={currentUser.id} listings={listings.map(mapListing)} leads={leadRows} showToast={showToast}/>}
+      {tab==="insights"&&<><InsightsModule listings={listings} leads={leadRows}/><div style={{marginTop:12}}><CommissionsModule supabase={supabase} brokerId={currentUser.id} listings={listings.map(mapListing)} showToast={showToast}/></div></>}
       {tab==="profile"&&!isSeller&&(
         <div style={{maxWidth:620}}>
           <div className="card" style={{padding:28,marginBottom:16}}>
@@ -1106,6 +1172,8 @@ const AgentDash = ({currentUser,showToast}) => {
 
 const UserDash = ({currentUser,showToast}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
+  useEffect(()=>{setLeadUnlocked(!!localStorage.getItem(`lead-captured-${agentId}`));},[agentId]);
+  useEffect(()=>{setLeadUnlocked(!!localStorage.getItem(`lead-captured-${agentId}`));},[agentId]);
   useEffect(()=>{
     (async()=>{
       const {data,error}=await supabase.from("saved_listings").select("listings(*)").eq("user_id",currentUser.id);
@@ -1265,7 +1333,7 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
   const requireAuth=(fn)=>(...args)=>{if(!currentUser){showToast("Please sign in to access this feature","error");onNavigate&&onNavigate("login");return;}fn(...args);};
   useEffect(()=>{
     (async()=>{
-      const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false});
+      const {data}=await supabase.from("listings").select("*").neq("status","sold").order("created_at",{ascending:false});
       setListings((data||[]).map(mapListing));setLoading(false);
     })();
   },[]);
@@ -1338,7 +1406,7 @@ const Home = ({currentUser,onNavigate}) => {
   const [waListing,setWAListing]=useState(null);const [pdfListing,setPdfListing]=useState(null);const [modal,setModal]=useState(null);
   useEffect(()=>{
     (async()=>{
-      const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false}).limit(24);
+      const {data}=await supabase.from("listings").select("*").neq("status","sold").order("created_at",{ascending:false}).limit(24);
       setListings((data||[]).map(mapListing).filter(Boolean));
       setLoading(false);
     })();
@@ -1540,12 +1608,13 @@ const Home = ({currentUser,onNavigate}) => {
 };
 
 const AgentPage = ({agentId,onNavigate,currentUser}) => {
-  const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
+  const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);const [leadForm,setLeadForm]=useState({name:"",phone:""});const [leadUnlocked,setLeadUnlocked]=useState(false);
+  useEffect(()=>{setLeadUnlocked(!!localStorage.getItem(`lead-captured-${agentId}`));},[agentId]);
   useEffect(()=>{
     (async()=>{
       const [{data:a},{data:l}]=await Promise.all([
         supabase.from("profiles").select("*").eq("id",agentId).single(),
-        supabase.from("listings").select("*").eq("agent_id",agentId).eq("status","Active").order("created_at",{ascending:false}),
+        supabase.from("listings").select("*").eq("agent_id",agentId).neq("status","sold").order("created_at",{ascending:false}),
       ]);
       setAgent(a);setListings((l||[]).map(mapListing).filter(Boolean));setLoading(false);
     })();
@@ -1553,7 +1622,14 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
   if(loading) return <div style={{minHeight:"60vh",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--muted)"}}>Loading agent profile…</div>;
   if(!agent) return <div style={{minHeight:"60vh",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--muted)"}}>Agent not found.</div>;
   const copyLink=()=>{navigator.clipboard?.writeText(`${window.location.origin}?agent=${agentId}`);setCopied(true);setTimeout(()=>setCopied(false),2000);};
+  const submitLeadGate=async()=>{
+    if(!leadForm.name||!leadForm.phone){alert("Please enter name and phone");return;}
+    const { error } = await supabase.from("leads").insert({broker_id:agentId,name:leadForm.name,phone:leadForm.phone,stage:"New",requirement:"Listing enquiry"});
+    if(!error){localStorage.setItem(`lead-captured-${agentId}`,"1");setLeadUnlocked(true);} 
+  };
+  if(!leadUnlocked) return <div style={{maxWidth:520,margin:"28px auto",padding:"0 20px"}}><div className="card" style={{padding:18}}><h2 style={{fontFamily:"'Fraunces',serif",marginBottom:8}}>View listings</h2><p style={{fontSize:13,color:"var(--muted)",marginBottom:10}}>Share your contact details once to access this broker's listings.</p><input className="inp" placeholder="Name" value={leadForm.name} onChange={e=>setLeadForm(f=>({...f,name:e.target.value}))} style={{marginBottom:8}}/><input className="inp" placeholder="Phone" value={leadForm.phone} onChange={e=>setLeadForm(f=>({...f,phone:e.target.value}))} style={{marginBottom:8}}/><button className="btn-primary" style={{padding:"10px 14px",borderRadius:10}} onClick={submitLeadGate}>Continue</button></div></div>;
   return (
+
     <div style={{background:"var(--cream)",minHeight:"100vh"}}>
       <div style={{background:"var(--navy)",padding:"48px 24px 40px"}}>
         <div style={{maxWidth:960,margin:"0 auto",display:"flex",alignItems:"center",gap:24,flexWrap:"wrap"}}>
