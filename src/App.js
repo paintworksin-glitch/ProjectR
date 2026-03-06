@@ -59,7 +59,14 @@ const G = `
     #pdf-print-area * { visibility:visible !important; }
   }
   @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
-  @media(max-width:640px){.h1big{font-size:32px!important}}
+  @media(max-width:640px){
+    .h1big{font-size:32px!important}
+    .prop-grid{grid-template-columns:1fr!important;gap:14px!important}
+    .prop-card-body{padding:14px 14px 16px!important}
+    .prop-card-meta{gap:10px!important;margin-bottom:12px!important;padding-bottom:12px!important;flex-wrap:wrap}
+    .prop-card-actions{gap:8px!important}
+    .prop-card-actions button{padding:9px 6px!important;font-size:12px!important}
+  }
 `;
 
 const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread=120, direction="left", disabled=false, className=""}) => {
@@ -229,15 +236,15 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
         )}
         <div style={{position:"absolute",bottom:12,left:12,fontSize:20,fontWeight:800,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:500}}>/mo</span>}</div>
       </div>
-      <div style={{padding:"16px 18px"}}>
+      <div className="prop-card-body" style={{padding:"16px 18px"}}>
         <h3 style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4,lineHeight:1.3}}>{listing.title}</h3>
         <div style={{fontSize:13,color:"var(--muted)",marginBottom:12}}>📍 {listing.location}</div>
-        <div style={{display:"flex",gap:16,fontSize:12,color:"var(--muted)",marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
+        <div className="prop-card-meta" style={{display:"flex",gap:16,fontSize:12,color:"var(--muted)",marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
           {listing.bedrooms>0&&<span>🛏 {listing.bedrooms} Beds</span>}
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
           {listing.sizesqft&&<span>📐 {listing.sizesqft} sqft</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+        <div className="prop-card-actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WhatsApp</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
@@ -1315,7 +1322,7 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
           </div>
         )}
         {loading?<div style={{textAlign:"center",padding:80,color:"var(--muted)"}}>Loading listings…</div>:filtered.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🔍</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>Try adjusting your filters.</p><button onClick={clear} className="btn-outline" style={{padding:"10px 24px",borderRadius:10,fontSize:13}}>Clear Filters</button></div>:(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:24}} className="gr">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:24}} className="gr prop-grid">
             {filtered.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={handleSave} onView={setModal}/>)}
           </div>
         )}
