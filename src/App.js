@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Component } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./supabaseClient";
 import BrokerBottomTabs from "./modules/BrokerBottomTabs";
 import LeadsModule from "./modules/LeadsModule";
 import DocsModule from "./modules/DocsModule";
@@ -8,9 +8,6 @@ import CommissionsModule from "./modules/CommissionsModule";
 import MarketModule from "./modules/MarketModule";
 import { normalizeListingStatus } from "./modules/brokerData";
 
-const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const G = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap');
