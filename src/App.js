@@ -1785,7 +1785,7 @@ export default function App() {
     } else if(agentParam){
       setAgentPageId(agentParam);setPage("agentpage");
     }
-    supabase.auth.getSession().then(async({data:{session}})=>{
+    const { data: { session } } = await supabase.auth.getSession();
       if(session){
         const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
         if(profile){
