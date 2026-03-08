@@ -1,6 +1,31 @@
-import { useState, useEffect, useRef, Component } from "react";
+import { useState, useEffect, useRef, Component } from 'react'
 import { createClient } from "@supabase/supabase-js";
-
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err) {
+    console.error('ErrorBoundary caught:', err);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{padding:24, textAlign:'center', color:'var(--muted)', fontSize:14}}>
+          ⚠️ Something went wrong.{' '}
+          <button onClick={() => this.setState({hasError:false})}
+          style={{color:'var(--primary)',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
