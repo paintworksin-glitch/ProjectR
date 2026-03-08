@@ -143,16 +143,24 @@ const _h = { openWA: ()=>{}, openPDF: ()=>{} };
 const showWACard = (l) => _h.openWA(l);
 const showPDF    = (l) => _h.openPDF(l);
 
-const track = (listingId, type) => {
-  if(!listingId) return;
-  const col = type==="view"?"view_count":type==="wa"?"wa_count":"pdf_count";
-  supabase.rpc("increment_count",{row_id:listingId,col_name:col}).then(({error})=>{
-    if(error){
-      supabase.from("listings").select(col).eq("id",listingId).single().then(({data})=>{
-        if(data) supabase.from("listings").update({[col]:(data[col]||0)+1}).eq("id",listingId);
-      });
-    }
+const track = async (listingId, type, platform = 'web', brokerId = null) => {
+  if (!listingId) return;
+  const key = `tracked_${listingId}_${type}`;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, '1');
+  const visitorId = getVisitorId();
+  await supabase.from('shareevents').insert({
+    listing_id: listingId,
+    broker_id: brokerId,
+    visitor_id: visitorId,
+    event_type: type,
+    platform,
   });
+  const col = type === 'pageview' ? 'viewcount'
+            : type === 'whatsappclick' ? 'wacount'
+            : type === 'brochuredownload' ? 'pdfcount'
+            : null;
+  if (col) supabase.rpc('incrementcount', { rowid: listingId, colname: col });
 };
 
 const WALogo = ({size=16}) => (
