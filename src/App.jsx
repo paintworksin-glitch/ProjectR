@@ -1682,7 +1682,7 @@ export default function App() {
           const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",profile.id);
           const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
           setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
-          if(!agentParam) setPage("dashboard");
+          //if(!agentParam) setPage("dashboard");
         }
       }
       setAuthLoading(false);
