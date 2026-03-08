@@ -1532,9 +1532,9 @@ const Home = ({currentUser,onNavigate}) => {
           </button>
         ))}
       </div>
-      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
-      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
-      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/>}
+      {modal&&<ErrorBoundary><PropModal listing={modal} onClose={()=>setModal(null)}/></ErrorBoundary>}
+      {waListing&&<ErrorBoundary><WACardModal listing={waListing} onClose={()=>setWAListing(null)}/></ErrorBoundary>}
+      {pdfListing&&<ErrorBoundary><PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/></ErrorBoundary>}
     </div>
   );
 };
