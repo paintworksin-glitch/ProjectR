@@ -11,6 +11,7 @@ export const normalizeListingStatus = (status) => {
   const s = String(status || "").toLowerCase();
   if (["sold", "closed"].includes(s)) return "sold";
   if (["offer", "rented"].includes(s)) return "offer";
+   if (["inactive"].includes(s)) return "inactive"; 
   return "active";
 };
 
