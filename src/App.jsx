@@ -138,7 +138,73 @@ const uploadPhoto = async (file) => {
   return data.publicUrl;
 };
 
-const _h = { openWA: ()=>{}, openPDF: ()=>{} };
+const burnWatermark = (file, { logoUrl, brandName } = {}) => new Promise((resolve) => {
+  const img = new Image();
+  const objectUrl = URL.createObjectURL(file);
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(objectUrl);
+    const w = canvas.width, h = canvas.height;
+    const pad = Math.round(w * 0.025);
+    const logoSize = Math.round(w * 0.10);
+    const fontSize = Math.max(14, Math.round(w * 0.030));
+    const drawBottomRight = () => {
+      if (!brandName) return;
+      ctx.save();
+      ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+      const textW = ctx.measureText(brandName).width;
+      const bw = textW + pad * 1.6, bh = fontSize + pad * 1.2;
+      const bx = w - bw - pad * 0.6, by = h - bh - pad * 0.6;
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 8) : ctx.rect(bx, by, bw, bh);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(brandName, bx + pad * 0.8, by + bh - pad * 0.55);
+      ctx.restore();
+    };
+    const finish = () => {
+      drawBottomRight();
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: "image/jpeg" })), "image/jpeg", 0.92);
+    };
+    if (logoUrl) {
+      const li = new Image();
+      li.crossOrigin = "anonymous";
+      li.onload = () => {
+        ctx.save();
+        const bw = logoSize + pad * 1.2, bh = logoSize + pad * 1.2;
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(pad * 0.6, pad * 0.6, bw, bh, 10) : ctx.rect(pad * 0.6, pad * 0.6, bw, bh);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.drawImage(li, pad * 0.8, pad * 0.8, logoSize, logoSize);
+        ctx.restore();
+        finish();
+      };
+      li.onerror = finish;
+      li.src = logoUrl;
+    } else {
+      finish();
+    }
+  };
+  img.onerror = () => resolve(file);
+  img.src = objectUrl;
+});
+
+const uploadWatermarked = async (file, wmOptions) => {
+  const watermarked = await burnWatermark(file, wmOptions);
+  return uploadPhoto(watermarked);
+};
+
+const _h = { openWA: ()=>{}, openPDF: ()=>{}, openKit: ()=>{} };
 const showWACard = (l) => _h.openWA(l);
 const showPDF    = (l) => _h.openPDF(l);
 
@@ -244,10 +310,11 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
           {listing.sizesqft&&<span>📐 {listing.sizesqft} sqft</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
-          <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WhatsApp</button>
+          <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
+          <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/property/${listing.id}`).then(()=>alert("Link copied!"));}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>🔗 Link</button>
         </div>
       </div>
     </div>
@@ -281,6 +348,8 @@ const PropModal = ({listing,onClose}) => {
               {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
+              <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/property/${listing.id}`).then(()=>alert("✅ Link copied!"));}} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--gray)",color:"var(--navy)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--border)",cursor:"pointer",fontFamily:"inherit"}}>🔗 Copy Link</button>
+              <button onClick={()=>_h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing Kit</button>
             </div>
           </div>
         </div>
@@ -744,7 +813,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       const newUrls=[]; const newMeta=[];
       for(const file of files){
         if(file.size>5*1024*1024){showToast(`${file.name} is over 5MB, skipped`,"error");continue;}
-        const url=await uploadPhoto(file);
+        const wmOptions={logoUrl:currentUser?.logoUrl||null,brandName:currentUser?.agencyName||currentUser?.name||"Northing"};
+        const url=await uploadWatermarked(file,wmOptions);
         // Read base64 for scoring
         const b64=await new Promise(res=>{const r=new FileReader();r.onload=ev=>{const[,d]=ev.target.result.split(",");res({base64:d,mediaType:file.type});};r.readAsDataURL(file);});
         newUrls.push(url);
@@ -1654,13 +1724,92 @@ class ErrorBoundary extends Component {
   }
 }
 
+const MarketingKitModal = ({listing, onClose}) => {
+  const [status,setStatus]=useState("idle");
+  const download=async()=>{
+    setStatus("loading");
+    try{
+      const JSZip=await new Promise((res,rej)=>{
+        if(window.JSZip){res(window.JSZip);return;}
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        s.onload=()=>res(window.JSZip);s.onerror=rej;document.head.appendChild(s);
+      });
+      const zip=new JSZip();
+      const imgFolder=zip.folder("photos");
+      for(let i=0;i<(listing.photos||[]).length;i++){
+        try{
+          const resp=await fetch(listing.photos[i]);
+          const blob=await resp.blob();
+          imgFolder.file(`photo-${i+1}.jpg`,blob);
+        }catch(e){}
+      }
+      const info=[
+        listing.title,
+        `Location: ${listing.location}`,
+        `Price: ${fmtP(listing.price)}${listing.listingType==="Rent"?" /month":""}`,
+        `Type: ${listing.propertyType} · For ${listing.listingType}`,
+        listing.bedrooms?`Beds: ${listing.bedrooms}`:"",
+        listing.bathrooms?`Baths: ${listing.bathrooms}`:"",
+        listing.sizesqft?`Size: ${listing.sizesqft} sqft`:"",
+        "",
+        `Agent: ${listing.agentName}`,
+        listing.agentPhone?`Phone: ${listing.agentPhone}`:"",
+        listing.agencyName?`Agency: ${listing.agencyName}`:"",
+        "",
+        `Shareable Link: ${window.location.origin}/property/${listing.id}`,
+        "",
+        "Powered by Northing"
+      ].join("\n");
+      zip.file("property-info.txt",info);
+      const blob=await zip.generateAsync({type:"blob"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=`marketing-kit-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.zip`;
+      a.click();
+      setStatus("done");
+    }catch(e){alert("Download failed: "+e.message);setStatus("idle");}
+  };
+  return (
+    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4500,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}} onClick={onClose}>
+      <div className="card asl" style={{maxWidth:420,width:"100%",padding:32}} onClick={e=>e.stopPropagation()}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:44,marginBottom:10}}>📦</div>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--navy)",marginBottom:8}}>Marketing Kit</h2>
+          <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.7}}>Download all watermarked photos + property info as a ZIP. Ready to share on WhatsApp, Instagram or email.</p>
+        </div>
+        <div style={{background:"var(--cream)",borderRadius:12,padding:16,marginBottom:16,border:"1px solid var(--border)"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"var(--navy)",marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>📁 Included in ZIP</div>
+          {[
+            `🖼 ${(listing.photos||[]).length} watermarked photo${(listing.photos||[]).length!==1?"s":""}`,
+            "📄 Property info text file",
+            `🔗 Link: ${window.location.origin}/property/${listing.id}`
+          ].map((item,i)=>(
+            <div key={i} style={{fontSize:13,color:"var(--muted)",marginBottom:5,display:"flex",gap:6,alignItems:"flex-start"}}>{item}</div>
+          ))}
+        </div>
+        <div style={{fontSize:12,color:"var(--muted)",marginBottom:20,textAlign:"center",background:"var(--primary-light)",padding:"8px 14px",borderRadius:8,border:"1px solid var(--primary-mid)"}}>
+          Watermark: <strong style={{color:"var(--primary)"}}>{listing.logoUrl?"Logo + ":""}{listing.agencyName||listing.agentName||"Northing"}</strong>
+        </div>
+        <button onClick={download} disabled={status==="loading"} className="btn-primary"
+          style={{width:"100%",padding:"13px",borderRadius:10,fontSize:14,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8,border:"none"}}>
+          {status==="loading"?<><span className="spin"/>Packaging…</>:status==="done"?"✅ Downloaded!":"⬇️ Download Marketing Kit"}
+        </button>
+        <button onClick={onClose} className="btn-ghost" style={{width:"100%",padding:"11px",borderRadius:10,fontSize:13}}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+
 const PropertyPublicPage = ({ id }) => {
   const navigate = (path) => { window.history.pushState({}, '', path); window.location.href = path; };
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [waListing, setWaListing] = useState(null);
   const [pdfListing, setPdfListing] = useState(null);
-  useEffect(() => { _h.openWA = (l) => setWaListing(l); _h.openPDF = (l) => setPdfListing(l); }, []);
+  const [kitListing, setKitListing] = useState(null);
+  useEffect(() => { _h.openWA = (l) => setWaListing(l); _h.openPDF = (l) => setPdfListing(l); _h.openKit = (l) => setKitListing(l); }, []);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('listings').select('*').eq('id', id).single();
@@ -1698,6 +1847,7 @@ const PropertyPublicPage = ({ id }) => {
       <PropModal listing={listing} onClose={()=>navigate('/')} />
       {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} />}
       {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} />}
+      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} />}
     </div>
   );
 };
@@ -1744,6 +1894,7 @@ export default function App() {
   const [adminModal,setAdminModal]=useState(false);
   const [waListing,setWAListing]=useState(null);
   const [pdfListing,setPDFListing]=useState(null);
+  const [kitListing,setKitListing]=useState(null);
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
@@ -1763,6 +1914,7 @@ export default function App() {
     }).catch(()=>setAuthLoading(false));
     _h.openWA=(l)=>setWAListing(l);
     _h.openPDF=(l)=>setPDFListing(l);
+    _h.openKit=(l)=>setKitListing(l);
   },[]);
 
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
@@ -1801,6 +1953,7 @@ export default function App() {
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
+      {kitListing&&<MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)}/>}
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
     </ErrorBoundary>
