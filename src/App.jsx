@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, Component } from 'react'
-import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom'
 import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
@@ -1655,9 +1654,8 @@ class ErrorBoundary extends Component {
   }
 }
 
-const PropertyPublicPage = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const PropertyPublicPage = ({ id }) => {
+  const navigate = (path) => { window.history.pushState({}, '', path); window.location.href = path; };
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [waListing, setWaListing] = useState(null);
@@ -1704,9 +1702,8 @@ const PropertyPublicPage = () => {
   );
 };
 
-const BrokerPublicPage = () => {
-  const { name } = useParams();
-  const navigate = useNavigate();
+const BrokerPublicPage = ({ name }) => {
+  const navigate = (path) => { window.history.pushState({}, '', path); window.location.href = path; };
   const [agentId, setAgentId] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -1781,12 +1778,13 @@ export default function App() {
     </div>
   );
 
+  // Mini client-side router using window.location
+  const pathname = window.location.pathname;
+  const propMatch = pathname.match(/^\/property\/([^/]+)$/);
+  const brokerMatch = pathname.match(/^\/broker\/([^/]+)$/);
+  if (propMatch) return <ErrorBoundary><PropertyPublicPage id={propMatch[1]} /></ErrorBoundary>;
+  if (brokerMatch) return <ErrorBoundary><BrokerPublicPage name={brokerMatch[1]} /></ErrorBoundary>;
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/property/:id" element={<PropertyPublicPage />} />
-        <Route path="/broker/:name" element={<BrokerPublicPage />} />
-        <Route path="*" element={(
     <ErrorBoundary>
     <div style={{minHeight:"100vh",background:"var(--cream)",color:"var(--text)"}}>
       <style>{G}</style>
@@ -1806,8 +1804,5 @@ export default function App() {
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
     </ErrorBoundary>
-        )} />
-      </Routes>
-    </BrowserRouter>
   );
 }
