@@ -28,10 +28,6 @@ const G = `
   .btn-primary { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 14px rgba(255,107,0,0.3); }
   .btn-primary:hover:not(:disabled) { background: var(--primary2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,107,0,0.4); }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-green { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 14px rgba(255,107,0,0.3); }
-  .btn-green:hover { background: var(--primary2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,107,0,0.4); }
-  .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; }
-  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
   .btn-ghost { background: var(--gray); border: 1.5px solid var(--border); color: var(--muted); cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
   .btn-ghost:hover { background: var(--border); color: var(--text); }
   .btn-danger { background: #FEF2F2; border: 1.5px solid #FECACA; color: #DC2626; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
@@ -227,7 +223,7 @@ const DupModal = ({dups,onProceed,onCancel}) => (
   </div>
 );
 
-const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
+const PropCard = ({listing,currentUser,savedIds,onSave}) => {
   const isSaved = savedIds?.includes(listing.id);
   const statusColor = listing.status==="Active"?"#059669":listing.status==="Rented"?"#D97706":"#7C3AED";
   const statusBg = listing.status==="Active"?"#ECFDF5":listing.status==="Rented"?"#FFFBEB":"#F5F3FF";
@@ -396,7 +392,7 @@ const WACardModal = ({listing,onClose}) => {
           <button onClick={downloadImage} disabled={downloading} className="btn-primary" style={{padding:"12px 24px",borderRadius:10,fontSize:14,fontWeight:700}}>
             {downloading?"⏳ Downloading…":"⬇️ Download Property Card"}
           </button>
-          <button onClick={shareOnWA} disabled={downloading} className="btn-primary" style={{background:"#25D366",padding:"12px 24px",borderRadius:10,fontSize:14,fontWeight:700,boxShadow:"0 4px 14px rgba(37,211,102,0.3)"}}>
+          <button onClick={shareOnWA} disabled={downloading} style={{background:"#25D366",color:"#fff",border:"none",padding:"12px 24px",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 14px rgba(37,211,102,0.3)",transition:"all 0.2s",disabled:"disabled"}} className="btn-primary">
             {downloading?"⏳ Preparing…":"💬 Share on WhatsApp"}
           </button>
         </div>
@@ -426,10 +422,18 @@ const PDFModal = ({listing,onClose}) => {
     ['Status', listing.status || 'Active'],
   ].filter(([k, v]) => v !== undefined && v !== null && v !== '');
 
+  const loadHtml2Pdf=()=>new Promise((res,rej)=>{
+    if(window.html2pdf){res(window.html2pdf);return;}
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+    s.onload=()=>res(window.html2pdf); s.onerror=rej;
+    document.head.appendChild(s);
+  });
+
   const downloadPDF = async () => {
     setDownloading(true);
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
+      const html2pdf = await loadHtml2Pdf();
       const element = document.getElementById('pdf-print-area');
       const opt = {
         margin: 0,
@@ -530,7 +534,7 @@ const PDFModal = ({listing,onClose}) => {
                 src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4`}
                 alt="Property location map"
                 style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
-                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
+                onError={e=>{e.target.style.display="none";if(e.target.nextSibling)e.target.nextSibling.style.display="flex";}}
               />
             ):null}
             <div style={{display:"none",width:"100%",height:120,background:"#f5f0ec",borderRadius:12,border:"1px dashed #ede5dc",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
@@ -711,7 +715,7 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         ):(
           <div className="gr" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:24}}>
-            {filteredListings.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={onSave} onView={()=>{}}/>)}
+            {filteredListings.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={onSave}/>)}
           </div>
         )}
       </div>
@@ -841,7 +845,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button onClick={onLogout} style={{padding:"7px 13px",borderRadius:8,fontWeight:600,fontSize:12,cursor:"pointer",background:"var(--gray)",color:"var(--muted)",border:"1px solid var(--border)",transition:"all 0.2s"}}>Sign Out</button>
         </>:<>
           <button onClick={()=>onNavigate("login")} style={{padding:"7px 16px",borderRadius:9,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--primary)",border:"none"}}>Log In</button>
-          <button onClick={()=>onNavigate("login")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
+          <button onClick={()=>onNavigate("login")} className="btn-primary" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
         </>}
       </div>
     </nav>
