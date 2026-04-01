@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, Component } from 'react'
 import { createClient } from "@supabase/supabase-js";
+import LoginParticles from "./LoginParticles.jsx";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&family=Newsreader:ital,wght@0,500;0,600;0,700;0,800;1,500&display=swap');
+  .home-heading { font-family: 'Newsreader', Georgia, 'Times New Roman', serif; font-optical-sizing: auto; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -847,10 +849,11 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
   return (
     <div style={{minHeight:"100vh",background:"var(--cream)",display:"flex"}}>
       <div className="hm" style={{width:"45%",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(234,88,12,0.08)"}}/>
-        <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(148,163,184,0.12)"}}/>
-        <div style={{position:"relative"}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
-        <div style={{position:"relative"}}>
+        <LoginParticles />
+        <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(234,88,12,0.08)",zIndex:1}}/>
+        <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(148,163,184,0.12)",zIndex:1}}/>
+        <div style={{position:"relative",zIndex:2}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
+        <div style={{position:"relative",zIndex:2}}>
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:700,color:"#fff",lineHeight:1.25,marginBottom:16}}>Buy, Sell, or Rent — all in one place.</h2>
           <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Instant brochures, WhatsApp cards, and verified listings — built for Indian real estate.</p>
           <div style={{marginTop:36,display:"flex",flexDirection:"column",gap:12}}>
@@ -902,8 +905,8 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
           )}
           {(mode==="login"&&loginChannel==="phone")||mode==="register"?(
             <>
-              {mode==="login"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>We’ll text you a one-time code. New here? Use <strong>Register</strong> so we can save your name and role. Need Supabase <strong>Phone</strong> + SMS (e.g. Twilio) enabled.</p>}
-              {mode==="register"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>Enter the mobile number you want to use to sign in. We’ll send a code to verify it.</p>}
+              {mode==="login"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>We’ll text you a one-time code.</p>}
+              {mode==="register"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>We’ll send a code to verify your number.</p>}
               {otpStep==="phone"?(
                 <>
                   <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits, India +91)" value={phoneLogin} onChange={e=>setPhoneLogin(e.target.value)} /></div>
@@ -921,7 +924,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
           ):null}
           {mode==="login"&&loginChannel==="email"&&(
             <>
-              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>For accounts that still use email and password (e.g. older logins).</p>
+              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>Sign in with email and password.</p>
               <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
               <div style={{marginBottom:20}}><input className="inp" type="password" placeholder="Password" value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
               <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:"Sign In →"}</button>
@@ -1665,7 +1668,7 @@ const Home = ({currentUser,onNavigate}) => {
         <div style={{position:"relative",zIndex:1,width:"100%",maxWidth:1180,margin:"0 auto",padding:"60px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:40,flexWrap:"wrap"}}>
           {/* Left side — text */}
           <div style={{flex:"1 1 400px",maxWidth:600}}>
-            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:"clamp(32px, 4.5vw, 52px)",color:"var(--navy)",lineHeight:1.08,letterSpacing:"-0.03em"}} className="h1big">
+            <h1 style={{fontWeight:900,fontSize:"clamp(32px, 4.5vw, 52px)",color:"var(--navy)",lineHeight:1.08,letterSpacing:"-0.03em"}} className="h1big home-heading">
               Northing to your dream home
             </h1>
             <p style={{fontSize:16,color:"var(--muted)",marginTop:16,lineHeight:1.65,maxWidth:460,fontWeight:500}}>
@@ -1680,7 +1683,7 @@ const Home = ({currentUser,onNavigate}) => {
           <div className="glass-panel" style={{flex:"0 0 380px",borderRadius:20,padding:"28px 24px"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
               <span style={{fontSize:18,opacity:0.85}}>🔍</span>
-              <h3 style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:800,color:"var(--navy)",margin:0,letterSpacing:"-0.02em"}}>Quick Search</h3>
+              <h3 className="home-heading" style={{fontSize:19,fontWeight:800,color:"var(--navy)",margin:0,letterSpacing:"-0.02em"}}>Quick Search</h3>
             </div>
             <div style={{marginBottom:12}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Property Type</label>
@@ -1741,7 +1744,7 @@ const Home = ({currentUser,onNavigate}) => {
       <section id="prop-grid" style={{padding:"40px 24px",maxWidth:1180,margin:"0 auto"}}>
         <div style={{display:"flex",gap:10,marginBottom:24,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
           <div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:800,color:"var(--navy)",letterSpacing:"-0.02em"}}>Featured Properties</div>
+            <div className="home-heading" style={{fontSize:26,fontWeight:800,color:"var(--navy)",letterSpacing:"-0.02em"}}>Featured Properties</div>
             <div style={{fontSize:14,color:"var(--muted)",marginTop:6,fontWeight:500}}>
               {loading?"Loading…":`Discover our handpicked selection of premium properties`}
             </div>
@@ -1758,7 +1761,7 @@ const Home = ({currentUser,onNavigate}) => {
         ):filtered.length===0?(
           <div className="card" style={{padding:56,textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:12}}>🏘️</div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3>
+            <h3 className="home-heading" style={{fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3>
             <p style={{color:"var(--muted)",fontSize:14}}>Try clearing your filters or check back soon.</p>
           </div>
         ):(
@@ -1772,7 +1775,7 @@ const Home = ({currentUser,onNavigate}) => {
                 <div style={{padding:"16px 18px"}}>
                   <h3 style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4,lineHeight:1.3}}>{l.title}</h3>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:10,display:"flex",alignItems:"center",gap:4}}>📍 {l.location}</div>
-                  <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"var(--navy)",marginBottom:14}}>{fmtP(l.price)}{l.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:400,color:"var(--muted)"}}>/mo</span>}</div>
+                  <div className="home-heading" style={{fontSize:22,fontWeight:900,color:"var(--navy)",marginBottom:14}}>{fmtP(l.price)}{l.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:400,color:"var(--muted)"}}>/mo</span>}</div>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,borderTop:"1px solid var(--border)"}}>
                     <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
                       {l.bedrooms>0&&<span>🛏 {l.bedrooms}</span>}
@@ -1796,7 +1799,7 @@ const Home = ({currentUser,onNavigate}) => {
             <div key={title} className="card glass-card" style={{padding:"28px 24px",display:"flex",gap:16,alignItems:"flex-start"}}>
               <div style={{width:52,height:52,borderRadius:14,background:"linear-gradient(145deg, var(--primary) 0%, var(--primary2) 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,boxShadow:"0 4px 12px rgba(234,88,12,0.2)"}}>{icon}</div>
               <div>
-                <h3 style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:800,color:"var(--navy)",marginBottom:6}}>{title}</h3>
+                <h3 className="home-heading" style={{fontSize:19,fontWeight:800,color:"var(--navy)",marginBottom:6}}>{title}</h3>
                 <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.6,marginBottom:14}}>{desc}</p>
                 <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-primary" style={{padding:"9px 20px",borderRadius:10,fontSize:13,border:"none"}}>{cta} →</button>
               </div>
