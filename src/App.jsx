@@ -77,6 +77,8 @@ const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread
 };
 
 const fmtP = (p) => { if(!p) return "POA"; const n=Number(p); if(n>=10000000) return `₹${(n/10000000).toFixed(2)} Cr`; if(n>=100000) return `₹${(n/100000).toFixed(2)} L`; return `₹${n.toLocaleString("en-IN")}`; };
+const getPublicSiteBase = () => { try { const v = import.meta.env?.VITE_PUBLIC_SITE_URL; if (v && String(v).trim()) return String(v).replace(/\/$/, ""); } catch (_) {} return typeof window !== "undefined" ? window.location.origin : ""; };
+const googleMapsSearchUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || "")}`;
 const simScore = (a="",b="") => { a=a.toLowerCase().trim(); b=b.toLowerCase().trim(); if(!a||!b) return 0; const sa=new Set(a.split(/\s+/)),sb=new Set(b.split(/\s+/)); return [...sa].filter(x=>sb.has(x)).length/Math.max(sa.size,sb.size); };
 const findDups = (form, all, editId) => all.filter(l => {
   if(l.id===editId) return false;
@@ -314,7 +316,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
-          <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/property/${listing.id}`).then(()=>alert("Link copied!"));}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>🔗 Link</button>
+          <button onClick={()=>{navigator.clipboard?.writeText(`${getPublicSiteBase()}/property/${listing.id}`).then(()=>alert("Link copied!"));}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>🔗 Link</button>
         </div>
       </div>
     </div>
@@ -348,7 +350,7 @@ const PropModal = ({listing,onClose}) => {
               {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
-              <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/property/${listing.id}`).then(()=>alert("✅ Link copied!"));}} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--gray)",color:"var(--navy)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--border)",cursor:"pointer",fontFamily:"inherit"}}>🔗 Copy Link</button>
+              <button onClick={()=>{navigator.clipboard?.writeText(`${getPublicSiteBase()}/property/${listing.id}`).then(()=>alert("✅ Link copied!"));}} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--gray)",color:"var(--navy)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--border)",cursor:"pointer",fontFamily:"inherit"}}>🔗 Copy Link</button>
               <button onClick={()=>_h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing Kit</button>
             </div>
           </div>
@@ -499,13 +501,39 @@ const WACardModal = ({listing,onClose}) => {
 };
 
 const PDFModal = ({listing,onClose}) => {
+  const [pdfLoading,setPdfLoading]=useState(false);
+  const [mapSrc,setMapSrc]=useState(null);
+  const [mapDead,setMapDead]=useState(false);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
+  useEffect(()=>{
+    if(!listing?.location){setMapSrc(null);setMapDead(false);return;}
+    setMapDead(false);
+    const gKey=import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
+    if(gKey){
+      setMapSrc(`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=${encodeURIComponent(gKey)}`);
+      return;
+    }
+    let cancelled=false;
+    const q=listing.location;
+    (async()=>{
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`,{headers:{Accept:"application/json"}});
+        const j=await r.json();
+        if(cancelled)return;
+        if(!j?.[0]){setMapSrc(null);setMapDead(true);return;}
+        const lat=j[0].lat,lon=j[0].lon;
+        setMapSrc(`https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=15&size=640x220&maptype=mapnik&markers=${lat},${lon},red-pushpin`);
+      }catch{
+        if(!cancelled){setMapSrc(null);setMapDead(true);}
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[listing?.location]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
-  const [pdfLoading,setPdfLoading]=useState(false);
 
   const downloadPDF=async()=>{
     const el=document.getElementById('pdf-print-area');
@@ -616,21 +644,28 @@ const PDFModal = ({listing,onClose}) => {
             </div>
           )}
 
-          {/* ── GOOGLE MAPS placeholder ── */}
+          {/* ── Location map (Google Static if VITE_GOOGLE_MAPS_API_KEY, else OSM via Nominatim) ── */}
           <div style={{marginBottom:24}}>
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
             {listing.location?(
-              <img
-                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=AIzaSyARwh01nkBj8NE1Kca5l_eq2MtvaNmCIg4`}
-                alt="Property location map"
-                style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
-                onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}
-              />
+              mapSrc&&!mapDead?(
+                <img
+                  src={mapSrc}
+                  alt="Property location map"
+                  style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
+                  onError={()=>setMapDead(true)}
+                />
+              ):(
+                <div style={{width:"100%",minHeight:120,background:"#f5f0ec",borderRadius:12,border:"1px dashed #ede5dc",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,padding:"16px 20px",textAlign:"center"}}>
+                  <div style={{fontSize:24}}>🗺️</div>
+                  <div style={{fontSize:12,color:"#78716c",fontWeight:600,lineHeight:1.5}}>
+                    {mapDead?"Map preview unavailable. Open in Google Maps below.":"Loading map…"}
+                  </div>
+                  <a href={googleMapsSearchUrl(listing.location)} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:700,color:"var(--primary)"}}>Open in Google Maps →</a>
+                  {!import.meta.env?.VITE_GOOGLE_MAPS_API_KEY&&<div style={{fontSize:11,color:"#a8a29e"}}>Tip: set <code style={{fontSize:10}}>VITE_GOOGLE_MAPS_API_KEY</code> in Vercel for built-in static maps.</div>}
+                </div>
+              )
             ):null}
-            <div style={{display:"none",width:"100%",height:120,background:"#f5f0ec",borderRadius:12,border:"1px dashed #ede5dc",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
-              <div style={{fontSize:24}}>🗺️</div>
-              <div style={{fontSize:12,color:"#aaa",fontWeight:600}}>Map not available — add Google Maps API key</div>
-            </div>
           </div>
 
           {/* ── AGENT FOOTER ── */}
@@ -1694,9 +1729,9 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const [scrolled,setScrolled]=useState(false);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
   return (
-    <nav style={{position:"sticky",top:0,zIndex:100,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
-      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}} aria-label="Northing home">
-        <img src="/northing-logo.png" alt="Northing" style={{height:36,width:"auto",maxWidth:180,objectFit:"contain",display:"block"}} />
+    <nav style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
+      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
+        <img src="/northing-logo.png" alt="Northing" style={{height:52,width:"auto",maxWidth:240,objectFit:"contain",display:"block"}} />
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -1741,6 +1776,13 @@ class ErrorBoundary extends Component {
 
 const MarketingKitModal = ({listing, onClose}) => {
   const [status,setStatus]=useState("idle");
+  const [copied,setCopied]=useState(false);
+  const shareUrl=`${getPublicSiteBase()}/property/${listing.id}`;
+  const copyShareLink=()=>{
+    const run=()=>{setCopied(true);setTimeout(()=>setCopied(false),2200);};
+    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(shareUrl).then(run).catch(()=>alert("Could not copy link"));
+    else{const t=document.createElement("textarea");t.value=shareUrl;document.body.appendChild(t);t.select();try{document.execCommand("copy");run();}catch{alert("Could not copy link")}document.body.removeChild(t);}
+  };
   const download=async()=>{
     setStatus("loading");
     try{
@@ -1750,13 +1792,18 @@ const MarketingKitModal = ({listing, onClose}) => {
         s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
         s.onload=()=>res(window.JSZip);s.onerror=rej;document.head.appendChild(s);
       });
+      const wmOptions={logoUrl:listing.logoUrl||null,brandName:listing.agencyName||listing.agentName||"Northing"};
       const zip=new JSZip();
       const imgFolder=zip.folder("photos");
       for(let i=0;i<(listing.photos||[]).length;i++){
         try{
-          const resp=await fetch(listing.photos[i]);
+          const resp=await fetch(listing.photos[i],{mode:"cors"});
+          if(!resp.ok) continue;
           const blob=await resp.blob();
-          imgFolder.file(`photo-${i+1}.jpg`,blob);
+          const mime=blob.type&&blob.type.startsWith("image/")?blob.type:"image/jpeg";
+          const rawFile=new File([blob],`raw-${i}`,{type:mime});
+          const wmFile=await burnWatermark(rawFile,wmOptions);
+          imgFolder.file(`photo-${i+1}.jpg`,wmFile);
         }catch(e){}
       }
       const info=[
@@ -1772,7 +1819,7 @@ const MarketingKitModal = ({listing, onClose}) => {
         listing.agentPhone?`Phone: ${listing.agentPhone}`:"",
         listing.agencyName?`Agency: ${listing.agencyName}`:"",
         "",
-        `Shareable Link: ${window.location.origin}/property/${listing.id}`,
+        `Shareable Link: ${shareUrl}`,
         "",
         "Powered by Northing"
       ].join("\n");
@@ -1798,10 +1845,14 @@ const MarketingKitModal = ({listing, onClose}) => {
           {[
             `🖼 ${(listing.photos||[]).length} watermarked photo${(listing.photos||[]).length!==1?"s":""}`,
             "📄 Property info text file",
-            `🔗 Link: ${window.location.origin}/property/${listing.id}`
           ].map((item,i)=>(
             <div key={i} style={{fontSize:13,color:"var(--muted)",marginBottom:5,display:"flex",gap:6,alignItems:"flex-start"}}>{item}</div>
           ))}
+          <div style={{fontSize:12,fontWeight:700,color:"var(--navy)",marginTop:12,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🔗 Share link</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+            <a href={shareUrl} target="_blank" rel="noreferrer" style={{fontSize:12,color:"var(--primary)",fontWeight:600,wordBreak:"break-all",flex:"1 1 180px"}}>{shareUrl}</a>
+            <button type="button" onClick={copyShareLink} className="btn-ghost" style={{padding:"8px 14px",borderRadius:9,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}}>{copied?"✓ Copied":"📋 Copy link"}</button>
+          </div>
         </div>
         <div style={{fontSize:12,color:"var(--muted)",marginBottom:20,textAlign:"center",background:"var(--primary-light)",padding:"8px 14px",borderRadius:8,border:"1px solid var(--primary-mid)"}}>
           Watermark: <strong style={{color:"var(--primary)"}}>{listing.logoUrl?"Logo + ":""}{listing.agencyName||listing.agentName||"Northing"}</strong>
