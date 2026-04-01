@@ -1390,7 +1390,11 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
 
 const Home = ({currentUser,onNavigate}) => {
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);
-  const [filter,setFilter]=useState({type:"",listing:"",location:""});
+  const [filter,setFilter]=useState({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""});
+  const priceMode=!filter.listing?"":filter.listing==="Rent"?"rent":"sale";
+  const minPriceOpts=priceMode==="rent"?["5000","10000","15000","20000","25000","30000","40000","50000","75000","100000","150000","200000"]:["500000","1000000","2000000","3000000","5000000","7500000","10000000","20000000","50000000"];
+  const maxPriceOpts=priceMode==="rent"?["15000","20000","25000","30000","40000","50000","75000","100000","150000","200000","300000","500000","750000","1000000"]:["1000000","2000000","3000000","5000000","7500000","10000000","20000000","50000000","100000000"];
+  const fmtPriceOpt=(v)=>priceMode==="rent"?`${fmtP(v)} /mo`:fmtP(v);
   const [waListing,setWAListing]=useState(null);const [pdfListing,setPdfListing]=useState(null);const [modal,setModal]=useState(null);
   useEffect(()=>{
     (async()=>{
@@ -1403,6 +1407,9 @@ const Home = ({currentUser,onNavigate}) => {
     if(filter.type&&l.propertyType!==filter.type) return false;
     if(filter.listing&&l.listingType!==filter.listing) return false;
     if(filter.location&&!l.location?.toLowerCase().includes(filter.location.toLowerCase())) return false;
+    if(filter.listing&&(filter.minPrice||filter.maxPrice)){if(filter.minPrice&&Number(l.price)<Number(filter.minPrice)) return false;if(filter.maxPrice&&Number(l.price)>Number(filter.maxPrice)) return false;}
+    if(filter.bedrooms){const need=filter.bedrooms==="5+"?5:Number(filter.bedrooms);const have=Number(l.bedrooms)||0;if(filter.bedrooms==="5+"){if(have<5)return false;}else if(have<need)return false;}
+    if(filter.bathrooms&&Number(l.bathrooms||0)<Number(filter.bathrooms)) return false;
     return true;
   });
   const testimonials=[
@@ -1436,44 +1443,53 @@ const Home = ({currentUser,onNavigate}) => {
               <span style={{fontSize:18}}>🔍</span>
               <h3 style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:800,color:"var(--navy)",margin:0}}>Quick Search</h3>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-              <div>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Min Price</label>
-                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}} value={filter.listing} onChange={e=>setFilter(f=>({...f,listing:e.target.value}))}>
-                  <option value="">Any</option>
-                  <option value="Sale">Sale</option>
-                  <option value="Rent">Rent</option>
-                </select>
-              </div>
-              <div>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Max Price</label>
-                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}}>
-                  <option value="">Any</option>
-                </select>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-              <div>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Bedrooms</label>
-                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}}>
-                  <option value="">Any</option>
-                  {["1","2","3","4","5+"].map(b=><option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Bathrooms</label>
-                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}}>
-                  <option value="">Any</option>
-                  {["1","2","3","4"].map(b=><option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-            </div>
             <div style={{marginBottom:12}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Property Type</label>
               <select className="inp" value={filter.type} onChange={e=>setFilter(f=>({...f,type:e.target.value}))} style={{width:"100%",padding:"9px 12px",fontSize:13}}>
                 <option value="">Any</option>
                 {["Apartment","Villa","Plot","Commercial"].map(t=><option key={t} value={t}>{t}</option>)}
               </select>
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Buy or Rent</label>
+              <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}} value={filter.listing} onChange={e=>setFilter(f=>({...f,listing:e.target.value,minPrice:"",maxPrice:""}))}>
+                <option value="">Any</option>
+                <option value="Sale">Buy (Sale)</option>
+                <option value="Rent">Rent</option>
+              </select>
+              {filter.listing===""&&<div style={{fontSize:11,color:"var(--muted)",marginTop:6,lineHeight:1.4}}>Choose Buy or Rent to set min/max price (sale total vs monthly rent).</div>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Min Price</label>
+                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13,opacity:filter.listing?1:0.55}} disabled={!filter.listing} value={filter.minPrice} onChange={e=>setFilter(f=>({...f,minPrice:e.target.value}))}>
+                  <option value="">Any</option>
+                  {minPriceOpts.map(o=><option key={o} value={o}>{fmtPriceOpt(o)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Max Price</label>
+                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13,opacity:filter.listing?1:0.55}} disabled={!filter.listing} value={filter.maxPrice} onChange={e=>setFilter(f=>({...f,maxPrice:e.target.value}))}>
+                  <option value="">Any</option>
+                  {maxPriceOpts.map(o=><option key={o} value={o}>{fmtPriceOpt(o)}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Bedrooms</label>
+                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}} value={filter.bedrooms} onChange={e=>setFilter(f=>({...f,bedrooms:e.target.value}))}>
+                  <option value="">Any</option>
+                  {["1","2","3","4","5+"].map(b=><option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Bathrooms</label>
+                <select className="inp" style={{width:"100%",padding:"9px 12px",fontSize:13}} value={filter.bathrooms} onChange={e=>setFilter(f=>({...f,bathrooms:e.target.value}))}>
+                  <option value="">Any</option>
+                  {["1","2","3","4"].map(b=><option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
             </div>
             <div style={{marginBottom:16}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Location</label>
@@ -1492,7 +1508,7 @@ const Home = ({currentUser,onNavigate}) => {
             </div>
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-            {(filter.type||filter.listing||filter.location)&&<button onClick={()=>setFilter({type:"",listing:"",location:""})} style={{padding:"8px 14px",borderRadius:9,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕ Clear Filters</button>}
+            {(filter.type||filter.listing||filter.location||filter.minPrice||filter.maxPrice||filter.bedrooms||filter.bathrooms)&&<button onClick={()=>setFilter({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""})} style={{padding:"8px 14px",borderRadius:9,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕ Clear Filters</button>}
             <button onClick={()=>onNavigate("feed")} className="btn-outline" style={{padding:"9px 18px",borderRadius:9,fontSize:13}}>View All Properties</button>
           </div>
         </div>
@@ -1679,9 +1695,8 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
   return (
     <nav style={{position:"sticky",top:0,zIndex:100,height:64,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
-      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{width:36,height:36,background:"var(--primary)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 12px rgba(255,107,0,0.3)"}}><span style={{color:"#fff",fontSize:17,fontWeight:900,fontFamily:"'Fraunces',serif"}}>N</span></div>
-        <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:20,color:"var(--navy)",letterSpacing:"-0.5px"}}>Northing</span>
+      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10}} aria-label="Northing home">
+        <img src="/northing-logo.png" alt="Northing" style={{height:36,width:"auto",maxWidth:180,objectFit:"contain",display:"block"}} />
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
