@@ -25,15 +25,50 @@ const G = `
   .inp::placeholder { color: var(--muted); }
   .inp:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(234,88,12,0.15); }
   .inp option { background: #fff; color: var(--text); }
-  .btn-primary { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 14px rgba(234,88,12,0.22); }
-  .btn-primary:hover:not(:disabled) { background: var(--primary2); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(234,88,12,0.28); }
+  .btn-primary { background: linear-gradient(180deg, #f97316 0%, var(--primary) 45%, #c2410c 100%); color: #fff; border: none; cursor: pointer; font-weight: 700; font-family: inherit; box-shadow: 0 4px 16px rgba(234,88,12,0.28), inset 0 1px 0 rgba(255,255,255,0.22); transition: transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.28s ease, filter 0.2s ease; }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-2px) scale(1.015); box-shadow: 0 10px 28px rgba(234,88,12,0.35), inset 0 1px 0 rgba(255,255,255,0.28); }
+  .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: 0 2px 10px rgba(234,88,12,0.25), inset 0 2px 6px rgba(0,0,0,0.12); transition-duration: 0.08s; }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-green { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 14px rgba(234,88,12,0.22); }
-  .btn-green:hover { background: var(--primary2); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(234,88,12,0.28); }
-  .btn-outline { background: var(--white); border: 2px solid var(--border); color: var(--text); cursor: pointer; font-weight: 700; transition: all 0.2s; font-family: inherit; }
-  .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: #fff; }
-  .btn-ghost { background: var(--gray); border: 1.5px solid var(--border); color: var(--muted); cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
-  .btn-ghost:hover { background: var(--border); color: var(--text); }
+  .btn-green { background: linear-gradient(180deg, #f97316 0%, var(--primary) 45%, #c2410c 100%); color: #fff; border: none; cursor: pointer; font-weight: 700; font-family: inherit; box-shadow: 0 4px 16px rgba(234,88,12,0.28), inset 0 1px 0 rgba(255,255,255,0.22); transition: transform 0.22s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.28s ease, filter 0.2s ease; }
+  .btn-green:hover { filter: brightness(1.06); transform: translateY(-2px) scale(1.015); box-shadow: 0 10px 28px rgba(234,88,12,0.35), inset 0 1px 0 rgba(255,255,255,0.28); }
+  .btn-green:active { transform: scale(0.98); }
+  .btn-outline { background: rgba(255,255,255,0.85); border: 2px solid var(--border); color: var(--text); cursor: pointer; font-weight: 700; font-family: inherit; backdrop-filter: blur(8px); transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.25s, background 0.2s; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
+  .btn-outline:hover { border-color: rgba(234,88,12,0.45); color: var(--primary); background: rgba(255,255,255,0.95); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(15,23,42,0.08); }
+  .btn-outline:active { transform: scale(0.98); }
+  .btn-ghost { background: rgba(241,245,249,0.85); border: 1.5px solid var(--border); color: var(--muted); cursor: pointer; font-weight: 600; font-family: inherit; backdrop-filter: blur(8px); transition: transform 0.18s ease, background 0.2s, border-color 0.2s; }
+  .btn-ghost:hover { background: rgba(226,232,240,0.95); color: var(--text); transform: translateY(-1px); }
+  .btn-ghost:active { transform: scale(0.98); }
+  .glass-panel {
+    background: rgba(255,255,255,0.72) !important;
+    backdrop-filter: blur(28px) saturate(185%);
+    -webkit-backdrop-filter: blur(28px) saturate(185%);
+    border: 1px solid rgba(255,255,255,0.92) !important;
+    box-shadow: 0 12px 48px rgba(15,23,42,0.1), 0 2px 8px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.98) !important;
+  }
+  .card.glass-card {
+    background: rgba(255,255,255,0.68);
+    backdrop-filter: blur(22px) saturate(175%);
+    -webkit-backdrop-filter: blur(22px) saturate(175%);
+    border: 1px solid rgba(255,255,255,0.88);
+    box-shadow: 0 10px 40px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.92);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  }
+  .card.glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 56px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.98);
+  }
+  .glass-footer {
+    background: rgba(15,23,42,0.82) !important;
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    border-top: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+  }
+  .glass-nav-enhance {
+    background: rgba(255,255,255,0.74) !important;
+    backdrop-filter: blur(28px) saturate(185%);
+    -webkit-backdrop-filter: blur(28px) saturate(185%);
+  }
   .btn-danger { background: #FEF2F2; border: 1.5px solid #FECACA; color: #DC2626; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
   .btn-danger:hover { background: #FEE2E2; }
   .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.2px; display: inline-block; }
@@ -1450,7 +1485,7 @@ const Home = ({currentUser,onNavigate}) => {
             </div>
           </div>
           {/* Right side — Quick Search card */}
-          <div style={{flex:"0 0 380px",background:"var(--white)",borderRadius:18,border:"1px solid var(--border)",padding:"28px 24px",boxShadow:"0 4px 24px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.04)"}}>
+          <div className="glass-panel" style={{flex:"0 0 380px",borderRadius:20,padding:"28px 24px"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
               <span style={{fontSize:18,opacity:0.85}}>🔍</span>
               <h3 style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:800,color:"var(--navy)",margin:0,letterSpacing:"-0.02em"}}>Quick Search</h3>
@@ -1537,7 +1572,7 @@ const Home = ({currentUser,onNavigate}) => {
         ):(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:20}} className="gr">
             {filtered.map(l=>(
-              <div key={l.id} className="card" style={{overflow:"hidden",cursor:"pointer"}} onClick={()=>setModal(l)}>
+              <div key={l.id} className="card glass-card" style={{overflow:"hidden",cursor:"pointer"}} onClick={()=>setModal(l)}>
                 <div style={{height:220,background:"var(--gray)",position:"relative",overflow:"hidden"}}>
                   {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,opacity:0.3}}>🏠</div>}
                   <span style={{position:"absolute",top:12,right:12,background:l.status==="Active"?"#ECFDF5":l.status==="Rented"?"#FFFBEB":"#F5F3FF",color:l.status==="Active"?"#059669":l.status==="Rented"?"#D97706":"#7C3AED",fontSize:11,fontWeight:700,padding:"4px 12px",borderRadius:20,border:`1px solid ${l.status==="Active"?"#A7F3D0":l.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{l.status||"Available"}</span>
@@ -1566,7 +1601,7 @@ const Home = ({currentUser,onNavigate}) => {
             {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
             {icon:"🏢",title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent"},
           ].map(({icon,title,desc,cta})=>(
-            <div key={title} style={{background:"var(--white)",border:"1px solid var(--border)",borderRadius:16,padding:"28px 24px",display:"flex",gap:16,alignItems:"flex-start",boxShadow:"var(--shadow)"}}>
+            <div key={title} className="card glass-card" style={{padding:"28px 24px",display:"flex",gap:16,alignItems:"flex-start"}}>
               <div style={{width:52,height:52,borderRadius:14,background:"linear-gradient(145deg, var(--primary) 0%, var(--primary2) 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,boxShadow:"0 4px 12px rgba(234,88,12,0.2)"}}>{icon}</div>
               <div>
                 <h3 style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:800,color:"var(--navy)",marginBottom:6}}>{title}</h3>
@@ -1577,14 +1612,16 @@ const Home = ({currentUser,onNavigate}) => {
           ))}
         </div>
       </section>
-      <section style={{background:"var(--cream)",padding:"60px 24px"}}>
-        <div style={{maxWidth:1100,margin:"0 auto"}}>
+      <section style={{position:"relative",background:"linear-gradient(180deg, #f1f5f9 0%, #e8eef4 45%, #f8fafc 100%)",padding:"60px 24px",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-100,right:-60,width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle, rgba(251,146,60,0.2) 0%, transparent 68%)",pointerEvents:"none"}} />
+        <div style={{position:"absolute",bottom:-80,left:-40,width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle, rgba(56,189,248,0.14) 0%, transparent 72%)",pointerEvents:"none"}} />
+        <div style={{maxWidth:1100,margin:"0 auto",position:"relative",zIndex:1}}>
           <div style={{textAlign:"center",marginBottom:36}}>
             <span style={{fontSize:11,fontWeight:800,color:"var(--primary)",textTransform:"uppercase",letterSpacing:2}}>Trusted by Agents Across India</span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:20}} className="gr3">
             {testimonials.map((t,i)=>(
-              <div key={i} className="card" style={{padding:24}}>
+              <div key={i} className="card glass-card" style={{padding:24}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                   <div style={{width:40,height:40,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{t.name.charAt(0)}</div>
                   <div><div style={{fontWeight:700,fontSize:13,color:"var(--navy)"}}>{t.name}</div><div style={{fontSize:11,color:"var(--muted)"}}>{t.agency}</div></div>
@@ -1596,15 +1633,17 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         </div>
       </section>
-      <footer style={{background:"var(--navy)",padding:"36px 24px"}}>
-        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:32,height:32,background:"var(--primary)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:15}}>N</span></div>
-            <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:18,color:"#fff"}}>Northing</span>
-          </div>
-          <p style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
-          <div style={{display:"flex",gap:20,fontSize:12,color:"rgba(255,255,255,0.3)"}}>
-            <span style={{cursor:"pointer"}}>Privacy</span><span>·</span><span style={{cursor:"pointer"}}>Terms</span>
+      <footer className="glass-footer" style={{padding:"40px 24px",position:"relative"}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none"}} />
+        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20,position:"relative",zIndex:1}}>
+          <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
+            <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
+          </button>
+          <p style={{fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
+          <div style={{display:"flex",gap:22,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500}}>
+            <span style={{cursor:"pointer",transition:"color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.color="rgba(248,250,252,0.95)"} onMouseLeave={e=>e.currentTarget.style.color="rgba(248,250,252,0.55)"}>Privacy</span>
+            <span style={{opacity:0.5}}>·</span>
+            <span style={{cursor:"pointer",transition:"color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.color="rgba(248,250,252,0.95)"} onMouseLeave={e=>e.currentTarget.style.color="rgba(248,250,252,0.55)"}>Terms</span>
           </div>
         </div>
       </footer>
@@ -1706,7 +1745,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const [scrolled,setScrolled]=useState(false);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
   return (
-    <nav style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,background:"rgba(255,255,255,0.82)",backdropFilter:"blur(20px) saturate(160%)",borderBottom:"1px solid rgba(148,163,184,0.25)",transition:"all 0.3s",boxShadow:scrolled?"0 4px 20px rgba(15,23,42,0.06)":"none"}}>
+    <nav className="glass-nav-enhance" style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,borderBottom:"1px solid rgba(148,163,184,0.22)",transition:"box-shadow 0.35s ease, border-color 0.3s",boxShadow:scrolled?"0 8px 32px rgba(15,23,42,0.08), 0 1px 0 rgba(255,255,255,0.8) inset":"0 1px 0 rgba(255,255,255,0.6) inset"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
         <img src="/northing-logo.svg" alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
       </button>
