@@ -312,11 +312,10 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
           {listing.sizesqft&&<span>📐 {listing.sizesqft} sqft</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
           <button onClick={()=>onView(listing)} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button onClick={()=>showWACard(listing)} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
           <button onClick={()=>showPDF(listing)} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
-          <button onClick={()=>{navigator.clipboard?.writeText(`${getPublicSiteBase()}/property/${listing.id}`).then(()=>alert("Link copied!"));}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>🔗 Link</button>
         </div>
       </div>
     </div>
@@ -350,7 +349,6 @@ const PropModal = ({listing,onClose}) => {
               {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
               <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
               <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
-              <button onClick={()=>{navigator.clipboard?.writeText(`${getPublicSiteBase()}/property/${listing.id}`).then(()=>alert("✅ Link copied!"));}} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--gray)",color:"var(--navy)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--border)",cursor:"pointer",fontFamily:"inherit"}}>🔗 Copy Link</button>
               <button onClick={()=>_h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing Kit</button>
             </div>
           </div>
@@ -503,32 +501,12 @@ const WACardModal = ({listing,onClose}) => {
 const PDFModal = ({listing,onClose}) => {
   const [pdfLoading,setPdfLoading]=useState(false);
   const [mapSrc,setMapSrc]=useState(null);
-  const [mapDead,setMapDead]=useState(false);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
+  const gMapsKey=import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
   useEffect(()=>{
-    if(!listing?.location){setMapSrc(null);setMapDead(false);return;}
-    setMapDead(false);
-    const gKey=import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
-    if(gKey){
-      setMapSrc(`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=${encodeURIComponent(gKey)}`);
-      return;
-    }
-    let cancelled=false;
-    const q=listing.location;
-    (async()=>{
-      try{
-        const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`,{headers:{Accept:"application/json"}});
-        const j=await r.json();
-        if(cancelled)return;
-        if(!j?.[0]){setMapSrc(null);setMapDead(true);return;}
-        const lat=j[0].lat,lon=j[0].lon;
-        setMapSrc(`https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=15&size=640x220&maptype=mapnik&markers=${lat},${lon},red-pushpin`);
-      }catch{
-        if(!cancelled){setMapSrc(null);setMapDead(true);}
-      }
-    })();
-    return()=>{cancelled=true;};
-  },[listing?.location]);
+    if(!listing?.location||!gMapsKey){setMapSrc(null);return;}
+    setMapSrc(`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=${encodeURIComponent(gMapsKey)}`);
+  },[listing?.location,gMapsKey]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
@@ -644,28 +622,27 @@ const PDFModal = ({listing,onClose}) => {
             </div>
           )}
 
-          {/* ── Location map (Google Static if VITE_GOOGLE_MAPS_API_KEY, else OSM via Nominatim) ── */}
+          {/* ── Location map: Static API if VITE_GOOGLE_MAPS_API_KEY (best for PDF capture); else free Google Maps embed (no API key) ── */}
           <div style={{marginBottom:24}}>
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
             {listing.location?(
-              mapSrc&&!mapDead?(
+              gMapsKey&&mapSrc?(
                 <img
                   src={mapSrc}
                   alt="Property location map"
                   style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
-                  onError={()=>setMapDead(true)}
                 />
               ):(
-                <div style={{width:"100%",minHeight:120,background:"#f5f0ec",borderRadius:12,border:"1px dashed #ede5dc",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,padding:"16px 20px",textAlign:"center"}}>
-                  <div style={{fontSize:24}}>🗺️</div>
-                  <div style={{fontSize:12,color:"#78716c",fontWeight:600,lineHeight:1.5}}>
-                    {mapDead?"Map preview unavailable. Open in Google Maps below.":"Loading map…"}
-                  </div>
-                  <a href={googleMapsSearchUrl(listing.location)} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:700,color:"var(--primary)"}}>Open in Google Maps →</a>
-                  {!import.meta.env?.VITE_GOOGLE_MAPS_API_KEY&&<div style={{fontSize:11,color:"#a8a29e"}}>Tip: set <code style={{fontSize:10}}>VITE_GOOGLE_MAPS_API_KEY</code> in Vercel for built-in static maps.</div>}
-                </div>
+                <iframe
+                  title="Property location map"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.location)}&output=embed`}
+                  style={{width:"100%",height:220,border:"1px solid #eee",borderRadius:12,display:"block"}}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               )
             ):null}
+            {listing.location&&<div style={{marginTop:8,textAlign:"right"}}><a href={googleMapsSearchUrl(listing.location)} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:600,color:"var(--primary)"}}>Open in Google Maps →</a></div>}
           </div>
 
           {/* ── AGENT FOOTER ── */}
@@ -1731,7 +1708,7 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   return (
     <nav style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,background:"rgba(255,255,255,0.88)",backdropFilter:"blur(16px) saturate(180%)",borderBottom:"1px solid rgba(255,107,0,0.1)",transition:"all 0.3s",boxShadow:scrolled?"0 2px 16px rgba(255,107,0,0.08)":"none"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
-        <img src="/northing-logo.png" alt="Northing" style={{height:52,width:"auto",maxWidth:240,objectFit:"contain",display:"block"}} />
+        <img src="/northing-logo.svg" alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -1777,7 +1754,7 @@ class ErrorBoundary extends Component {
 const MarketingKitModal = ({listing, onClose}) => {
   const [status,setStatus]=useState("idle");
   const [copied,setCopied]=useState(false);
-  const shareUrl=`${getPublicSiteBase()}/property/${listing.id}`;
+  const shareUrl=`${getPublicSiteBase()}/share/${listing.id}`;
   const copyShareLink=()=>{
     const run=()=>{setCopied(true);setTimeout(()=>setCopied(false),2200);};
     if(navigator.clipboard?.writeText) navigator.clipboard.writeText(shareUrl).then(run).catch(()=>alert("Could not copy link"));
@@ -1907,10 +1884,105 @@ const PropertyPublicPage = ({ id }) => {
     <div style={{minHeight:'100vh',background:'var(--cream)',fontFamily:"'Inter',sans-serif"}}>
       <style>{G}</style>
       <div style={{background:'var(--navy)',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:100}}>
-        <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:'#fff',cursor:'pointer'}} onClick={()=>navigate('/')}>Northing</span>
+        <img src="/northing-logo.svg" alt="Northing" onClick={()=>navigate('/')} style={{height:40,maxWidth:200,width:'auto',objectFit:'contain',cursor:'pointer'}} />
         <button onClick={()=>navigate('/')} style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.2)',color:'rgba(255,255,255,0.8)',padding:'7px 16px',borderRadius:9,fontSize:13,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>← Browse All</button>
       </div>
       <PropModal listing={listing} onClose={()=>navigate('/')} />
+      {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} />}
+      {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} />}
+      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} />}
+    </div>
+  );
+};
+
+/** Public marketing landing page for shared links (e.g. from Marketing Kit). Distinct from /property/:id full modal experience. */
+const ShareListingPage = ({ id }) => {
+  const navigate = (path) => { window.history.pushState({}, '', path); window.location.href = path; };
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [waListing, setWaListing] = useState(null);
+  const [pdfListing, setPdfListing] = useState(null);
+  const [kitListing, setKitListing] = useState(null);
+  useEffect(() => { _h.openWA = (l) => setWaListing(l); _h.openPDF = (l) => setPdfListing(l); _h.openKit = (l) => setKitListing(l); }, []);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('listings').select('*').eq('id', id).single();
+      setListing(mapListing(data));
+      setLoading(false);
+      if (data?.id) track(data.id, 'pageview');
+    })();
+  }, [id]);
+  if (loading) return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--cream)',fontFamily:"'Inter',sans-serif"}}>
+      <style>{G}</style>
+      <div style={{textAlign:'center',color:'var(--muted)'}}>
+        <div style={{fontSize:32,marginBottom:12}}>🏠</div>
+        <div style={{fontWeight:600}}>Loading…</div>
+      </div>
+    </div>
+  );
+  if (!listing) return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--cream)',fontFamily:"'Inter',sans-serif"}}>
+      <style>{G}</style>
+      <div style={{textAlign:'center',color:'var(--muted)'}}>
+        <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+        <div style={{fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>Listing not found</div>
+        <button onClick={()=>navigate('/')} className="btn-primary" style={{padding:'10px 24px',borderRadius:10,fontSize:14,marginTop:8}}>← Back to Northing</button>
+      </div>
+    </div>
+  );
+  const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus]].filter(([,v])=>v);
+  const fullUrl=`${getPublicSiteBase()}/property/${listing.id}`;
+  return (
+    <div style={{minHeight:'100vh',background:'var(--cream)',fontFamily:"'Inter',sans-serif"}}>
+      <style>{G}</style>
+      <header style={{background:'linear-gradient(135deg, #1a1410 0%, #2d2118 100%)',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+        <img src="/northing-logo.svg" alt="Northing" onClick={()=>navigate('/')} style={{height:48,maxWidth:260,width:'auto',objectFit:'contain',cursor:'pointer'}} />
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <a href={fullUrl} style={{color:'rgba(255,255,255,0.85)',fontSize:13,fontWeight:600}}>Full listing view →</a>
+          <button type="button" onClick={()=>navigate('/')} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.25)',color:'#fff',padding:'8px 16px',borderRadius:9,fontSize:13,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Browse all homes</button>
+        </div>
+      </header>
+      <div style={{maxWidth:880,margin:'0 auto',padding:'28px 20px 48px'}}>
+        <p style={{fontSize:11,fontWeight:700,color:'var(--primary)',textTransform:'uppercase',letterSpacing:2,marginBottom:10}}>Shared with you</p>
+        {listing.photos?.[0]&&(
+          <div style={{borderRadius:16,overflow:'hidden',marginBottom:24,boxShadow:'var(--shadow-lg)'}}>
+            <img src={listing.photos[0]} alt="" style={{width:'100%',height:320,objectFit:'cover',display:'block'}} />
+          </div>
+        )}
+        <h1 style={{fontFamily:"'Fraunces',serif",fontSize:"clamp(26px, 4vw, 34px)",fontWeight:900,color:'var(--navy)',lineHeight:1.2,marginBottom:8}}>{listing.title}</h1>
+        <div style={{fontSize:15,color:'var(--muted)',marginBottom:16}}>📍 {listing.location}</div>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:36,fontWeight:900,color:'var(--primary)',marginBottom:20}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:16,fontWeight:500,color:'var(--muted)'}}>/month</span>}</div>
+        {listing.description&&<p style={{fontSize:15,color:'var(--text)',lineHeight:1.75,marginBottom:24,background:'#fff',padding:18,borderRadius:12,border:'1px solid var(--border)'}}>{listing.description}</p>}
+        {fields.length>0&&(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12,marginBottom:28}}>
+            {fields.map(([k,v])=>(
+              <div key={k} style={{background:'#fff',padding:'12px 14px',borderRadius:10,border:'1px solid var(--border)'}}>
+                <div style={{fontSize:11,color:'var(--muted)',fontWeight:700}}>{k}</div>
+                <div style={{fontWeight:700,color:'var(--navy)',marginTop:4}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {listing.location&&(
+          <div style={{marginBottom:28}}>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--primary)',textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>Location</div>
+            <iframe title="Map" src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.location)}&output=embed`} style={{width:'100%',height:240,border:'1px solid var(--border)',borderRadius:12}} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+          </div>
+        )}
+        <div style={{background:'var(--primary-light)',borderRadius:16,padding:24,border:'1px solid var(--primary-mid)'}}>
+          <p className="section-label" style={{marginBottom:12}}>Contact</p>
+          <div style={{fontWeight:800,fontSize:17,color:'var(--navy)',marginBottom:6}}>{listing.agentName} <span style={{fontWeight:500,color:'var(--muted)'}}>· {listing.agencyName||"Agent"}</span></div>
+          {listing.agentPhone&&<div style={{marginBottom:14}}>📞 <a href={`tel:${listing.agentPhone}`} style={{color:'var(--primary)',fontWeight:700}}>{listing.agentPhone}</a></div>}
+          <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+            {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" className="btn-primary" style={{padding:'11px 18px',borderRadius:10,fontSize:14,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8}}><WALogo size={16}/>WhatsApp</a>}
+            <button type="button" onClick={()=>showWACard(listing)} style={{padding:'11px 18px',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',background:'#128C7E',color:'#fff',border:'none',fontFamily:'inherit'}}>WhatsApp Card</button>
+            <button type="button" onClick={()=>showPDF(listing)} className="btn-outline" style={{padding:'11px 18px',borderRadius:10,fontSize:14,fontWeight:700}}>PDF report</button>
+            <button type="button" onClick={()=>_h.openKit(listing)} style={{padding:'11px 18px',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',background:'#fff',color:'var(--primary)',border:'2px solid var(--primary)',fontFamily:'inherit'}}>Marketing kit</button>
+          </div>
+        </div>
+        <p style={{textAlign:'center',fontSize:12,color:'var(--muted)',marginTop:32}}>Powered by Northing · <a href={fullUrl} style={{color:'var(--primary)',fontWeight:600}}>Open full listing</a></p>
+      </div>
       {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} />}
       {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} />}
       {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} />}
@@ -1998,8 +2070,10 @@ export default function App() {
 
   // Mini client-side router using window.location
   const pathname = window.location.pathname;
+  const shareMatch = pathname.match(/^\/share\/([^/]+)$/);
   const propMatch = pathname.match(/^\/property\/([^/]+)$/);
   const brokerMatch = pathname.match(/^\/broker\/([^/]+)$/);
+  if (shareMatch) return <ErrorBoundary><ShareListingPage id={shareMatch[1]} /></ErrorBoundary>;
   if (propMatch) return <ErrorBoundary><PropertyPublicPage id={propMatch[1]} /></ErrorBoundary>;
   if (brokerMatch) return <ErrorBoundary><BrokerPublicPage name={brokerMatch[1]} /></ErrorBoundary>;
   return (
