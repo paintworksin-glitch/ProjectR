@@ -6,8 +6,9 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&family=Newsreader:ital,wght@0,500;0,600;0,700;0,800;1,500&display=swap');
-  .home-heading { font-family: 'Newsreader', Georgia, 'Times New Roman', serif; font-optical-sizing: auto; }
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&family=Newsreader:ital,wght@0,500;0,600;0,700;0,800;1,500&display=swap');
+  .home-heading { font-family: 'Instrument Serif', 'Newsreader', Georgia, serif; font-weight: 600; letter-spacing: -0.02em; }
+  .login-heading-serif { font-family: 'Instrument Serif', 'Newsreader', Georgia, serif; letter-spacing: -0.02em; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -856,13 +857,13 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
   ];
   return (
     <div className="login-page" style={{minHeight:"100vh",background:"var(--cream)",display:"flex",flexWrap:"nowrap"}}>
-      <div className="login-hero-col" style={{width:"45%",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div className="login-hero-col" style={{width:"45%",minHeight:"100vh",alignSelf:"stretch",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden",flexShrink:0}}>
         <LoginParticles />
         <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(234,88,12,0.08)",zIndex:1}}/>
         <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(148,163,184,0.12)",zIndex:1}}/>
-        <div style={{position:"relative",zIndex:2}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
+        <div style={{position:"relative",zIndex:2}}><div className="login-heading-serif" style={{fontWeight:700,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
         <div style={{position:"relative",zIndex:2}}>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:700,color:"#fff",lineHeight:1.25,marginBottom:16}}>Buy, Sell, or Rent — all in one place.</h2>
+          <h2 className="login-heading-serif" style={{fontSize:34,fontWeight:600,color:"#fff",lineHeight:1.25,marginBottom:16}}>Buy, Sell, or Rent — all in one place.</h2>
           <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Instant brochures, WhatsApp cards, and verified listings — built for Indian real estate.</p>
           <div style={{marginTop:36,display:"flex",flexDirection:"column",gap:12}}>
             {[["🔍","Buyers","Browse verified listings and download reports"],["🏠","Sellers","List your property and reach thousands"],["🏢","Agents","White-label brochures and full firm profile"]].map(([icon,title,desc])=>(
@@ -880,8 +881,8 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
             <button onClick={()=>onNavigate&&onNavigate("home")} style={{background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",fontWeight:600}}>← Back to Home</button>
           </div>
           <div style={{marginBottom:28}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"var(--navy)",marginBottom:2}}>Northing</div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#0f172a" shineColor="#ea580c" speed={3} spread={140}/></h2>
+            <div className="login-heading-serif" style={{fontWeight:700,fontSize:22,color:"var(--navy)",marginBottom:2}}>Northing</div>
+            <h2 className="login-heading-serif" style={{fontSize:28,fontWeight:600,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#0f172a" shineColor="#ea580c" speed={3} spread={140}/></h2>
             <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in with your mobile number":"Create your account — mobile is required, email optional"}</p>
           </div>
           {mode==="login"&&(
