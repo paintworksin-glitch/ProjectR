@@ -94,7 +94,15 @@ const G = `
     #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
     #pdf-print-area * { visibility:visible !important; }
   }
-  @media(max-width:768px){.hm{display:none!important}.gr{grid-template-columns:1fr!important}.gr3{grid-template-columns:1fr!important}.mob-nav{display:flex!important}}
+  @media(max-width:768px){
+    .hm{display:none!important}
+    .gr{grid-template-columns:1fr!important}
+    .gr3{grid-template-columns:1fr!important}
+    .mob-nav{display:flex!important}
+    .login-page{flex-direction:column!important}
+    .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
+    .login-form-col{width:100%!important;flex:1}
+  }
   @media(max-width:640px){.h1big{font-size:32px!important}}
 `;
 
@@ -847,8 +855,8 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
     {id:"agent",icon:"🏢",label:"Agent / Firm",desc:"Unlimited listings + white-label"},
   ];
   return (
-    <div style={{minHeight:"100vh",background:"var(--cream)",display:"flex"}}>
-      <div className="hm" style={{width:"45%",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
+    <div className="login-page" style={{minHeight:"100vh",background:"var(--cream)",display:"flex",flexWrap:"nowrap"}}>
+      <div className="login-hero-col" style={{width:"45%",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden",flexShrink:0}}>
         <LoginParticles />
         <div style={{position:"absolute",top:-60,right:-60,width:300,height:300,borderRadius:"50%",background:"rgba(234,88,12,0.08)",zIndex:1}}/>
         <div style={{position:"absolute",bottom:-80,left:-40,width:250,height:250,borderRadius:"50%",background:"rgba(148,163,184,0.12)",zIndex:1}}/>
@@ -866,7 +874,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
           </div>
         </div>
       </div>
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32,overflowY:"auto"}}>
+      <div className="login-form-col" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32,overflowY:"auto",minWidth:0}}>
         <div style={{maxWidth:440,width:"100%"}}>
           <div style={{marginBottom:16}}>
             <button onClick={()=>onNavigate&&onNavigate("home")} style={{background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",fontWeight:600}}>← Back to Home</button>

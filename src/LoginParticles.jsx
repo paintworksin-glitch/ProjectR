@@ -23,7 +23,7 @@ export default function LoginParticles() {
           enable: true,
           distance: 110,
           color: "#7dd3fc",
-          opacity: 0.14,
+          opacity: 0.22,
           width: 0.6,
         },
         move: {
@@ -34,7 +34,7 @@ export default function LoginParticles() {
           outModes: { default: "bounce" },
         },
         number: { value: 52, density: { enable: true, width: 900, height: 700 } },
-        opacity: { value: { min: 0.12, max: 0.42 } },
+        opacity: { value: { min: 0.2, max: 0.55 } },
         shape: { type: "circle" },
         size: { value: { min: 1, max: 3.2 } },
       },
