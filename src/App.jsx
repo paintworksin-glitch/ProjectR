@@ -114,6 +114,17 @@ const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread
 const fmtP = (p) => { if(!p) return "POA"; const n=Number(p); if(n>=10000000) return `₹${(n/10000000).toFixed(2)} Cr`; if(n>=100000) return `₹${(n/100000).toFixed(2)} L`; return `₹${n.toLocaleString("en-IN")}`; };
 const getPublicSiteBase = () => { try { const v = import.meta.env?.VITE_PUBLIC_SITE_URL; if (v && String(v).trim()) return String(v).replace(/\/$/, ""); } catch (_) {} return typeof window !== "undefined" ? window.location.origin : ""; };
 const googleMapsSearchUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || "")}`;
+/** E.164 for India (+91) or pass-through if already starts with + */
+const toE164Phone = (raw) => {
+  const t = String(raw || "").trim();
+  if (!t) return null;
+  if (t.startsWith("+")) return t.replace(/\s/g, "");
+  const d = t.replace(/\D/g, "");
+  if (d.length === 10) return `+91${d}`;
+  if (d.length === 12 && d.startsWith("91")) return `+${d}`;
+  if (d.length === 11 && d.startsWith("0")) return `+91${d.slice(1)}`;
+  return null;
+};
 const simScore = (a="",b="") => { a=a.toLowerCase().trim(); b=b.toLowerCase().trim(); if(!a||!b) return 0; const sa=new Set(a.split(/\s+/)),sb=new Set(b.split(/\s+/)); return [...sa].filter(x=>sb.has(x)).length/Math.max(sa.size,sb.size); };
 const findDups = (form, all, editId) => all.filter(l => {
   if(l.id===editId) return false;
@@ -738,7 +749,52 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
 const LoginPage = ({onLogin,showToast,onNavigate}) => {
   const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
+  const [loginChannel,setLoginChannel]=useState("email");
+  const [phoneLogin,setPhoneLogin]=useState("");
+  const [otpCode,setOtpCode]=useState("");
+  const [otpStep,setOtpStep]=useState("phone");
+  const [otpCooldown,setOtpCooldown]=useState(0);
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  const finishSession=async(userId)=>{
+    const {data:profile,error:pe}=await supabase.from("profiles").select("*").eq("id",userId).single();
+    if(pe||!profile) throw new Error("Profile not found. Use the same account you registered with, or sign in with email.");
+    const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",userId);
+    const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
+    showToast(`Welcome back, ${profile.name}!`,"success");
+    onLogin({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
+  };
+
+  const sendPhoneOtp=async()=>{
+    const e164=toE164Phone(phoneLogin);
+    if(!e164){showToast("Enter a valid 10-digit mobile number","error");return;}
+    setLoading(true);
+    try{
+      const {error}=await supabase.auth.signInWithOtp({phone:e164});
+      if(error) throw error;
+      showToast("OTP sent! Check your SMS.","success");
+      setOtpStep("otp");
+      setOtpCooldown(45);
+      let left=45;
+      const id=setInterval(()=>{left-=1;setOtpCooldown(left);if(left<=0)clearInterval(id);},1000);
+    }catch(err){showToast(err.message||"Could not send OTP (enable Phone provider + SMS in Supabase)","error");}
+    setLoading(false);
+  };
+
+  const verifyPhoneOtp=async()=>{
+    const e164=toE164Phone(phoneLogin);
+    if(!e164||!otpCode.replace(/\s/g,"")){showToast("Enter the 6-digit code","error");return;}
+    setLoading(true);
+    try{
+      const {data,error}=await supabase.auth.verifyOtp({phone:e164,token:otpCode.replace(/\s/g,""),type:"sms"});
+      if(error) throw error;
+      const uid=data?.session?.user?.id||data?.user?.id;
+      if(!uid) throw new Error("Login incomplete — try again");
+      await finishSession(uid);
+    }catch(err){showToast(err.message||"Invalid or expired code","error");}
+    setLoading(false);
+  };
+
   const submit=async()=>{
     if(!form.email||!form.password){showToast("Email and password required","error");return;}
     setLoading(true);
@@ -746,12 +802,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
       if(mode==="login"){
         const {data,error}=await supabase.auth.signInWithPassword({email:form.email,password:form.password});
         if(error) throw error;
-        const {data:profile,error:pe}=await supabase.from("profiles").select("*").eq("id",data.user.id).single();
-        if(pe||!profile) throw new Error("Profile not found. Contact support.");
-        const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",data.user.id);
-        const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
-        showToast(`Welcome back, ${profile.name}!`,"success");
-        onLogin({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
+        await finishSession(data.user.id);
       } else {
         if(!form.name){showToast("Name is required","error");setLoading(false);return;}
         if(form.password.length<6){showToast("Password must be at least 6 characters","error");setLoading(false);return;}
@@ -799,6 +850,31 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#0f172a" shineColor="#ea580c" speed={3} spread={140}/></h2>
             <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Northing today — it's free"}</p>
           </div>
+          {mode==="login"&&(
+            <div style={{display:"flex",gap:8,marginBottom:18,padding:5,background:"var(--gray)",borderRadius:12,border:"1px solid var(--border)"}}>
+              {[{id:"email",label:"Email & password"},{id:"phone",label:"Mobile OTP"}].map(({id,label})=>(
+                <button key={id} type="button" onClick={()=>{setLoginChannel(id);setOtpStep("phone");setOtpCode("");}} style={{flex:1,padding:"10px 10px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",background:loginChannel===id?"var(--white)":"transparent",color:loginChannel===id?"var(--primary)":"var(--muted)",boxShadow:loginChannel===id?"0 2px 10px rgba(15,23,42,0.08)":"none",transition:"all 0.2s"}}>{label}</button>
+              ))}
+            </div>
+          )}
+          {mode==="login"&&loginChannel==="phone"&&(
+            <>
+              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>SMS sign-in uses the <strong>same mobile you linked</strong> under Dashboard → Profile (after signing in with email once). New users: register with email, then link OTP there. In Supabase, turn on <strong>Phone</strong> + an SMS provider (e.g. Twilio).</p>
+              {otpStep==="phone"?(
+                <>
+                  <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits, India +91)" value={phoneLogin} onChange={e=>setPhoneLogin(e.target.value)} /></div>
+                  <button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send OTP →"}</button>
+                </>
+              ):(
+                <>
+                  <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter 6-digit OTP" value={otpCode} onChange={e=>setOtpCode(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyPhoneOtp()} /></div>
+                  <button type="button" onClick={verifyPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:"Verify & Sign In →"}</button>
+                  <button type="button" onClick={()=>{setOtpStep("phone");setOtpCode("");}} className="btn-ghost" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:10}}>← Use different number</button>
+                  {otpCooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginBottom:8}}>Resend OTP in {otpCooldown}s</p>:<button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:12}}>Resend OTP</button>}
+                </>
+              )}
+            </>
+          )}
           {mode==="register"&&(
             <div style={{marginBottom:18}}>
               <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>I am a…</div>
@@ -812,13 +888,17 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
               </div>
             </div>
           )}
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
-          <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-          <div style={{marginBottom:mode==="register"?12:20}}><input className="inp" type="password" placeholder={mode==="register"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
-          {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
-          {mode==="register"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
-          <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:(mode==="login"?"Sign In →":"Create Account →")}</button>
-          <button onClick={()=>setMode(m=>m==="login"?"register":"login")} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
+          {(mode==="register"||(mode==="login"&&loginChannel==="email"))&&(
+            <>
+              {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
+              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
+              <div style={{marginBottom:mode==="register"?12:20}}><input className="inp" type="password" placeholder={mode==="register"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&mode==="login"&&submit()} /></div>
+              {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
+              {mode==="register"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
+              <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:(mode==="login"?"Sign In →":"Create Account →")}</button>
+            </>
+          )}
+          <button onClick={()=>{setMode(m=>m==="login"?"register":"login");setLoginChannel("email");setOtpStep("phone");setOtpCode("");}} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
         </div>
       </div>
     </div>
@@ -1021,13 +1101,87 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   );
 };
 
-const AgentDash = ({currentUser,showToast}) => {
+/** After email sign-in, link E.164 phone via Supabase Auth so Mobile OTP uses the same user id as profiles. */
+const LinkPhoneForOtpSection = ({showToast,onLinked,currentUserId}) => {
+  const [authPhone,setAuthPhone]=useState(null);
+  const [phone,setPhone]=useState("");
+  const [otp,setOtp]=useState("");
+  const [linkStep,setLinkStep]=useState("phone");
+  const [changeMode,setChangeMode]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [cooldown,setCooldown]=useState(0);
+  const refreshAuth=async()=>{const {data:{user}}=await supabase.auth.getUser();setAuthPhone(user?.phone??null);};
+  useEffect(()=>{refreshAuth();},[]);
+  const startCooldown=()=>{setCooldown(45);let left=45;const id=setInterval(()=>{left-=1;setCooldown(left);if(left<=0)clearInterval(id);},1000);};
+  const sendLinkOtp=async()=>{
+    const e164=toE164Phone(phone);
+    if(!e164){showToast("Enter a valid 10-digit mobile number","error");return;}
+    setLoading(true);
+    try{
+      const {error}=await supabase.auth.updateUser({phone:e164});
+      if(error) throw error;
+      showToast("Verification code sent — check SMS","success");
+      setLinkStep("otp");
+      startCooldown();
+    }catch(err){showToast(err.message||"Could not send code (number may already be on another account)","error");}
+    setLoading(false);
+  };
+  const verifyLinkOtp=async()=>{
+    const e164=toE164Phone(phone);
+    const token=otp.replace(/\s/g,"");
+    if(!e164||!token){showToast("Enter the 6-digit code","error");return;}
+    setLoading(true);
+    try{
+      const {data,error}=await supabase.auth.verifyOtp({phone:e164,token,type:"phone_change"});
+      if(error) throw error;
+      const uid=data?.user?.id;
+      if(!uid||uid!==currentUserId) throw new Error("Verification incomplete — try again");
+      const national=e164.replace(/\D/g,"").slice(-10);
+      const {error:updErr}=await supabase.from("profiles").update({phone:national}).eq("id",uid);
+      if(updErr) throw updErr;
+      showToast("Mobile linked — you can use Mobile OTP on the sign-in page","success");
+      setPhone("");setOtp("");setLinkStep("phone");setChangeMode(false);
+      await refreshAuth();
+      onLinked?.();
+    }catch(err){showToast(err.message||"Invalid or expired code","error");}
+    setLoading(false);
+  };
+  const showStatusOnly=authPhone&&!changeMode&&linkStep==="phone";
+  return (
+    <div className="card-flat" style={{padding:22,marginBottom:16,border:"1px solid var(--border)"}}>
+      <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:800,color:"var(--navy)",marginBottom:8}}>📱 Mobile OTP sign-in</h3>
+      <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.55,marginBottom:14}}>Link your mobile to <strong>this account</strong> so <strong>Mobile OTP</strong> on the login page opens the same profile as email. Use a 10-digit India number.</p>
+      {showStatusOnly?(
+        <div>
+          <div style={{fontSize:14,fontWeight:700,color:"#059669",marginBottom:10}}>✓ Linked for OTP: {authPhone}</div>
+          <button type="button" className="btn-ghost" style={{padding:"9px 16px",borderRadius:9,fontSize:13}} onClick={()=>{setChangeMode(true);setPhone("");setOtp("");setLinkStep("phone");}}>Change number…</button>
+        </div>
+      ):linkStep==="phone"?(
+        <>
+          <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits)" value={phone} onChange={e=>setPhone(e.target.value)} /></div>
+          <button type="button" onClick={sendLinkOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send verification code →"}</button>
+          {(authPhone&&changeMode)&&<button type="button" className="btn-ghost" style={{width:"100%",padding:"8px",fontSize:12}} onClick={()=>{setChangeMode(false);setLinkStep("phone");setOtp("");}}>Cancel</button>}
+        </>
+      ):(
+        <>
+          <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" value={otp} onChange={e=>setOtp(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyLinkOtp()} /></div>
+          <button type="button" onClick={verifyLinkOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:"Verify & link →"}</button>
+          <button type="button" className="btn-ghost" style={{width:"100%",padding:"8px",fontSize:13,marginBottom:6}} onClick={()=>{setLinkStep("phone");setOtp("");}}>← Different number</button>
+          {cooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center"}}>Resend in {cooldown}s</p>:<button type="button" onClick={sendLinkOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13}}>Resend code</button>}
+        </>
+      )}
+    </div>
+  );
+};
+
+const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
   const isSeller=currentUser.role==="seller";
   const maxListings=isSeller?2:9999;
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
+  useEffect(()=>{setProfile(p=>({...p,phone:currentUser.phone||p.phone}));},[currentUser.phone]);
   const load=async()=>{
     setLoading(true);
     const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
@@ -1083,7 +1237,7 @@ const AgentDash = ({currentUser,showToast}) => {
         }
       </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
-        {[["listings","🏠 Listings"],...(!isSeller?[["profile","🏢 Profile"]]:[])].map(([t,l])=>(
+        {[["listings","🏠 Listings"],...(!isSeller?[["profile","🏢 Profile"]]:[]),...(isSeller?[["signin","📱 Mobile login"]]:[])].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none"}}>{l}</button>
         ))}
       </div>
@@ -1142,6 +1296,7 @@ const AgentDash = ({currentUser,showToast}) => {
       </>}
       {tab==="profile"&&!isSeller&&(
         <div style={{maxWidth:620}}>
+          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
           <div className="card" style={{padding:28,marginBottom:16}}>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:20}}>🏢 Agency / Firm Profile</h2>
             <p style={{fontSize:13,color:"var(--muted)",marginBottom:12,background:"var(--primary-light)",padding:"10px 14px",borderRadius:10,border:"1px solid var(--primary-mid)"}}>⭐ Your logo and details will appear as the <strong>header of every PDF brochure</strong> you generate.</p>
@@ -1197,12 +1352,17 @@ const AgentDash = ({currentUser,showToast}) => {
           </div>
         </div>
       )}
+      {tab==="signin"&&isSeller&&(
+        <div style={{maxWidth:620}}>
+          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
+        </div>
+      )}
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
     </div>
   );
 };
 
-const UserDash = ({currentUser,showToast}) => {
+const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
   useEffect(()=>{
     (async()=>{
@@ -1247,7 +1407,9 @@ const UserDash = ({currentUser,showToast}) => {
         )
       )}
       {tab==="profile"&&(
-        <div className="card" style={{maxWidth:480,padding:28}}>
+        <div style={{maxWidth:520}}>
+          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
+          <div className="card" style={{maxWidth:480,padding:28}}>
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:20}}>Profile Info</h2>
           {[["Name",currentUser.name],["Email",currentUser.email],["Phone",currentUser.phone||"—"],["Role",currentUser.role]].map(([k,v])=>(
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid var(--border)",fontSize:14}}>
@@ -1255,6 +1417,7 @@ const UserDash = ({currentUser,showToast}) => {
               <span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span>
             </div>
           ))}
+        </div>
         </div>
       )}
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
@@ -2097,6 +2260,15 @@ export default function App() {
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
   const nav=(p)=>{setPage(p);window.scrollTo(0,0);};
   const login=(u)=>{setUser(u);nav("dashboard");};
+  const refreshSessionUser=async()=>{
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session?.user) return;
+    const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+    if(!profile) return;
+    const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",profile.id);
+    const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
+    setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
+  };
   const logout=async()=>{await supabase.auth.signOut();setUser(null);nav("home");showToast("Signed out successfully","success");};
   const secretTrigger=useSecretAdmin(()=>{if(!user||user.role!=="master") setAdminModal(true);});
 
@@ -2124,9 +2296,9 @@ export default function App() {
       {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
       {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {page==="agentpage"&&agentPageId&&<AgentPage agentId={agentPageId} onNavigate={nav} currentUser={user}/>}
-      {page==="dashboard"&&user?.role==="agent"&&<AgentDash currentUser={user} showToast={showToast}/>}
-      {page==="dashboard"&&user?.role==="seller"&&<AgentDash currentUser={user} showToast={showToast}/>}
-      {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast}/>}
+      {page==="dashboard"&&user?.role==="agent"&&<AgentDash currentUser={user} showToast={showToast} onPhoneLinked={refreshSessionUser}/>}
+      {page==="dashboard"&&user?.role==="seller"&&<AgentDash currentUser={user} showToast={showToast} onPhoneLinked={refreshSessionUser}/>}
+      {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast} onPhoneLinked={refreshSessionUser}/>}
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
       {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
