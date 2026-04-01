@@ -125,6 +125,10 @@ const toE164Phone = (raw) => {
   if (d.length === 11 && d.startsWith("0")) return `+91${d.slice(1)}`;
   return null;
 };
+const nationalDigitsFromE164 = (e164) => {
+  const d = String(e164 || "").replace(/\D/g, "");
+  return d.length >= 10 ? d.slice(-10) : null;
+};
 const simScore = (a="",b="") => { a=a.toLowerCase().trim(); b=b.toLowerCase().trim(); if(!a||!b) return 0; const sa=new Set(a.split(/\s+/)),sb=new Set(b.split(/\s+/)); return [...sa].filter(x=>sb.has(x)).length/Math.max(sa.size,sb.size); };
 const findDups = (form, all, editId) => all.filter(l => {
   if(l.id===editId) return false;
@@ -749,7 +753,7 @@ const SecretAdminModal = ({onLogin,onClose,showToast}) => {
 const LoginPage = ({onLogin,showToast,onNavigate}) => {
   const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
   const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
-  const [loginChannel,setLoginChannel]=useState("email");
+  const [loginChannel,setLoginChannel]=useState("phone");
   const [phoneLogin,setPhoneLogin]=useState("");
   const [otpCode,setOtpCode]=useState("");
   const [otpStep,setOtpStep]=useState("phone");
@@ -758,7 +762,7 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
 
   const finishSession=async(userId)=>{
     const {data:profile,error:pe}=await supabase.from("profiles").select("*").eq("id",userId).single();
-    if(pe||!profile) throw new Error("Profile not found. Use the same account you registered with, or sign in with email.");
+    if(pe||!profile) throw new Error("Could not load your profile.");
     const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",userId);
     const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
     showToast(`Welcome back, ${profile.name}!`,"success");
@@ -768,6 +772,9 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
   const sendPhoneOtp=async()=>{
     const e164=toE164Phone(phoneLogin);
     if(!e164){showToast("Enter a valid 10-digit mobile number","error");return;}
+    if(mode==="register"){
+      if(!form.name?.trim()){showToast("Enter your name","error");return;}
+    }
     setLoading(true);
     try{
       const {error}=await supabase.auth.signInWithOtp({phone:e164});
@@ -790,6 +797,33 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
       if(error) throw error;
       const uid=data?.session?.user?.id||data?.user?.id;
       if(!uid) throw new Error("Login incomplete — try again");
+      const national=nationalDigitsFromE164(e164);
+      const {data:existing}=await supabase.from("profiles").select("id").eq("id",uid).maybeSingle();
+      if(!existing){
+        if(mode==="register"){
+          const emailTrim=form.email?.trim()||null;
+          const {error:insErr}=await supabase.from("profiles").insert({
+            id:uid,
+            name:form.name.trim(),
+            email:emailTrim,
+            role,
+            phone:national,
+            agency_name:form.agencyName?.trim()||null,
+          });
+          if(insErr) throw insErr;
+        }else{
+          const last4=national||"0000";
+          const {error:insErr}=await supabase.from("profiles").insert({
+            id:uid,
+            name:`User ${last4}`,
+            email:null,
+            role:"user",
+            phone:national,
+            agency_name:null,
+          });
+          if(insErr) throw insErr;
+        }
+      }
       await finishSession(uid);
     }catch(err){showToast(err.message||"Invalid or expired code","error");}
     setLoading(false);
@@ -799,20 +833,9 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
     if(!form.email||!form.password){showToast("Email and password required","error");return;}
     setLoading(true);
     try{
-      if(mode==="login"){
-        const {data,error}=await supabase.auth.signInWithPassword({email:form.email,password:form.password});
-        if(error) throw error;
-        await finishSession(data.user.id);
-      } else {
-        if(!form.name){showToast("Name is required","error");setLoading(false);return;}
-        if(form.password.length<6){showToast("Password must be at least 6 characters","error");setLoading(false);return;}
-        const {data,error}=await supabase.auth.signUp({email:form.email,password:form.password});
-        if(error) throw error;
-        const {error:pe}=await supabase.from("profiles").insert({id:data.user.id,name:form.name,email:form.email,role,phone:form.phone||null,agency_name:form.agencyName||null});
-        if(pe) throw pe;
-        showToast("Account created! You can now sign in.","success");
-        setMode("login");setForm(f=>({...f,password:""}));
-      }
+      const {data,error}=await supabase.auth.signInWithPassword({email:form.email,password:form.password});
+      if(error) throw error;
+      await finishSession(data.user.id);
     }catch(err){showToast(err.message||"Something went wrong","error");}
     setLoading(false);
   };
@@ -848,32 +871,14 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
           <div style={{marginBottom:28}}>
             <div style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:22,color:"var(--navy)",marginBottom:2}}>Northing</div>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:26,fontWeight:700,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#0f172a" shineColor="#ea580c" speed={3} spread={140}/></h2>
-            <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in to your account":"Join Northing today — it's free"}</p>
+            <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in with your mobile number":"Create your account — mobile is required, email optional"}</p>
           </div>
           {mode==="login"&&(
             <div style={{display:"flex",gap:8,marginBottom:18,padding:5,background:"var(--gray)",borderRadius:12,border:"1px solid var(--border)"}}>
-              {[{id:"email",label:"Email & password"},{id:"phone",label:"Mobile OTP"}].map(({id,label})=>(
+              {[{id:"phone",label:"Mobile OTP"},{id:"email",label:"Email & password"}].map(({id,label})=>(
                 <button key={id} type="button" onClick={()=>{setLoginChannel(id);setOtpStep("phone");setOtpCode("");}} style={{flex:1,padding:"10px 10px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",background:loginChannel===id?"var(--white)":"transparent",color:loginChannel===id?"var(--primary)":"var(--muted)",boxShadow:loginChannel===id?"0 2px 10px rgba(15,23,42,0.08)":"none",transition:"all 0.2s"}}>{label}</button>
               ))}
             </div>
-          )}
-          {mode==="login"&&loginChannel==="phone"&&(
-            <>
-              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>SMS sign-in uses the <strong>same mobile you linked</strong> under Dashboard → Profile (after signing in with email once). New users: register with email, then link OTP there. In Supabase, turn on <strong>Phone</strong> + an SMS provider (e.g. Twilio).</p>
-              {otpStep==="phone"?(
-                <>
-                  <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits, India +91)" value={phoneLogin} onChange={e=>setPhoneLogin(e.target.value)} /></div>
-                  <button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send OTP →"}</button>
-                </>
-              ):(
-                <>
-                  <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter 6-digit OTP" value={otpCode} onChange={e=>setOtpCode(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyPhoneOtp()} /></div>
-                  <button type="button" onClick={verifyPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:"Verify & Sign In →"}</button>
-                  <button type="button" onClick={()=>{setOtpStep("phone");setOtpCode("");}} className="btn-ghost" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:10}}>← Use different number</button>
-                  {otpCooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginBottom:8}}>Resend OTP in {otpCooldown}s</p>:<button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:12}}>Resend OTP</button>}
-                </>
-              )}
-            </>
           )}
           {mode==="register"&&(
             <div style={{marginBottom:18}}>
@@ -888,17 +893,41 @@ const LoginPage = ({onLogin,showToast,onNavigate}) => {
               </div>
             </div>
           )}
-          {(mode==="register"||(mode==="login"&&loginChannel==="email"))&&(
+          {mode==="register"&&(
             <>
-              {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" placeholder="Full Name" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>}
-              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-              <div style={{marginBottom:mode==="register"?12:20}}><input className="inp" type="password" placeholder={mode==="register"?"Password (min 6 chars)":"Password"} value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&mode==="login"&&submit()} /></div>
-              {mode==="register"&&<div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Phone number" value={form.phone} onChange={e=>setF("phone",e.target.value)} /></div>}
-              {mode==="register"&&(role==="agent"||role==="seller")&&<div style={{marginBottom:20}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
-              <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:(mode==="login"?"Sign In →":"Create Account →")}</button>
+              <div style={{marginBottom:12}}><input className="inp" placeholder="Full name *" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>
+              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email (optional)" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
+              {(role==="agent"||role==="seller")&&<div style={{marginBottom:12}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name (optional)":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
             </>
           )}
-          <button onClick={()=>{setMode(m=>m==="login"?"register":"login");setLoginChannel("email");setOtpStep("phone");setOtpCode("");}} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
+          {(mode==="login"&&loginChannel==="phone")||mode==="register"?(
+            <>
+              {mode==="login"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>We’ll text you a one-time code. New here? Use <strong>Register</strong> so we can save your name and role. Need Supabase <strong>Phone</strong> + SMS (e.g. Twilio) enabled.</p>}
+              {mode==="register"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>Enter the mobile number you want to use to sign in. We’ll send a code to verify it.</p>}
+              {otpStep==="phone"?(
+                <>
+                  <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits, India +91)" value={phoneLogin} onChange={e=>setPhoneLogin(e.target.value)} /></div>
+                  <button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send OTP →"}</button>
+                </>
+              ):(
+                <>
+                  <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter 6-digit OTP" value={otpCode} onChange={e=>setOtpCode(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyPhoneOtp()} /></div>
+                  <button type="button" onClick={verifyPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:mode==="register"?"Verify & create account →":"Verify & Sign In →"}</button>
+                  <button type="button" onClick={()=>{setOtpStep("phone");setOtpCode("");}} className="btn-ghost" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:10}}>← Use different number</button>
+                  {otpCooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginBottom:8}}>Resend OTP in {otpCooldown}s</p>:<button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:12}}>Resend OTP</button>}
+                </>
+              )}
+            </>
+          ):null}
+          {mode==="login"&&loginChannel==="email"&&(
+            <>
+              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.55}}>For accounts that still use email and password (e.g. older logins).</p>
+              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
+              <div style={{marginBottom:20}}><input className="inp" type="password" placeholder="Password" value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
+              <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:"Sign In →"}</button>
+            </>
+          )}
+          <button onClick={()=>{setMode(m=>m==="login"?"register":"login");setLoginChannel("phone");setOtpStep("phone");setOtpCode("");}} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
         </div>
       </div>
     </div>

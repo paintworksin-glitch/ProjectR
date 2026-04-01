@@ -47,6 +47,9 @@ where share_slug is null;
 
 create unique index if not exists listings_share_slug_key on public.listings(share_slug);
 
+-- Phone OTP: open file migrations/20260401000000_phone_auth_profiles.sql in this repo,
+-- copy its full contents into Supabase SQL Editor, and run (do not paste the path as SQL).
+
 create table if not exists public.share_events (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid,
