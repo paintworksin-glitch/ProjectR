@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 318 96" fill="none" role="img" aria-labelledby="nm-title">
+  <title id="nm-title">Northing</title>
+  <g stroke="#0f172a" stroke-width="5.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 74V34M16 34L48 74M48 74V34"/>
+    <path d="M84 63A13 16 0 1 1 58 63A13 16 0 1 1 84 63"/>
+    <path d="M98 63v11M98 63c5.5-11 15.5-11 22-2"/>
+    <path d="M132 40h17M140.5 40v34"/>
+    <path d="M170 74V52c4.5-9.5 17.5-9.5 21.5 0v22"/>
+    <path d="M212 74V48"/>
+    <path d="M228 74V55.5c4.5-9.5 19-9.5 23 0V74"/>
+    <path d="M299 61.5A11.5 13.5 0 1 1 276 61.5A11.5 13.5 0 1 1 299 61.5"/>
+    <path d="M287.5 75v6q0 7-9 8"/>
+  </g>
+  <path fill="#0f172a" d="M16 30.5V23.5l5.75 7h-11.5z"/>
+  <path fill="#0f172a" d="M212 27l4.75 8.5h-9.5z"/>
+</svg>
