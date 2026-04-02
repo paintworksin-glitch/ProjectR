@@ -202,9 +202,26 @@ const G = `
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media print {
-    body > * { display:none !important; }
-    #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
-    #pdf-print-area * { visibility:visible !important; }
+    html, body { background:#fff !important; height:auto !important; }
+    #root:has(#pdf-print-area) * { visibility:hidden !important; }
+    #root:has(#pdf-print-area) #pdf-print-area,
+    #root:has(#pdf-print-area) #pdf-print-area * { visibility:visible !important; }
+    #root:has(#pdf-print-area) #pdf-print-area {
+      display:block !important;
+      position:absolute !important;
+      left:0 !important;
+      top:0 !important;
+      width:100% !important;
+      max-width:100% !important;
+      padding:32px !important;
+      box-sizing:border-box !important;
+      background:#fff !important;
+      color:#1a1410 !important;
+      -webkit-print-color-adjust:exact !important;
+      print-color-adjust:exact !important;
+    }
+    #pdf-print-area .pdf-export-photo-block,
+    #pdf-print-area .pdf-export-map-block { break-inside:avoid !important; page-break-inside:avoid !important; -webkit-column-break-inside:avoid !important; }
   }
   @media(max-width:768px){
     .hm{display:none!important}
@@ -735,52 +752,245 @@ const WACardModal = ({listing,onClose}) => {
   );
 };
 
+const getNorthingPdfLogoSrc = () =>
+  typeof window !== "undefined"
+    ? `${window.location.origin}${(import.meta.env.BASE_URL || "/").replace(/\/?$/, "/")}northing-logo.svg`
+    : "/northing-logo.svg";
+
+const geocodeForPdfMap = async (query) => {
+  const q = String(query || "").trim();
+  if (!q) return null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+    const r = await fetch(url, { headers: { Accept: "application/json", "Accept-Language": "en" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!Array.isArray(j) || !j[0]) return null;
+    const lat = parseFloat(j[0].lat);
+    const lon = parseFloat(j[0].lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  } catch {
+    return null;
+  }
+};
+
+const fetchOsmStaticPdfMap = async (lat, lon) => {
+  const u = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=15&size=640x220&markers=${lat},${lon},red-pushpin`;
+  try {
+    const r = await fetch(u);
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result));
+      fr.onerror = rej;
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
+
+const buildPdfMapFallbackDataUrl = (label) => {
+  const w = 640;
+  const h = 220;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const x = c.getContext("2d");
+  x.fillStyle = "#f1f5f9";
+  x.fillRect(0, 0, w, h);
+  x.fillStyle = "#ea580c";
+  x.beginPath();
+  x.moveTo(w / 2, h / 2 - 12);
+  x.lineTo(w / 2 + 10, h / 2 + 10);
+  x.lineTo(w / 2 - 10, h / 2 + 10);
+  x.closePath();
+  x.fill();
+  x.fillStyle = "#0f172a";
+  x.font = "600 14px Inter, system-ui, sans-serif";
+  x.textAlign = "center";
+  const line = String(label || "Location").split(",")[0].trim().slice(0, 52);
+  if (line) x.fillText(line, w / 2, h / 2 + 36);
+  x.fillStyle = "#64748b";
+  x.font = "500 11px Inter, system-ui, sans-serif";
+  x.fillText("Open in Google Maps for full map", w / 2, h - 14);
+  return c.toDataURL("image/jpeg", 0.9);
+};
+
+const PDF_MAP_IMG_PLACEHOLDER =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+const waitForPdfImages = async (root) => {
+  const imgs = [...root.querySelectorAll("img")];
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise((res) => {
+          if (img.complete && img.naturalWidth > 0) return res();
+          const done = () => res();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+          setTimeout(done, 12000);
+        })
+    )
+  );
+};
+
+const addPdfTallCanvasPages = (pdf, canvas, pageW, pageH, yStart) => {
+  const mmPerPx = pageW / canvas.width;
+  let yPx = 0;
+  let yMm = yStart;
+  while (yPx < canvas.height) {
+    const roomMm = pageH - yMm;
+    if (roomMm < 0.5) {
+      pdf.addPage();
+      yMm = 0;
+      continue;
+    }
+    const remainingPx = canvas.height - yPx;
+    const remainingMm = remainingPx * mmPerPx;
+    const sliceMm = Math.min(roomMm, remainingMm);
+    const slicePx = Math.max(1, Math.round(sliceMm / mmPerPx));
+    const sub = document.createElement("canvas");
+    sub.width = canvas.width;
+    sub.height = Math.min(slicePx, remainingPx);
+    sub.getContext("2d").drawImage(canvas, 0, yPx, canvas.width, sub.height, 0, 0, canvas.width, sub.height);
+    pdf.addImage(sub.toDataURL("image/jpeg", 0.92), "JPEG", 0, yMm, pageW, sliceMm);
+    yMm += sliceMm;
+    yPx += sub.height;
+    if (yMm >= pageH - 0.05) {
+      pdf.addPage();
+      yMm = 0;
+    }
+  }
+  return yMm;
+};
+
 const PDFModal = ({listing,onClose}) => {
   const [pdfLoading,setPdfLoading]=useState(false);
   const [mapSrc,setMapSrc]=useState(null);
+  const [osmMapSrc,setOsmMapSrc]=useState(null);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
   const gMapsKey=import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
+  const northingLogoSrc=getNorthingPdfLogoSrc();
   useEffect(()=>{
     if(!listing?.location||!gMapsKey){setMapSrc(null);return;}
-    setMapSrc(`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xFF6B00|${encodeURIComponent(listing.location)}&key=${encodeURIComponent(gMapsKey)}`);
+    setMapSrc(`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(listing.location)}&zoom=15&size=640x220&scale=2&maptype=roadmap&markers=color:0xea580c|${encodeURIComponent(listing.location)}&key=${encodeURIComponent(gMapsKey)}`);
   },[listing?.location,gMapsKey]);
+  useEffect(()=>{
+    if(!listing?.location){setOsmMapSrc(null);return;}
+    let cancelled=false;
+    (async()=>{
+      const coords=await geocodeForPdfMap(listing.location);
+      let dataUrl=coords?await fetchOsmStaticPdfMap(coords.lat,coords.lon):null;
+      if(!dataUrl) dataUrl=buildPdfMapFallbackDataUrl(listing.location);
+      if(!cancelled) setOsmMapSrc(dataUrl);
+    })();
+    return()=>{cancelled=true;};
+  },[listing?.location]);
   if(!listing) return null;
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
   const hasAgentBrand=listing.agencyName||listing.logoUrl;
+  const mapImgSrc=osmMapSrc||(gMapsKey&&mapSrc?mapSrc:PDF_MAP_IMG_PLACEHOLDER);
 
   const downloadPDF=async()=>{
-    const el=document.getElementById('pdf-print-area');
+    const el=document.getElementById("pdf-print-area");
     if(!el) return;
     setPdfLoading(true);
+    const scrollHost=el.closest(".asl");
+    const prevScroll=scrollHost?{maxHeight:scrollHost.style.maxHeight,overflow:scrollHost.style.overflow,height:scrollHost.style.height}:null;
+    let shell=null;
     try{
+      if(scrollHost){
+        scrollHost.style.maxHeight="none";
+        scrollHost.style.overflow="visible";
+        scrollHost.style.height="auto";
+      }
+      await new Promise((r)=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+      const mapImg=el.querySelector("[data-pdf-map-img]");
+      if(mapImg&&listing?.location){
+        let snap=osmMapSrc;
+        if(!snap||!String(snap).startsWith("data:")){
+          const coords=await geocodeForPdfMap(listing.location);
+          if(coords) snap=await fetchOsmStaticPdfMap(coords.lat,coords.lon);
+          if(!snap) snap=buildPdfMapFallbackDataUrl(listing.location);
+        }
+        if(mapImg.src!==snap) mapImg.src=snap;
+        await new Promise((res)=>{if(mapImg.complete&&mapImg.naturalWidth>0) return res(); mapImg.onload=()=>res(); mapImg.onerror=()=>res(); setTimeout(res,8000);});
+      }
+
+      await waitForPdfImages(el);
+      await new Promise((r)=>setTimeout(r,100));
+
       const h2c=await new Promise((res,rej)=>{
         if(window.html2canvas){res(window.html2canvas);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
         s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);
       });
       const jsPDFCls=await new Promise((res,rej)=>{
         if(window.jspdf){res(window.jspdf.jsPDF);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
         s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);
       });
-      const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
-      const mmW=210;
-      const mmH=(canvas.height*mmW)/canvas.width;
-      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
+
+      const clone=el.cloneNode(true);
+      clone.removeAttribute("id");
+      shell=document.createElement("div");
+      shell.setAttribute("aria-hidden","true");
+      shell.style.cssText="position:fixed;left:0;top:0;width:720px;max-width:100vw;z-index:2147483000;opacity:0.02;pointer-events:none;overflow:visible;background:#fff;";
+      shell.appendChild(clone);
+      document.body.appendChild(shell);
+      await waitForPdfImages(clone);
+      await new Promise((r)=>setTimeout(r,80));
+
+      const chunks=clone.querySelectorAll("[data-pdf-chunk]");
+      const h2cOpts={scale:2,useCORS:true,allowTaint:true,backgroundColor:"#ffffff",logging:false,windowWidth:Math.max(720,el.scrollWidth)};
+      const pdf=new jsPDFCls({unit:"mm",format:"a4"});
+      const pageW=210;
       const pageH=297;
       let y=0;
-      while(y<mmH){
-        if(y>0) pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
-        y+=pageH;
+
+      if(chunks.length===0){
+        const canvas=await h2c(el,h2cOpts);
+        const mmH=(canvas.height*pageW)/canvas.width;
+        let yOff=0;
+        while(yOff<mmH-0.01){
+          if(yOff>0) pdf.addPage();
+          pdf.addImage(canvas.toDataURL("image/jpeg",0.92),"JPEG",0,-yOff,pageW,mmH);
+          yOff+=pageH;
+        }
+      }else{
+        for(const chunk of chunks){
+          const cw=Math.max(1,Math.ceil(chunk.offsetWidth||chunk.scrollWidth));
+          const ch=Math.max(1,Math.ceil(chunk.offsetHeight||chunk.scrollHeight));
+          const canvas=await h2c(chunk,{...h2cOpts,width:cw,height:ch});
+          if(canvas.width<4||canvas.height<4) continue;
+          const h=(canvas.height*pageW)/canvas.width;
+          if(y>0&&y+h>pageH){pdf.addPage();y=0;}
+          if(h>pageH){y=addPdfTallCanvasPages(pdf,canvas,pageW,pageH,y);}
+          else{pdf.addImage(canvas.toDataURL("image/jpeg",0.92),"JPEG",0,y,pageW,h);y+=h;}
+          if(y>=pageH-0.05){pdf.addPage();y=0;}
+        }
       }
-      pdf.save('Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
-    }catch(err){console.error(err);window.print();}
-    setPdfLoading(false);
+
+      pdf.save("Northing-"+((listing.title||"property").replace(/\s+/g,"-").toLowerCase())+".pdf");
+    }catch(err){console.error("PDF export:",err);window.print();}
+    finally{
+      if(shell?.parentNode) shell.parentNode.removeChild(shell);
+      if(scrollHost&&prevScroll){
+        scrollHost.style.maxHeight=prevScroll.maxHeight;
+        scrollHost.style.overflow=prevScroll.overflow;
+        scrollHost.style.height=prevScroll.height;
+      }
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -793,12 +1003,12 @@ const PDFModal = ({listing,onClose}) => {
             <button onClick={onClose} style={{background:"#f4f4f4",border:"1px solid #ddd",color:"#666",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
           </div>
         </div>
-        <div id="pdf-print-area" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
+        <div id="pdf-print-area" className="pdf-export-root" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410"}}>
           {hasAgentBrand?(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+            <div data-pdf-chunk className="pdf-export-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
                 {listing.logoUrl
-                  ?<img src={listing.logoUrl} alt="logo" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>
+                  ?<img src={listing.logoUrl} alt="" data-pdf-export-img style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>
                   :<div style={{width:64,height:64,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,border:"1px solid var(--primary-mid)"}}>🏢</div>
                 }
                 <div>
@@ -814,15 +1024,16 @@ const PDFModal = ({listing,onClose}) => {
               </div>
             </div>
           ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+            <div data-pdf-chunk className="pdf-export-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,color:"var(--navy)"}}>Northing</div>
-                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:2,textTransform:"uppercase"}}>Professional Property Marketing</div>
+                <img src={northingLogoSrc} alt="Northing" data-pdf-export-img data-pdf-northing-logo style={{height:44,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}}/>
+                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:6,textTransform:"uppercase"}}>Professional Property Marketing</div>
               </div>
               <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
             </div>
           )}
           {/* ── PROPERTY INFO ── */}
+          <div data-pdf-chunk className="pdf-export-main">
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:900,margin:"0 0 4px",color:"var(--navy)",lineHeight:1.15}}>{listing.title}</h1>
           <div style={{color:"#888",fontSize:14,marginBottom:12}}>📍 {listing.location}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6,flexWrap:"wrap"}}>
@@ -843,55 +1054,44 @@ const PDFModal = ({listing,onClose}) => {
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Key Highlights</div>
             {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
           </div>}
+          </div>
 
-          {/* ── PHOTOS stacked vertically ── */}
-          {listing.photos?.length>0&&(
-            <div style={{marginBottom:24}}>
-              <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Property Photos</div>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {listing.photos.map((p,i)=>(
-                  <div key={i} style={{position:"relative"}}>
-                    <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
-                    {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
-                  </div>
-                ))}
+          {/* ── PHOTOS: one export chunk per image (jsPDF) + print break-inside avoid ── */}
+          {listing.photos?.length>0&&listing.photos.map((p,i)=>(
+            <div key={i} data-pdf-chunk className="pdf-export-photo-block" style={{marginBottom:12,breakInside:"avoid",pageBreakInside:"avoid"}}>
+              {i===0&&<div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Property Photos</div>}
+              <div style={{position:"relative"}}>
+                <img src={p} alt="" data-pdf-export-img style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
+                {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
               </div>
             </div>
-          )}
+          ))}
 
-          {/* ── Location map: Static API if VITE_GOOGLE_MAPS_API_KEY (best for PDF capture); else free Google Maps embed (no API key) ── */}
-          <div style={{marginBottom:24}}>
+          {/* ── Static map image (data-URL snapshot friendly for html2canvas) ── */}
+          <div data-pdf-chunk className="pdf-export-map-block" style={{marginBottom:24,breakInside:"avoid",pageBreakInside:"avoid"}}>
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
             {listing.location?(
-              gMapsKey&&mapSrc?(
-                <img
-                  src={mapSrc}
-                  alt="Property location map"
-                  style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
-                />
-              ):(
-                <iframe
-                  title="Property location map"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.location)}&output=embed`}
-                  style={{width:"100%",height:220,border:"1px solid #eee",borderRadius:12,display:"block"}}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              )
+              <img
+                data-pdf-map-img
+                data-pdf-export-img
+                src={mapImgSrc}
+                alt=""
+                style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block",background:"#f1f5f9"}}
+              />
             ):null}
             {listing.location&&<div style={{marginTop:8,textAlign:"right"}}><a href={googleMapsSearchUrl(listing.location)} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:600,color:"var(--primary)"}}>Open in Google Maps →</a></div>}
           </div>
 
           {/* ── AGENT FOOTER ── */}
-          <div style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+          <div data-pdf-chunk className="pdf-export-footer" style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
               <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
               {listing.agentEmail&&<div style={{fontSize:12,color:"#888"}}>{listing.agentEmail}</div>}
               {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
-              <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
+              <img src={northingLogoSrc} alt="" data-pdf-export-img style={{height:20,width:"auto",maxWidth:160,objectFit:"contain",display:"block",marginLeft:"auto",opacity:0.45}}/>
+              <div style={{fontSize:10,color:"#ccc",marginTop:4}}>Powered by Northing</div>
             </div>
           </div>
         </div>
