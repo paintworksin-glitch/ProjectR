@@ -9,24 +9,24 @@ const G = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,800;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;0,8..60,800;1,8..60,600&display=swap');
   .home-heading { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-weight: 600; font-optical-sizing: auto; letter-spacing: -0.016em; line-height: 1.2; }
   .login-heading-serif { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; letter-spacing: -0.01em; line-height: 1.2; }
-  .h1big-hero { min-height: clamp(300px, 44vh, 460px); width: 100%; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
-  .home-hero-inner { position: relative; z-index: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: clamp(48px, 6vw, 72px) clamp(28px, 4vw, 40px) clamp(56px, 7vw, 80px); gap: clamp(40px, 5.5vw, 64px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-sizing: border-box; flex: 1 1 auto; min-width: 0; }
-  .home-hero-text { flex: 1 1 300px; max-width: 400px; min-width: 0; align-self: center; }
+  .h1big-hero { min-height: clamp(260px, 38vh, 420px); width: 100%; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
+  .home-hero-inner { position: relative; z-index: 1; width: 100%; max-width: var(--home-content-max); margin: 0 auto; padding: clamp(52px, 6vw, 76px) var(--home-gutter-x) clamp(60px, 7vw, 84px); display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(min(100%, 300px), 398px); align-items: start; column-gap: clamp(32px, 4.5vw, 52px); row-gap: clamp(28px, 3.5vw, 40px); box-sizing: border-box; flex: 1 1 auto; min-width: 0; }
+  .home-hero-text { min-width: 0; max-width: 34rem; align-self: start; justify-self: start; }
   .home-hero-headline { font-size: clamp(34px, 3.55vw, 48px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 800; color: var(--navy); text-wrap: balance; }
   .home-hero-headline-line { display: block; }
   .home-hero-headline-line:first-child { font-weight: 800; letter-spacing: -0.031em; }
   .home-hero-headline-line:last-child:not(:first-child) { margin-top: 0.14em; font-weight: 700; color: #1e293b; letter-spacing: -0.024em; }
   .home-hero-sub { margin-top: clamp(24px, 3vw, 34px); font-size: clamp(15px, 1.05vw, 16px); line-height: 1.72; color: var(--text-body); font-weight: 500; max-width: 36em; }
-  .home-hero-search-wrap { flex: 0 1 392px; max-width: 100%; min-width: 0; display: flex; flex-direction: column; align-self: stretch; gap: 16px; }
+  .home-hero-search-wrap { min-width: 0; width: 100%; max-width: 400px; justify-self: end; display: flex; flex-direction: column; align-self: stretch; gap: 14px; }
   .home-hero-search { flex: 0 1 380px; max-width: 100%; min-width: 0; width: 100%; border-radius: 28px !important; padding: 0 !important; overflow: hidden; background: rgba(255,255,255,0.97) !important; border: 1px solid rgba(226,232,240,0.65) !important; box-shadow: 0 1px 2px rgba(15,23,42,0.028), 0 8px 28px rgba(15,23,42,0.038), 0 24px 48px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,1) !important; backdrop-filter: blur(20px) saturate(155%) !important; -webkit-backdrop-filter: blur(20px) saturate(155%) !important; }
-  .home-qs-inner { padding: 24px 24px 26px; }
-  .home-qs-head { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; padding-bottom: 18px; border-bottom: 1px solid rgba(226,232,240,0.55); }
+  .home-qs-inner { padding: 26px 26px 28px; }
+  .home-qs-head { display: flex; align-items: center; gap: 12px; margin-bottom: 0; padding-bottom: 20px; border-bottom: 1px solid rgba(226,232,240,0.55); }
   .home-qs-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.25rem; font-weight: 700; color: var(--navy); margin: 0; letter-spacing: -0.024em; line-height: 1.2; }
   .home-qs-icon { font-size: 1.1rem; opacity: 0.72; line-height: 1; flex-shrink: 0; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: rgba(255,247,237,0.85); border: 1px solid rgba(254,215,170,0.45); }
-  .home-qs-stack { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
-  .home-qs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; align-items: start; }
+  .home-qs-stack { display: flex; flex-direction: column; gap: 18px; margin-top: 22px; }
+  .home-qs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; align-items: start; }
   .home-qs-grid2 + .home-qs-grid2 { margin-top: 2px; }
-  .home-qs-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-readable); margin-bottom: 8px; letter-spacing: 0.005em; line-height: 1.4; }
+  .home-qs-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-readable); margin-bottom: 9px; letter-spacing: 0.005em; line-height: 1.4; }
   .home-qs-label-em { font-size: 12.5px; font-weight: 700; color: var(--navy); letter-spacing: -0.013em; padding-left: 10px; margin-left: -10px; border-left: 3px solid rgba(234,88,12,0.48); }
   .home-qs-hint { font-size: 12px; color: var(--text-body); margin: 10px 0 0; line-height: 1.55; font-weight: 500; padding: 11px 13px; border-radius: 10px; background: rgba(255,247,237,0.72); border: 1px solid rgba(254,215,170,0.42); }
   .home-hero-search .inp.home-qs-inp { min-height: 46px; padding: 12px 14px !important; font-size: 14px !important; line-height: 1.45; color: var(--text); border-radius: 13px !important; background: rgba(248,250,252,0.95) !important; border: 1px solid rgba(226,232,240,0.95) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9) !important; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
@@ -35,8 +35,8 @@ const G = `
   .home-hero-search .inp.home-qs-inp:hover:not(:disabled) { border-color: rgba(148,163,184,0.65) !important; background: #fff !important; }
   .home-hero-search .inp.home-qs-inp:focus { border-color: rgba(234,88,12,0.45) !important; background: #fff !important; box-shadow: 0 0 0 3px rgba(234,88,12,0.12), inset 0 1px 0 rgba(255,255,255,1) !important; outline: none; }
   .home-hero-search .inp.home-qs-inp:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(241,245,249,0.85) !important; }
-  .home-qs-submit { width: 100%; margin-top: 8px; padding: 15px 20px !important; border-radius: 13px !important; font-size: 15px !important; font-weight: 700; letter-spacing: -0.017em; }
-  .home-hero-actions { display: flex; gap: 16px; margin-top: clamp(36px, 4.5vw, 48px); padding-top: 4px; flex-wrap: wrap; align-items: center; }
+  .home-qs-submit { width: 100%; margin-top: 10px; padding: 15px 20px !important; border-radius: 13px !important; font-size: 15px !important; font-weight: 700; letter-spacing: -0.017em; }
+  .home-hero-actions { display: flex; gap: 14px 18px; margin-top: clamp(32px, 4.2vw, 44px); padding-top: 6px; flex-wrap: wrap; align-items: center; }
   .home-hero-cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; letter-spacing: -0.014em; line-height: 1.2; text-align: center; box-sizing: border-box; }
   .home-hero-actions .home-hero-cta.btn-primary { box-shadow: 0 1px 2px rgba(234,88,12,0.14), 0 5px 14px rgba(234,88,12,0.11), inset 0 1px 0 rgba(255,255,255,0.24); }
   .home-hero-actions .home-hero-cta.btn-primary:hover:not(:disabled) { transform: translateY(-1px) scale(1.006); filter: brightness(1.03); box-shadow: 0 2px 8px rgba(234,88,12,0.18), 0 10px 22px rgba(234,88,12,0.13), inset 0 1px 0 rgba(255,255,255,0.28); }
@@ -63,6 +63,8 @@ const G = `
     --green-light: #fff7ed; --green-mid: #fed7aa; --cream: #f8fafc;
     --white: #ffffff; --gray: #f1f5f9; --border: #e8ecf1; --text: #0f172a;
     --muted: #64748b; --text-readable: #475569; --text-body: #334155;
+    --home-content-max: 1120px;
+    --home-gutter-x: clamp(22px, 4vw, 40px);
     --shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.045);
     --shadow-lg: 0 4px 6px rgba(15,23,42,0.03), 0 20px 44px rgba(15,23,42,0.07);
     --shadow-card-hover: 0 8px 26px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.035);
@@ -125,16 +127,31 @@ const G = `
   .tag { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); }
   .tag-navy { background: rgba(15,23,42,0.05); color: var(--navy); border: 1px solid var(--border); }
   .section-label { font-size: 11px; font-weight: 700; color: var(--primary2); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
-  .home-hero-section { background: linear-gradient(168deg, #ffffff 0%, #fafbfc 36%, #f4f6f9 100%); }
-  .home-prop-section { padding: 48px clamp(20px, 4vw, 32px) 56px; max-width: 1160px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-  .home-featured-toolbar { display: flex; gap: 12px 16px; margin-bottom: 32px; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
+  .home-hero-section { background: linear-gradient(168deg, #ffffff 0%, #fafbfc 36%, #f4f6f9 100%); border-bottom: 1px solid rgba(226,232,240,0.55); }
+  .home-prop-section { padding: clamp(44px, 5.2vw, 64px) var(--home-gutter-x) clamp(56px, 6.5vw, 80px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
+  #prop-grid { scroll-margin-top: 28px; }
+  .home-featured-toolbar { display: flex; gap: 20px 28px; margin-bottom: clamp(28px, 3.5vw, 40px); flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
   .home-featured-title { font-size: clamp(1.45rem, 2.55vw, 1.8rem); font-weight: 800; color: var(--navy); letter-spacing: -0.026em; line-height: 1.14; }
-  .home-featured-sub { font-size: 15px; color: var(--text-readable); margin-top: 10px; font-weight: 500; line-height: 1.66; max-width: 40em; }
-  .home-featured-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
-  .home-band-split { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); padding: clamp(48px, 7vw, 72px) clamp(20px, 4vw, 32px); border-top: 1px solid rgba(226,232,240,0.9); border-bottom: 1px solid rgba(226,232,240,0.9); }
-  .home-band-split-inner { max-width: 960px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 3vw, 28px); }
-  .home-band-cta { position: relative; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #fafbfc 100%); padding: clamp(48px, 7vw, 72px) clamp(20px, 4vw, 32px); overflow: hidden; }
-  .gr-listings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 288px), 1fr)); gap: clamp(18px, 2.5vw, 26px); }
+  .home-featured-sub { font-size: 15px; color: var(--text-readable); margin-top: 12px; font-weight: 500; line-height: 1.66; max-width: 40em; }
+  .home-featured-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-end; padding-top: 2px; }
+  .home-ui-clear-filters { padding: 10px 18px; border-radius: 12px; background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; line-height: 1.25; box-shadow: 0 1px 2px rgba(234,88,12,0.06); }
+  .home-ui-clear-filters:hover { filter: brightness(0.97); border-color: rgba(234,88,12,0.45); }
+  .home-featured-actions .btn-outline { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-sizing: border-box; }
+  .home-band-split { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); padding: clamp(52px, 6.5vw, 76px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.9); border-bottom: 1px solid rgba(226,232,240,0.9); }
+  .home-band-split-inner { max-width: var(--home-content-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 3vw, 28px); align-items: stretch; }
+  .home-band-card { padding: 28px 26px; display: flex; gap: 18px; align-items: flex-start; border-radius: 18px; }
+  .home-band-card-media { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(145deg, var(--primary) 0%, var(--primary2) 100%); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(234,88,12,0.2); }
+  .home-band-card h3 { font-size: 19px; font-weight: 800; color: var(--navy); margin: 0 0 8px; letter-spacing: -0.02em; line-height: 1.2; }
+  .home-band-card p { font-size: 13px; color: var(--text-readable); line-height: 1.62; margin: 0 0 18px; }
+  .home-band-card .btn-primary { min-height: 44px; padding: 11px 22px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; box-sizing: border-box; }
+  .home-band-cta { position: relative; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #fafbfc 100%); padding: clamp(52px, 6.5vw, 76px) var(--home-gutter-x); overflow: hidden; }
+  .home-cta-inner { max-width: var(--home-content-max); margin: 0 auto; position: relative; z-index: 1; }
+  .home-cta-eyebrow { text-align: center; margin-bottom: clamp(28px, 3.5vw, 40px); }
+  .home-cta-eyebrow span { font-size: 11px; font-weight: 800; color: var(--primary2); text-transform: uppercase; letter-spacing: 0.14em; }
+  .home-cta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(18px, 2.2vw, 24px); }
+  .home-cta-grid .card.glass-card { padding: 26px 22px; border-radius: 18px; }
+  .home-footer-inner { max-width: var(--home-content-max); margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 22px 28px; position: relative; z-index: 1; padding: 0 var(--home-gutter-x); box-sizing: border-box; }
+  .gr-listings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 288px), 1fr)); gap: clamp(20px, 2.6vw, 28px); }
   @keyframes shiny-sweep { 0%{background-position:200% center} 100%{background-position:-200% center} }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   .shiny-text { display: inline-block; }
@@ -161,7 +178,8 @@ const G = `
     .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
     .login-form-col{width:100%!important;flex:1}
     .h1big-hero{min-height:0!important;align-items:stretch!important}
-    .home-hero-inner{padding:36px max(18px, env(safe-area-inset-left)) 44px max(18px, env(safe-area-inset-right))!important;flex-direction:column!important;gap:clamp(32px,6vw,40px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important}
+    .home-hero-inner{display:flex!important;flex-direction:column!important;padding:36px max(18px, env(safe-area-inset-left)) 44px max(18px, env(safe-area-inset-right))!important;gap:clamp(32px,6vw,40px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important}
+    .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
     .home-hero-text{text-align:center!important;max-width:min(380px,100%)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:0 0 auto!important;align-self:stretch!important}
     .home-hero-headline{font-size:clamp(23px,5.2vw,31px)!important;line-height:1.12!important;letter-spacing:-0.024em!important}
     .home-hero-headline-line:last-child:not(:first-child){margin-top:0.14em!important}
@@ -187,8 +205,11 @@ const G = `
     .home-hero-tab{font-size:13px!important;padding:10px 8px!important;border-radius:10px!important;letter-spacing:-0.01em!important}
     .home-prop-section{padding:32px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important;max-width:100%!important}
     .home-featured-toolbar{margin-bottom:22px!important;flex-direction:column!important;align-items:stretch!important;gap:18px!important}
-    .home-featured-actions{justify-content:flex-start!important}
-    .home-band-split-inner{grid-template-columns:1fr!important;gap:20px!important}
+    .home-featured-actions{justify-content:flex-start!important;padding-top:0!important}
+    .home-band-split-inner{grid-template-columns:1fr!important;gap:24px!important}
+    .home-band-card{padding:24px 20px!important;gap:16px!important}
+    .home-cta-grid{gap:18px!important}
+    .home-footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:18px!important}
   }
   @media(max-width:640px){.h1big:not(.home-hero-headline){font-size:32px!important}}
   @media(max-width:480px){
@@ -1871,8 +1892,8 @@ const Home = ({currentUser,onNavigate}) => {
             </div>
           </div>
           <div className="home-featured-actions">
-            {(filter.type||filter.listing||filter.location||filter.minPrice||filter.maxPrice||filter.bedrooms||filter.bathrooms)&&<button onClick={()=>setFilter({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""})} style={{padding:"9px 16px",borderRadius:10,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 1px 2px rgba(234,88,12,0.06)"}}>✕ Clear Filters</button>}
-            <button onClick={()=>onNavigate("feed")} className="btn-outline" style={{padding:"10px 18px",borderRadius:10,fontSize:13}}>View All Properties</button>
+            {(filter.type||filter.listing||filter.location||filter.minPrice||filter.maxPrice||filter.bedrooms||filter.bathrooms)&&<button type="button" onClick={()=>setFilter({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""})} className="home-ui-clear-filters">✕ Clear Filters</button>}
+            <button type="button" onClick={()=>onNavigate("feed")} className="btn-outline">View All Properties</button>
           </div>
         </div>
         {loading?(
@@ -1883,7 +1904,7 @@ const Home = ({currentUser,onNavigate}) => {
           <div className="card" style={{padding:56,textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:12}}>🏘️</div>
             <h3 className="home-heading" style={{fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3>
-            <p style={{color:"var(--muted)",fontSize:14}}>Try clearing your filters or check back soon.</p>
+             <p style={{color:"var(--text-readable)",fontSize:14,lineHeight:1.6}}>Try clearing your filters or check back soon.</p>
           </div>
         ):(
           <div className="gr gr-listings">
@@ -1893,19 +1914,19 @@ const Home = ({currentUser,onNavigate}) => {
                   {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,opacity:0.3}}>🏠</div>}
                   <span style={{position:"absolute",top:12,right:12,background:l.status==="Active"?"#ECFDF5":l.status==="Rented"?"#FFFBEB":"#F5F3FF",color:l.status==="Active"?"#059669":l.status==="Rented"?"#D97706":"#7C3AED",fontSize:11,fontWeight:700,padding:"4px 12px",borderRadius:20,border:`1px solid ${l.status==="Active"?"#A7F3D0":l.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{l.status||"Available"}</span>
                 </div>
-                <div style={{padding:"16px 18px"}}>
-                  <h3 style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4,lineHeight:1.3}}>{l.title}</h3>
-                  <div style={{fontSize:12,color:"var(--muted)",marginBottom:10,display:"flex",alignItems:"center",gap:4}}>📍 {l.location}</div>
-                  <div className="home-heading" style={{fontSize:22,fontWeight:900,color:"var(--navy)",marginBottom:14}}>{fmtP(l.price)}{l.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:400,color:"var(--muted)"}}>/mo</span>}</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,borderTop:"1px solid var(--border)"}}>
-                    <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
-                      {l.bedrooms>0&&<span>🛏 {l.bedrooms}</span>}
-                      {l.bathrooms>0&&<span>🚿 {l.bathrooms}</span>}
-                      {l.sizesqft&&<span>📐 {l.sizesqft} sq ft</span>}
-                    </div>
-                    <span style={{fontSize:11,fontWeight:600,color:"var(--muted)",background:"var(--gray)",padding:"3px 10px",borderRadius:6,border:"1px solid var(--border)"}}>{l.propertyType||"Property"}</span>
-                  </div>
-                </div>
+                 <div style={{padding:"18px 20px"}}>
+                   <h3 style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:6,lineHeight:1.3}}>{l.title}</h3>
+                   <div style={{fontSize:12,color:"var(--text-readable)",marginBottom:12,display:"flex",alignItems:"center",gap:4,lineHeight:1.45}}>📍 {l.location}</div>
+                   <div className="home-heading" style={{fontSize:22,fontWeight:900,color:"var(--navy)",marginBottom:16}}>{fmtP(l.price)}{l.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:500,color:"var(--text-readable)"}}>/mo</span>}</div>
+                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,borderTop:"1px solid var(--border)",gap:12}}>
+                     <div style={{display:"flex",gap:14,fontSize:12,color:"var(--text-readable)",lineHeight:1.4}}>
+                       {l.bedrooms>0&&<span>🛏 {l.bedrooms}</span>}
+                       {l.bathrooms>0&&<span>🚿 {l.bathrooms}</span>}
+                       {l.sizesqft&&<span>📐 {l.sizesqft} sq ft</span>}
+                     </div>
+                     <span style={{fontSize:11,fontWeight:600,color:"var(--text-readable)",background:"var(--gray)",padding:"4px 10px",borderRadius:8,border:"1px solid var(--border)"}}>{l.propertyType||"Property"}</span>
+                   </div>
+                 </div>
               </div>
             ))}
           </div>
@@ -1917,12 +1938,12 @@ const Home = ({currentUser,onNavigate}) => {
             {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
             {icon:"🏢",title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent"},
           ].map(({icon,title,desc,cta})=>(
-            <div key={title} className="card glass-card" style={{padding:"28px 24px",display:"flex",gap:16,alignItems:"flex-start"}}>
-              <div style={{width:52,height:52,borderRadius:14,background:"linear-gradient(145deg, var(--primary) 0%, var(--primary2) 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,boxShadow:"0 4px 12px rgba(234,88,12,0.2)"}}>{icon}</div>
+            <div key={title} className="card glass-card home-band-card">
+              <div className="home-band-card-media" aria-hidden>{icon}</div>
               <div>
-                <h3 className="home-heading" style={{fontSize:19,fontWeight:800,color:"var(--navy)",marginBottom:6}}>{title}</h3>
-                <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.6,marginBottom:14}}>{desc}</p>
-                <button onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-primary" style={{padding:"9px 20px",borderRadius:10,fontSize:13,border:"none"}}>{cta} →</button>
+                <h3 className="home-heading">{title}</h3>
+                <p>{desc}</p>
+                <button type="button" onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="btn-primary">{cta} →</button>
               </div>
             </div>
           ))}
@@ -1931,27 +1952,27 @@ const Home = ({currentUser,onNavigate}) => {
       <section className="home-band-cta">
         <div style={{position:"absolute",top:-100,right:-60,width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle, rgba(251,146,60,0.2) 0%, transparent 68%)",pointerEvents:"none"}} />
         <div style={{position:"absolute",bottom:-80,left:-40,width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle, rgba(56,189,248,0.14) 0%, transparent 72%)",pointerEvents:"none"}} />
-        <div style={{maxWidth:1100,margin:"0 auto",position:"relative",zIndex:1}}>
-          <div style={{textAlign:"center",marginBottom:36}}>
-            <span style={{fontSize:11,fontWeight:800,color:"var(--primary)",textTransform:"uppercase",letterSpacing:2}}>Trusted by Agents Across India</span>
+        <div className="home-cta-inner">
+          <div className="home-cta-eyebrow">
+            <span>Trusted by Agents Across India</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:20}} className="gr3">
+          <div className="home-cta-grid gr3">
             {testimonials.map((t,i)=>(
-              <div key={i} className="card glass-card" style={{padding:24}}>
+              <div key={i} className="card glass-card">
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                   <div style={{width:40,height:40,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:15,flexShrink:0}}>{t.name.charAt(0)}</div>
-                  <div><div style={{fontWeight:700,fontSize:13,color:"var(--navy)"}}>{t.name}</div><div style={{fontSize:11,color:"var(--muted)"}}>{t.agency}</div></div>
+                  <div><div style={{fontWeight:700,fontSize:13,color:"var(--navy)"}}>{t.name}</div><div style={{fontSize:11,color:"var(--text-readable)"}}>{t.agency}</div></div>
                 </div>
                 <div style={{fontSize:13,marginBottom:8}}>⭐⭐⭐⭐⭐</div>
-                <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.7,fontStyle:"italic"}}>"{t.text}"</p>
+                <p style={{fontSize:13,color:"var(--text-readable)",lineHeight:1.68,fontStyle:"italic",margin:0}}>"{t.text}"</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-      <footer className="glass-footer" style={{padding:"40px 24px",position:"relative"}}>
+      <footer className="glass-footer" style={{padding:"clamp(36px,5vw,52px) 0",position:"relative"}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none"}} />
-        <div style={{maxWidth:1100,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20,position:"relative",zIndex:1}}>
+        <div className="home-footer-inner">
           <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
             <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
           </button>
