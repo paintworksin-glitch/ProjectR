@@ -277,9 +277,25 @@ ${g}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
   .spin{animation:spin 0.8s linear infinite; display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%;}
   ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--gray)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media print {
-    body > * { display:none !important; }
-    #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
-    #pdf-print-area * { visibility:visible !important; }
+    html, body { background:#fff !important; height:auto !important; }
+    /* Brochure is nested under #root; only isolate print when preview modal is mounted (#pdf-print-area present). */
+    #root:has(#pdf-print-area) * { visibility:hidden !important; }
+    #root:has(#pdf-print-area) #pdf-print-area,
+    #root:has(#pdf-print-area) #pdf-print-area * { visibility:visible !important; }
+    #root:has(#pdf-print-area) #pdf-print-area {
+      display:block !important;
+      position:absolute !important;
+      left:0 !important;
+      top:0 !important;
+      width:100% !important;
+      max-width:100% !important;
+      padding:32px !important;
+      box-sizing:border-box !important;
+      background:#fff !important;
+      color:#1a1410 !important;
+      -webkit-print-color-adjust:exact !important;
+      print-color-adjust:exact !important;
+    }
   }
   @media(max-width:768px){
     .hm{display:none!important}
