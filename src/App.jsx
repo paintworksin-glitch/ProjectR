@@ -220,7 +220,7 @@ const G = `
       -webkit-print-color-adjust:exact !important;
       print-color-adjust:exact !important;
     }
-    #pdf-print-area .pdf-export-photo-block,
+    #pdf-print-area .pdf-export-gallery-photo { break-inside:avoid !important; page-break-inside:avoid !important; -webkit-column-break-inside:avoid !important; }
     #pdf-print-area .pdf-export-map-block { break-inside:avoid !important; page-break-inside:avoid !important; -webkit-column-break-inside:avoid !important; }
   }
   @media(max-width:768px){
@@ -968,15 +968,13 @@ const PDFModal = ({listing,onClose}) => {
         }
       }else{
         for(const chunk of chunks){
-          const cw=Math.max(1,Math.ceil(chunk.offsetWidth||chunk.scrollWidth));
-          const ch=Math.max(1,Math.ceil(chunk.offsetHeight||chunk.scrollHeight));
-          const canvas=await h2c(chunk,{...h2cOpts,width:cw,height:ch});
+          void chunk.offsetHeight;
+          const canvas=await h2c(chunk,h2cOpts);
           if(canvas.width<4||canvas.height<4) continue;
           const h=(canvas.height*pageW)/canvas.width;
           if(y>0&&y+h>pageH){pdf.addPage();y=0;}
           if(h>pageH){y=addPdfTallCanvasPages(pdf,canvas,pageW,pageH,y);}
           else{pdf.addImage(canvas.toDataURL("image/jpeg",0.92),"JPEG",0,y,pageW,h);y+=h;}
-          if(y>=pageH-0.05){pdf.addPage();y=0;}
         }
       }
 
@@ -1056,13 +1054,13 @@ const PDFModal = ({listing,onClose}) => {
           </div>}
           </div>
 
-          {/* ── PHOTOS: one export chunk per image (jsPDF) + print break-inside avoid ── */}
+          {/* ── PHOTOS: one html2canvas chunk per image; compact spacing; print break-inside via .pdf-export-gallery-photo ── */}
           {listing.photos?.length>0&&listing.photos.map((p,i)=>(
-            <div key={i} data-pdf-chunk className="pdf-export-photo-block" style={{marginBottom:12,breakInside:"avoid",pageBreakInside:"avoid"}}>
-              {i===0&&<div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Property Photos</div>}
-              <div style={{position:"relative"}}>
-                <img src={p} alt="" data-pdf-export-img style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
-                {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
+            <div key={i} data-pdf-chunk className="pdf-export-gallery-photo" style={{marginBottom:8}}>
+              {i===0&&<div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:6,marginBottom:8}}>Property Photos</div>}
+              <div style={{position:"relative",width:"100%",aspectRatio:"16 / 10",borderRadius:12,overflow:"hidden",border:"1px solid #eee",boxSizing:"border-box"}}>
+                <img src={p} alt="" data-pdf-export-img style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                {i===0&&<div style={{position:"absolute",top:8,left:8,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
               </div>
             </div>
           ))}
