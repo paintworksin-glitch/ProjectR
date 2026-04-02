@@ -813,37 +813,6 @@ const buildFallbackMapDataUrl = (label) => {
   return c.toDataURL("image/jpeg", 0.92);
 };
 
-/** Slice tall canvases into PDF pages when a text block exceeds one A4 height. */
-const addCanvasToPdf = (pdf, canvas, pageW, pageH, yStart) => {
-  const mmPerPx = pageW / canvas.width;
-  let yPx = 0;
-  let yMm = yStart;
-  while (yPx < canvas.height) {
-    const roomMm = pageH - yMm;
-    if (roomMm < 0.5) {
-      pdf.addPage();
-      yMm = 0;
-      continue;
-    }
-    const remainingPx = canvas.height - yPx;
-    const remainingMm = remainingPx * mmPerPx;
-    const sliceMm = Math.min(roomMm, remainingMm);
-    const slicePx = Math.max(1, Math.round(sliceMm / mmPerPx));
-    const sub = document.createElement("canvas");
-    sub.width = canvas.width;
-    sub.height = Math.min(slicePx, canvas.height - yPx);
-    sub.getContext("2d").drawImage(canvas, 0, yPx, canvas.width, sub.height, 0, 0, canvas.width, sub.height);
-    pdf.addImage(sub.toDataURL("image/jpeg", 0.95), "JPEG", 0, yMm, pageW, sliceMm);
-    yMm += sliceMm;
-    yPx += sub.height;
-    if (yMm >= pageH - 0.05) {
-      pdf.addPage();
-      yMm = 0;
-    }
-  }
-  return yMm;
-};
-
 const PDFModal = ({listing,onClose}) => {
   const [pdfLoading,setPdfLoading]=useState(false);
   const [mapSrc,setMapSrc]=useState(null);
@@ -877,7 +846,17 @@ const PDFModal = ({listing,onClose}) => {
     const root=document.getElementById('pdf-print-area');
     if(!root) return;
     setPdfLoading(true);
+    const scrollHost=root.closest('.asl');
+    const savedScroll=scrollHost?{maxHeight:scrollHost.style.maxHeight,overflow:scrollHost.style.overflow,height:scrollHost.style.height}:null;
     try{
+      if(scrollHost){
+        scrollHost.style.maxHeight='none';
+        scrollHost.style.overflow='visible';
+        scrollHost.style.height='auto';
+      }
+      root.scrollIntoView({block:'start',behavior:'auto'});
+      await new Promise((r)=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
       const h2c=await new Promise((res,rej)=>{
         if(window.html2canvas){res(window.html2canvas);return;}
         const s=document.createElement('script');
@@ -898,37 +877,40 @@ const PDFModal = ({listing,onClose}) => {
           if(coords) snap=await fetchOsmStaticMapDataUrl(coords.lat,coords.lon);
         }
         if(!snap) snap=buildFallbackMapDataUrl(listing.location);
-        mapImgEl.src=snap;
-        await new Promise((res)=>{mapImgEl.onload=()=>res();mapImgEl.onerror=()=>res();setTimeout(res,8000);});
+        if(mapImgEl.src!==snap) mapImgEl.src=snap;
+        await new Promise((res)=>{if(mapImgEl.complete&&mapImgEl.naturalWidth) return res(); mapImgEl.onload=()=>res(); mapImgEl.onerror=()=>res(); setTimeout(res,6000);});
       }
-      const h2cOpts={scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720};
-      const chunks=root.querySelectorAll('[data-pdf-chunk]');
-      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
+
+      await new Promise((r)=>setTimeout(r,120));
+      const h2cOpts={scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:Math.max(720,root.scrollWidth)};
+      const canvas=await h2c(root,h2cOpts);
+      if(!canvas||canvas.width<8||canvas.height<8) throw new Error('PDF capture returned empty canvas');
+
       const pageW=210;
+      const mmH=(canvas.height*pageW)/canvas.width;
       const pageH=297;
-      if(chunks.length===0){
-        const canvas=await h2c(root,h2cOpts);
-        const mmH=(canvas.height*pageW)/canvas.width;
-        let yOff=0;
-        while(yOff<mmH){
-          if(yOff>0) pdf.addPage();
-          pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-yOff,pageW,mmH);
-          yOff+=pageH;
-        }
-      }else{
-        let y=0;
-        for(const chunk of chunks){
-          const canvas=await h2c(chunk,h2cOpts);
-          const h=(canvas.height*pageW)/canvas.width;
-          if(y>0&&y+h>pageH){pdf.addPage();y=0;}
-          if(h>pageH){y=addCanvasToPdf(pdf,canvas,pageW,pageH,y);}
-          else{pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,y,pageW,h);y+=h;}
-          if(y>=pageH-0.05){pdf.addPage();y=0;}
-        }
+      let imgData;
+      try{imgData=canvas.toDataURL('image/jpeg',0.95);}
+      catch(e){throw new Error('PDF capture blocked (try again or check images)');}
+      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
+      let yOff=0;
+      while(yOff<mmH-0.01){
+        if(yOff>0) pdf.addPage();
+        pdf.addImage(imgData,'JPEG',0,-yOff,pageW,mmH);
+        yOff+=pageH;
       }
       pdf.save('Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
-    }catch(err){console.error(err);window.print();}
-    setPdfLoading(false);
+    }catch(err){
+      console.error('PDF export failed:',err);
+      try{window.print();}catch(_e){/* ignore */}
+    }finally{
+      if(scrollHost&&savedScroll){
+        scrollHost.style.maxHeight=savedScroll.maxHeight;
+        scrollHost.style.overflow=savedScroll.overflow;
+        scrollHost.style.height=savedScroll.height;
+      }
+      setPdfLoading(false);
+    }
   };
 
   return (
