@@ -301,6 +301,67 @@ const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread
 
 const fmtP = (p) => { if(!p) return "POA"; const n=Number(p); if(n>=10000000) return `₹${(n/10000000).toFixed(2)} Cr`; if(n>=100000) return `₹${(n/100000).toFixed(2)} L`; return `₹${n.toLocaleString("en-IN")}`; };
 const getPublicSiteBase = () => { try { const v = import.meta.env?.VITE_PUBLIC_SITE_URL; if (v && String(v).trim()) return String(v).replace(/\/$/, ""); } catch (_) {} return typeof window !== "undefined" ? window.location.origin : ""; };
+/** Default platform wordmark for Northing-only UI (nav, generic PDF header). Never used as a substitute on agent white-label surfaces. */
+const DEFAULT_NORTHING_LOGO_SRC = "/northing-logo.svg";
+
+/** Watermark / ZIP: logo from agent profile only; no Northing image fallback. */
+const watermarkBrandOptionsFromAgent = (listing, agentBrand) => ({
+  logoUrl: agentBrand?.logoUrl || null,
+  brandName: agentBrand?.agencyName || listing.agencyName || listing.agentName || agentBrand?.name || "",
+});
+
+const watermarkOptionsForProfileUpload = (currentUser) => ({
+  logoUrl: currentUser?.logoUrl || null,
+  brandName: currentUser?.agencyName || currentUser?.name || "",
+});
+
+/** Resolves `profiles` for `listing.agentId` — session profile when it is the agent, otherwise fetches from DB. */
+const useListingAgentBrand = (listing, sessionProfile) => {
+  const [brand, setBrand] = useState(null);
+  useEffect(() => {
+    if (!listing?.agentId) {
+      setBrand(null);
+      return;
+    }
+    if (sessionProfile?.id && sessionProfile.id === listing.agentId) {
+      setBrand({
+        id: listing.agentId,
+        logoUrl: sessionProfile.logoUrl || null,
+        agencyName: sessionProfile.agencyName || null,
+        name: sessionProfile.name || null,
+      });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: p, error } = await supabase
+        .from("profiles")
+        .select("id,logo_url,agency_name,name")
+        .eq("id", listing.agentId)
+        .single();
+      if (cancelled) return;
+      if (error || !p) {
+        setBrand({ id: listing.agentId, logoUrl: null, agencyName: null, name: null });
+        return;
+      }
+      setBrand({
+        id: p.id,
+        logoUrl: p.logo_url || null,
+        agencyName: p.agency_name || null,
+        name: p.name || null,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [
+    listing?.agentId,
+    listing?.id,
+    sessionProfile?.id,
+    sessionProfile?.logoUrl,
+    sessionProfile?.agencyName,
+    sessionProfile?.name,
+  ]);
+  return brand;
+};
 const googleMapsSearchUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || "")}`;
 /** E.164 for India (+91) or pass-through if already starts with + */
 const toE164Phone = (raw) => {
@@ -413,27 +474,27 @@ const burnWatermark = (file, { logoUrl, brandName } = {}) => new Promise((resolv
       drawBottomRight();
       canvas.toBlob(blob => resolve(new File([blob], file.name, { type: "image/jpeg" })), "image/jpeg", 0.92);
     };
-    if (logoUrl) {
-      const li = new Image();
-      li.crossOrigin = "anonymous";
-      li.onload = () => {
-        ctx.save();
-        const bw = logoSize + pad * 1.2, bh = logoSize + pad * 1.2;
-        ctx.globalAlpha = 0.75;
-        ctx.fillStyle = "rgba(0,0,0,0.45)";
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(pad * 0.6, pad * 0.6, bw, bh, 10) : ctx.rect(pad * 0.6, pad * 0.6, bw, bh);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.drawImage(li, pad * 0.8, pad * 0.8, logoSize, logoSize);
-        ctx.restore();
-        finish();
-      };
-      li.onerror = finish;
-      li.src = logoUrl;
-    } else {
+    if (!logoUrl) {
       finish();
+      return;
     }
+    const li = new Image();
+    li.crossOrigin = "anonymous";
+    li.onload = () => {
+      ctx.save();
+      const bw = logoSize + pad * 1.2, bh = logoSize + pad * 1.2;
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(pad * 0.6, pad * 0.6, bw, bh, 10) : ctx.rect(pad * 0.6, pad * 0.6, bw, bh);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.drawImage(li, pad * 0.8, pad * 0.8, logoSize, logoSize);
+      ctx.restore();
+      finish();
+    };
+    li.onerror = finish;
+    li.src = logoUrl;
   };
   img.onerror = () => resolve(file);
   img.src = objectUrl;
@@ -523,6 +584,8 @@ const DupModal = ({dups,onProceed,onCancel}) => (
 );
 
 const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
+  const agentBrand = useListingAgentBrand(listing, currentUser);
+  const wlLogo = agentBrand?.logoUrl || null;
   const isSaved = savedIds?.includes(listing.id);
   const statusColor = listing.status==="Active"?"#059669":listing.status==="Rented"?"#D97706":"#7C3AED";
   const statusBg = listing.status==="Active"?"#ECFDF5":listing.status==="Rented"?"#FFFBEB":"#F5F3FF";
@@ -533,6 +596,9 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(27,58,45,0.5) 0%,transparent 55%)"}} />
         <div style={{position:"absolute",top:12,left:12}}>
           <span className="badge" style={{background:listing.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:listing.listingType==="Rent"?"#B45309":"#059669",border:`1px solid ${listing.listingType==="Rent"?"#FDE68A":"#A7F3D0"}`}}>{listing.listingType}</span>
+        </div>
+        <div style={{position:"absolute",top:44,left:12,zIndex:2,background:"rgba(255,255,255,0.94)",borderRadius:9,padding:5,boxShadow:"0 2px 10px rgba(0,0,0,0.12)",border:"1px solid rgba(226,232,240,0.9)",minWidth:34,minHeight:34,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {wlLogo ? <img src={wlLogo} alt="" style={{width:34,height:34,objectFit:"contain",display:"block"}}/> : null}
         </div>
         <div style={{position:"absolute",top:12,right:12}}>
           <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
@@ -596,7 +662,9 @@ const PropModal = ({listing,onClose}) => {
   );
 };
 
-const WACardModal = ({listing,onClose}) => {
+const WACardModal = ({listing,onClose,currentUser}) => {
+  const agentBrand = useListingAgentBrand(listing, currentUser);
+  const wlLogo = agentBrand?.logoUrl || null;
   const [copied,setCopied]=useState(false);
   const [downloading,setDownloading]=useState(false);
   useEffect(()=>{if(listing?.id)track(listing.id,"wa");},[listing?.id]);
@@ -697,8 +765,8 @@ const WACardModal = ({listing,onClose}) => {
           {/* Top badges */}
           <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR {listing.listingType?.toUpperCase()}</span>
-            <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"4px 10px"}}>
-              <span style={{fontFamily:"'Fraunces',serif",fontWeight:800,fontSize:13,color:"var(--primary)"}}>Northing</span>
+            <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
+              {wlLogo ? <img src={wlLogo} alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/> : null}
             </div>
           </div>
 
@@ -736,7 +804,9 @@ const WACardModal = ({listing,onClose}) => {
   );
 };
 
-const PDFModal = ({listing,onClose}) => {
+const PDFModal = ({listing,onClose,currentUser}) => {
+  const agentBrand = useListingAgentBrand(listing, currentUser);
+  const headerLogoSrc = agentBrand?.logoUrl || null;
   const [pdfLoading,setPdfLoading]=useState(false);
   const [mapSrc,setMapSrc]=useState(null);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
@@ -749,7 +819,7 @@ const PDFModal = ({listing,onClose}) => {
   const td=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
   const ref=`PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Carpet Area",listing.carpetArea?`${listing.carpetArea} sqft`:null],["Super Built-up",listing.superBuiltUp?`${listing.superBuiltUp} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Toilets",listing.toilets||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Modern Kitchen",listing.modernKitchen],["WC Type",listing.wcType],["Built Year",listing.builtYear],["Property Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["Maintenance",listing.maintenance?`₹${listing.maintenance}/mo`:null],["Society",listing.societyFormed],["OC Received",listing.ocReceived],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
-  const hasAgentBrand=listing.agencyName||listing.logoUrl;
+  const hasAgentBrand=listing.agencyName||listing.agentName||!!headerLogoSrc;
 
   const downloadPDF=async()=>{
     const el=document.getElementById('pdf-print-area');
@@ -884,10 +954,11 @@ const PDFModal = ({listing,onClose}) => {
           {hasAgentBrand?(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
-                {listing.logoUrl
-                  ?<img src={listing.logoUrl} alt="logo" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee"}}/>
-                  :<div style={{width:64,height:64,borderRadius:10,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,border:"1px solid var(--primary-mid)"}}>🏢</div>
-                }
+                {headerLogoSrc ? (
+                  <img src={headerLogoSrc} alt="Brand" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee",background:"#fff"}}/>
+                ) : (
+                  <div style={{width:64,height:64,borderRadius:10,border:"1px solid #eee",background:"#fafafa",flexShrink:0}} aria-hidden />
+                )}
                 <div>
                   <div style={{fontWeight:900,fontSize:22,color:"var(--navy)",letterSpacing:"-0.5px"}}>{listing.agencyName||listing.agentName}</div>
                   {listing.agentPhone&&<div style={{fontSize:13,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
@@ -903,8 +974,8 @@ const PDFModal = ({listing,onClose}) => {
           ):(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,color:"var(--navy)"}}>Northing</div>
-                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:2,textTransform:"uppercase"}}>Professional Property Marketing</div>
+                <img src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
+                <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:6,textTransform:"uppercase"}}>Professional Property Marketing</div>
               </div>
               <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
             </div>
@@ -1245,7 +1316,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       const newUrls=[]; const newMeta=[];
       for(const file of files){
         if(file.size>5*1024*1024){showToast(`${file.name} is over 5MB, skipped`,"error");continue;}
-        const wmOptions={logoUrl:currentUser?.logoUrl||null,brandName:currentUser?.agencyName||currentUser?.name||"Northing"};
+        const wmOptions=watermarkOptionsForProfileUpload(currentUser);
         const url=await uploadWatermarked(file,wmOptions);
         // Read base64 for scoring
         const b64=await new Promise(res=>{const r=new FileReader();r.onload=ev=>{const[,d]=ev.target.result.split(",");res({base64:d,mediaType:file.type});};r.readAsDataURL(file);});
@@ -2173,8 +2244,8 @@ const Home = ({currentUser,onNavigate}) => {
         ))}
       </div>
       {modal&&<ErrorBoundary><PropModal listing={modal} onClose={()=>setModal(null)}/></ErrorBoundary>}
-      {waListing&&<ErrorBoundary><WACardModal listing={waListing} onClose={()=>setWAListing(null)}/></ErrorBoundary>}
-      {pdfListing&&<ErrorBoundary><PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)}/></ErrorBoundary>}
+      {waListing&&<ErrorBoundary><WACardModal listing={waListing} onClose={()=>setWAListing(null)} currentUser={currentUser}/></ErrorBoundary>}
+      {pdfListing&&<ErrorBoundary><PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} currentUser={currentUser}/></ErrorBoundary>}
     </div>
   );
 };
@@ -2252,8 +2323,8 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
         }
       </div>
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
-      {waL&&<WACardModal listing={waL} onClose={()=>setWaL(null)}/>}
-      {pdfL&&<PDFModal listing={pdfL} onClose={()=>setPdfL(null)}/>}
+      {waL&&<WACardModal listing={waL} onClose={()=>setWaL(null)} currentUser={currentUser}/>}
+      {pdfL&&<PDFModal listing={pdfL} onClose={()=>setPdfL(null)} currentUser={currentUser}/>}
     </div>
   );
 };
@@ -2261,10 +2332,11 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
 const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const [scrolled,setScrolled]=useState(false);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
+  const navBrandSrc=(currentUser?.role==="agent"||currentUser?.role==="seller")&&currentUser?.logoUrl?currentUser.logoUrl:DEFAULT_NORTHING_LOGO_SRC;
   return (
     <nav className="glass-nav-enhance" style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,borderBottom:"1px solid rgba(148,163,184,0.22)",transition:"box-shadow 0.35s ease, border-color 0.3s",boxShadow:scrolled?"0 4px 20px rgba(15,23,42,0.05), 0 10px 40px rgba(15,23,42,0.04), 0 1px 0 rgba(255,255,255,0.85) inset":"0 1px 0 rgba(255,255,255,0.65) inset"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
-        <img src="/northing-logo.svg" alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
+        <img src={navBrandSrc} alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
       </button>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -2307,7 +2379,8 @@ class ErrorBoundary extends Component {
   }
 }
 
-const MarketingKitModal = ({listing, onClose}) => {
+const MarketingKitModal = ({listing, onClose, currentUser}) => {
+  const agentBrand = useListingAgentBrand(listing, currentUser);
   const [status,setStatus]=useState("idle");
   const [copied,setCopied]=useState(false);
   const shareUrl=`${getPublicSiteBase()}/share/${listing.id}`;
@@ -2325,7 +2398,7 @@ const MarketingKitModal = ({listing, onClose}) => {
         s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
         s.onload=()=>res(window.JSZip);s.onerror=rej;document.head.appendChild(s);
       });
-      const wmOptions={logoUrl:listing.logoUrl||null,brandName:listing.agencyName||listing.agentName||"Northing"};
+      const wmOptions=watermarkBrandOptionsFromAgent(listing, agentBrand);
       const zip=new JSZip();
       const imgFolder=zip.folder("photos");
       for(let i=0;i<(listing.photos||[]).length;i++){
@@ -2397,6 +2470,21 @@ const MarketingKitModal = ({listing, onClose}) => {
   );
 };
 
+const useViewerBrandProfile = () => {
+  const [viewer, setViewer] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const { data: p } = await supabase.from("profiles").select("id,logo_url,agency_name").eq("id", session.user.id).single();
+      if (cancelled || !p) return;
+      setViewer({ id: p.id, logoUrl: p.logo_url || null, agencyName: p.agency_name || null });
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  return viewer;
+};
 
 const PropertyPublicPage = ({ id }) => {
   const navigate = (path) => { window.history.pushState({}, '', path); window.location.href = path; };
@@ -2405,6 +2493,7 @@ const PropertyPublicPage = ({ id }) => {
   const [waListing, setWaListing] = useState(null);
   const [pdfListing, setPdfListing] = useState(null);
   const [kitListing, setKitListing] = useState(null);
+  const viewerBrand = useViewerBrandProfile();
   useEffect(() => { _h.openWA = (l) => setWaListing(l); _h.openPDF = (l) => setPdfListing(l); _h.openKit = (l) => setKitListing(l); }, []);
   useEffect(() => {
     (async () => {
@@ -2441,9 +2530,9 @@ const PropertyPublicPage = ({ id }) => {
         <button onClick={()=>navigate('/')} style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.2)',color:'rgba(255,255,255,0.8)',padding:'7px 16px',borderRadius:9,fontSize:13,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>← Browse All</button>
       </div>
       <PropModal listing={listing} onClose={()=>navigate('/')} />
-      {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} />}
-      {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} />}
-      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} />}
+      {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} currentUser={viewerBrand} />}
+      {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} currentUser={viewerBrand} />}
+      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} currentUser={viewerBrand} />}
     </div>
   );
 };
@@ -2456,6 +2545,7 @@ const ShareListingPage = ({ id }) => {
   const [waListing, setWaListing] = useState(null);
   const [pdfListing, setPdfListing] = useState(null);
   const [kitListing, setKitListing] = useState(null);
+  const viewerBrand = useViewerBrandProfile();
   useEffect(() => { _h.openWA = (l) => setWaListing(l); _h.openPDF = (l) => setPdfListing(l); _h.openKit = (l) => setKitListing(l); }, []);
   useEffect(() => {
     (async () => {
@@ -2536,9 +2626,9 @@ const ShareListingPage = ({ id }) => {
         </div>
         <p style={{textAlign:'center',fontSize:12,color:'var(--muted)',marginTop:32}}>Powered by Northing · <a href={fullUrl} style={{color:'var(--primary)',fontWeight:600}}>Open full listing</a></p>
       </div>
-      {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} />}
-      {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} />}
-      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} />}
+      {waListing && <WACardModal listing={waListing} onClose={()=>setWaListing(null)} currentUser={viewerBrand} />}
+      {pdfListing && <PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} currentUser={viewerBrand} />}
+      {kitListing && <MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} currentUser={viewerBrand} />}
     </div>
   );
 };
@@ -2653,9 +2743,9 @@ export default function App() {
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
       {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
-      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)}/>}
-      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)}/>}
-      {kitListing&&<MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)}/>}
+      {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)} currentUser={user}/>}
+      {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)} currentUser={user}/>}
+      {kitListing&&<MarketingKitModal listing={kitListing} onClose={()=>setKitListing(null)} currentUser={user}/>}
       {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
     </div>
     </ErrorBoundary>
