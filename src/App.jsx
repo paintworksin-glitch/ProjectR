@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import LoginParticles from "./LoginParticles.jsx";
 import PrivacyPolicyPage from "./PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./TermsOfServicePage.jsx";
+import AboutPage from "./AboutPage.jsx";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -143,19 +144,49 @@ const G = `
     .home-hero-inner.home-hero-parallax-inner { transform: none !important; }
   }
   .home-prop-section { padding: clamp(48px, 5.5vw, 68px) var(--home-gutter-x) clamp(60px, 6.8vw, 84px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
-  #prop-grid { scroll-margin-top: 28px; }
+  .home-prop-section + .home-sample-outputs { padding-top: clamp(40px, 5vw, 56px); }
+  #prop-grid { scroll-margin-top: 36px; }
+  #home-sample-outputs { scroll-margin-top: 36px; }
   .home-featured-toolbar { display: flex; gap: 22px 32px; margin-bottom: clamp(30px, 3.8vw, 44px); flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
   .home-featured-title { font-size: clamp(1.4rem, 2.45vw, 1.72rem); font-weight: 700; color: var(--navy); letter-spacing: -0.022em; line-height: 1.18; }
   .home-featured-sub { font-size: 15px; color: var(--text-readable); margin-top: 14px; font-weight: 400; line-height: 1.68; max-width: 40em; }
   .home-featured-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-end; padding-top: 2px; }
-  .home-ui-clear-filters { padding: 10px 18px; border-radius: 11px; background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); font-weight: 600; font-size: 12px; cursor: pointer; font-family: inherit; line-height: 1.25; box-shadow: 0 1px 2px rgba(234,88,12,0.04); }
-  .home-ui-clear-filters:hover { filter: brightness(0.97); border-color: rgba(234,88,12,0.45); }
+  .home-ui-clear-filters { padding: 10px 18px; border-radius: 12px; background: #fff; color: var(--navy2); border: 1px solid rgba(226,232,240,0.75); font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; line-height: 1.25; box-shadow: 0 1px 2px rgba(15,23,42,0.02); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: border-color 0.22s, color 0.2s, box-shadow 0.24s, transform 0.2s ease; min-height: 44px; box-sizing: border-box; }
+  .home-ui-clear-filters:hover { border-color: rgba(234,88,12,0.22); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,0.035); transform: translateY(-0.5px); }
   .home-featured-actions .btn-outline { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-sizing: border-box; }
+  .home-featured-actions .btn-primary { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; box-sizing: border-box; border: none; }
   .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(56px, 6.8vw, 80px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); }
   .home-band-split-inner { max-width: var(--home-content-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 3vw, 28px); align-items: stretch; }
-  .home-wa-sample-inner { max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
-  .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(20px, 4vw, 36px); margin-top: clamp(24px, 3.5vw, 36px); }
+  .home-sample-outputs { padding: clamp(40px, 5vw, 64px) var(--home-gutter-x); background: transparent; border: none; }
+  .home-sample-outputs-inner { max-width: 920px; margin: 0 auto; width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35); border: 1px solid rgba(255,255,255,0.65); border-radius: var(--home-card-radius); box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 20px 48px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.85); padding: clamp(28px, 3.8vw, 44px) clamp(20px, 3vw, 36px); }
+  .home-sample-outputs-inner .home-wa-sample-inner { max-width: none; margin: 0; }
+  .home-sample-outputs-head { text-align: center; max-width: 38rem; margin-left: auto; margin-right: auto; margin-bottom: clamp(20px, 2.5vw, 28px); }
+  .home-sample-outputs-head-toggle { width: 100%; max-width: 38rem; margin: 0 auto; display: block; padding: 12px 16px 16px; background: transparent; border: none; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: center; color: inherit; transition: background 0.2s ease, box-shadow 0.2s ease; -webkit-tap-highlight-color: transparent; }
+  .home-sample-outputs-head-toggle:hover { background: rgba(241,245,249,0.65); }
+  .home-sample-outputs-head-toggle:focus-visible { outline: 2px solid rgba(234,88,12,0.45); outline-offset: 2px; }
+  .home-sample-outputs-head-toggle .section-label { margin-bottom: 10px; }
+  .home-sample-outputs-head-toggle .home-heading { margin-bottom: 6px; letter-spacing: -0.024em; font-size: clamp(1.45rem, 2.6vw, 1.75rem); }
+  .home-sample-outputs-chevron { display: block; font-size: 13px; color: var(--primary2); font-weight: 700; letter-spacing: 0.04em; margin-top: 4px; opacity: 0.9; }
+  .home-sample-outputs-clip { position: relative; }
+  .home-sample-outputs-body { overflow: hidden; transition: max-height 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+  .home-sample-outputs-body--collapsed { max-height: clamp(200px, 32vh, 300px); }
+  .home-sample-outputs-body--expanded { max-height: min(9200px, 500vh); }
+  .home-sample-outputs-fade { position: absolute; bottom: 0; left: 0; right: 0; height: min(140px, 32%); background: linear-gradient(to bottom, rgba(248,250,252,0) 0%, rgba(248,250,252,0.15) 18%, rgba(255,255,255,0.42) 55%, rgba(255,255,255,0.72) 100%); backdrop-filter: blur(12px) saturate(1.25); -webkit-backdrop-filter: blur(12px) saturate(1.25); pointer-events: none; z-index: 1; border-radius: 0 0 12px 12px; }
+  .home-sample-outputs-reveal { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 11px 22px; border-radius: 12px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; border: none; color: #fff; background: linear-gradient(180deg, #f97316 0%, var(--primary) 45%, #c2410c 100%); box-shadow: 0 1px 2px rgba(234,88,12,0.12), 0 6px 20px rgba(234,88,12,0.18), inset 0 1px 0 rgba(255,255,255,0.22); transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease; -webkit-tap-highlight-color: transparent; min-height: 44px; box-sizing: border-box; }
+  .home-sample-outputs-reveal:hover { filter: brightness(1.03); box-shadow: 0 2px 8px rgba(234,88,12,0.18), 0 10px 28px rgba(234,88,12,0.12), inset 0 1px 0 rgba(255,255,255,0.26); }
+  .home-sample-outputs-reveal:active { transform: translateX(-50%) scale(0.98); }
+  @media (prefers-reduced-motion: reduce) {
+    .home-sample-outputs-body { transition: none; }
+  }
+  .home-wa-sample-inner { max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .home-sample-block + .home-sample-block { margin-top: clamp(40px, 5vw, 56px); padding-top: clamp(40px, 5vw, 56px); border-top: 1px solid rgba(226,232,240,0.55); }
+  .home-sample-intro { max-width: 42rem; }
+  .home-sample-intro .home-heading { margin-bottom: 0.65em; font-size: clamp(1.2rem, 2vw, 1.35rem); }
+  .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(20px, 4vw, 36px); margin-top: clamp(36px, 5vw, 56px); }
   .home-wa-sample-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; }
+  .home-wa-sample-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: clamp(28px, 4vw, 40px); padding-top: 4px; }
+  .home-pdf-sample-frame { max-width: 720px; margin: clamp(12px, 2vw, 20px) auto 0; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 14px 44px rgba(15,23,42,0.08); border: 1px solid rgba(226,232,240,0.9); background: #fff; box-sizing: border-box; }
+  .home-pdf-download-wrap { display: flex; justify-content: center; margin-top: clamp(28px, 3.5vw, 40px); }
   .home-band-card { padding: 30px 28px; display: flex; gap: 20px; align-items: flex-start; border-radius: var(--home-card-radius); }
   .home-band-card-media { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(160deg, #ea580c 0%, var(--primary2) 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(234,88,12,0.12), 0 6px 16px rgba(234,88,12,0.07); }
   .home-band-card h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin: 0 0 12px; letter-spacing: -0.018em; line-height: 1.24; }
@@ -192,7 +223,8 @@ const G = `
   .home-listing-card .home-listing-price .home-listing-unit { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-readable); letter-spacing: -0.01em; margin-left: 0.12em; }
   .home-listing-card .home-listing-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid rgba(226,232,240,0.75); gap: 12px; }
   .home-listing-card .home-listing-specs { display: flex; gap: 14px; font-size: 12px; color: var(--text-readable); line-height: 1.4; font-weight: 500; flex-wrap: wrap; }
-  .home-listing-card .home-listing-badge { font-size: 11px; font-weight: 600; color: var(--text-readable); background: rgba(241,245,249,0.92); padding: 5px 11px; border-radius: 8px; border: 1px solid rgba(226,232,240,0.85); letter-spacing: 0.01em; }
+  .home-listing-card .home-listing-badge { flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--navy2); letter-spacing: -0.01em; background: rgba(255,255,255,0.92); padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(226,232,240,0.8); box-shadow: 0 1px 2px rgba(15,23,42,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+  .home-listing-card:hover .home-listing-badge { border-color: rgba(234,88,12,0.22); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
   .home-listing-card .home-listing-status { position: absolute; top: 14px; right: 14px; font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; line-height: 1; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
   .home-listing-card .home-listing-photo-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 42px; opacity: 0.28; }
   @keyframes shiny-sweep { 0%{background-position:200% center} 100%{background-position:-200% center} }
@@ -216,7 +248,7 @@ const G = `
     .hm{display:none!important}
     .gr{grid-template-columns:1fr!important}
     .gr3{grid-template-columns:1fr!important}
-    .mob-nav{display:flex!important;align-items:stretch!important;justify-content:space-around!important;padding:8px 6px max(12px, env(safe-area-inset-bottom))!important;background:rgba(255,255,255,0.97)!important;backdrop-filter:blur(16px) saturate(180%)!important;-webkit-backdrop-filter:blur(16px) saturate(180%)!important;border-top:1px solid rgba(226,232,240,0.95)!important;box-shadow:0 -6px 28px rgba(15,23,42,0.06)!important}
+    .mob-nav{display:flex!important;align-items:stretch!important;justify-content:space-around!important;padding:10px 8px max(12px, env(safe-area-inset-bottom))!important;background:rgba(255,255,255,0.97)!important;backdrop-filter:blur(16px) saturate(180%)!important;-webkit-backdrop-filter:blur(16px) saturate(180%)!important;border-top:1px solid rgba(226,232,240,0.95)!important;border-top-left-radius:16px!important;border-top-right-radius:16px!important;box-shadow:0 -6px 28px rgba(15,23,42,0.06)!important}
     .mob-nav button{min-height:52px!important;min-width:56px!important;padding:10px 8px!important;border-radius:14px!important;align-items:center!important;justify-content:center!important;gap:4px!important;color:var(--navy2)!important}
     .mob-nav button:active{background:rgba(241,245,249,0.95)!important}
     .mob-nav button span:first-child{font-size:22px!important;line-height:1!important}
@@ -254,7 +286,7 @@ const G = `
     .home-featured-sub{font-size:14px!important;margin-top:10px!important;line-height:1.62!important}
     .home-featured-toolbar{margin-bottom:20px!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important}
     .home-featured-actions{justify-content:stretch!important;padding-top:0!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;width:100%!important}
-    .home-featured-actions .btn-outline{width:100%!important;min-height:48px!important;justify-content:center!important;box-sizing:border-box!important;display:flex!important;align-items:center!important}
+    .home-featured-actions .btn-outline,.home-featured-actions .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important;box-sizing:border-box!important;display:flex!important;align-items:center!important}
     .home-ui-clear-filters{width:100%!important;min-height:48px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:13px!important}
     .gr-listings{grid-template-columns:1fr!important;gap:14px!important}
     .home-listing-card .home-listing-media{height:min(52vw,220px)!important;min-height:180px!important}
@@ -262,8 +294,18 @@ const G = `
     .home-listing-card .home-listing-title{font-size:15px!important}
     .home-listing-card .home-listing-price{font-size:21px!important}
     .home-band-split{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
+    .home-sample-outputs{padding:28px max(16px, env(safe-area-inset-left)) 32px max(16px, env(safe-area-inset-right))!important}
+    .home-sample-outputs-inner{padding:24px 18px 28px!important;border-radius:16px!important}
+    .home-sample-outputs-head{margin-bottom:16px!important}
+    .home-sample-outputs-body--collapsed{max-height:clamp(160px,28vh,240px)!important}
+    .home-sample-outputs-reveal{padding:10px 18px!important;font-size:12px!important;bottom:10px!important}
+    .home-sample-block + .home-sample-block{margin-top:32px!important;padding-top:32px!important}
+    .home-wa-sample-pair{margin-top:28px!important}
+    .home-wa-sample-actions{margin-top:24px!important}
+    .home-pdf-download-wrap{margin-top:24px!important}
     .home-band-split-inner{grid-template-columns:1fr!important;gap:14px!important}
     .home-wa-sample-pair{flex-direction:column!important;align-items:center!important;margin-top:20px!important;gap:24px!important}
+    .home-pdf-sample-frame{border-radius:12px!important;box-shadow:0 8px 28px rgba(15,23,42,0.06)!important}
     .home-band-card{padding:22px 18px!important;gap:14px!important}
     .home-band-card .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important}
     .home-band-cta{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
@@ -273,7 +315,7 @@ const G = `
     .home-cta-grid .home-cta-quote{font-size:14px!important;line-height:1.65!important}
     .home-empty-state-card{padding:36px 20px!important}
     .home-empty-state-card .home-empty-icon{font-size:40px!important;margin-bottom:14px!important}
-    #prop-grid{scroll-margin-top:16px!important}
+    #prop-grid{scroll-margin-top:20px!important}
     .home-page-shell .card.glass-card{touch-action:manipulation!important}
     .home-footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:16px!important;padding:0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right))!important}
   }
@@ -283,6 +325,8 @@ const G = `
     .home-hero-headline{font-size:clamp(24px,6.8vw,32px)!important;line-height:1.09!important}
     .home-prop-section{padding-top:24px!important;padding-bottom:32px!important}
     .home-band-split,.home-band-cta{padding-top:32px!important;padding-bottom:36px!important}
+    .home-sample-outputs{padding-top:24px!important;padding-bottom:28px!important}
+    .home-sample-outputs-inner{padding:22px 16px 26px!important}
     .home-listing-card .home-listing-media{min-height:168px!important;height:48vw!important}
   }
   @media(max-width:420px){
@@ -409,6 +453,150 @@ const mapListing = (l) => !l ? null : ({
   waCount: l.wa_count||0,
   pdfCount: l.pdf_count||0,
 });
+
+/** Static Mumbai listing for homepage PDF/WhatsApp samples (not from DB). */
+const HOME_SAMPLE_BROCHURE = {
+  id: "samp-mumbai-001",
+  title: "3 BHK Sea-facing · Bandra West",
+  location: "Pali Hill, Bandra West, Mumbai",
+  propertyType: "Apartment",
+  listingType: "Sale",
+  price: 48500000,
+  sizesqft: 1250,
+  bedrooms: 3,
+  bathrooms: 2,
+  furnishingStatus: "Semi-Furnished",
+  description: "Corner unit with sea glimpses, minutes from Carter Road. Two covered parking, marble flooring in living, and a semi-furnished modular kitchen. Well-maintained society with pool, gym, and concierge.",
+  highlights: [
+    "Corner unit with cross-ventilation",
+    "Modular kitchen with chimney & hob",
+    "Society pool, gym, and kids' play area",
+  ],
+  agentName: "Aditi Mehta",
+  agentPhone: "+91 98201 44720",
+  agencyName: "Harbourline Realty",
+};
+
+const exportElementToPdfById = async (elementId, filenameBase) => {
+  const el = document.getElementById(elementId);
+  if (!el) throw new Error("Missing print target");
+  const waitForImages = async (root) => {
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]).catch(() => {});
+    const imgs = Array.from(root.querySelectorAll("img"));
+    await Promise.all(imgs.map(async (img) => {
+      if (img.complete) {
+        try { if (typeof img.decode === "function") await withTimeout(img.decode(), 4000); } catch {}
+        return;
+      }
+      await withTimeout(new Promise((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      }), 12000);
+    }));
+    try {
+      if (document.fonts && document.fonts.ready) await withTimeout(document.fonts.ready, 5000);
+    } catch {}
+  };
+  await waitForImages(el);
+  const h2c = await new Promise((res, rej) => {
+    if (window.html2canvas) { res(window.html2canvas); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = () => res(window.html2canvas);
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  const jsPDFCls = await new Promise((res, rej) => {
+    if (window.jspdf) { res(window.jspdf.jsPDF); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = () => res(window.jspdf.jsPDF);
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  const canvas = await h2c(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false, windowWidth: 720 });
+  const mmW = 210;
+  const pdf = new jsPDFCls({ unit: "mm", format: "a4" });
+  const pageH = 297;
+  const elRect = el.getBoundingClientRect();
+  const cssToCanvasY = elRect.height > 0 ? canvas.height / elRect.height : 1;
+  const pagePx = (pageH * canvas.width) / mmW;
+  const photoBounds = Array.from(el.querySelectorAll('[data-pdf-photo="1"]'))
+    .map((node) => {
+      const r = node.getBoundingClientRect();
+      const startCss = r.top - elRect.top;
+      const endCss = startCss + r.height;
+      return { start: Math.max(0, startCss * cssToCanvasY), end: Math.min(canvas.height, endCss * cssToCanvasY) };
+    })
+    .filter((b) => b.end > b.start)
+    .sort((a, b) => a.start - b.start);
+  const mergedPhotoBounds = [];
+  for (const b of photoBounds) {
+    const prev = mergedPhotoBounds[mergedPhotoBounds.length - 1];
+    if (prev && b.start <= prev.end + 1) {
+      prev.end = Math.max(prev.end, b.end);
+    } else {
+      mergedPhotoBounds.push({ ...b });
+    }
+  }
+  const cropToDataUrl = (srcCanvas, sy, segH) => {
+    const yInt = Math.floor(sy);
+    const maxH = srcCanvas.height - yInt;
+    const h = Math.max(1, Math.min(maxH, Math.ceil(segH)));
+    const sc = document.createElement("canvas");
+    sc.width = srcCanvas.width;
+    sc.height = h;
+    const ctx = sc.getContext("2d");
+    ctx.drawImage(srcCanvas, 0, yInt, srcCanvas.width, h, 0, 0, srcCanvas.width, h);
+    return sc.toDataURL("image/jpeg", 0.95);
+  };
+  let y = 0;
+  let isFirst = true;
+  let guard = 0;
+  while (y < canvas.height - 1) {
+    if (++guard > 2000) break;
+    let pageEnd = Math.min(y + pagePx, canvas.height);
+    const crossing = mergedPhotoBounds.find((b) => b.start < pageEnd && b.end > pageEnd);
+    if (crossing) {
+      const safeEnd = crossing.start;
+      if (safeEnd > y + 1) pageEnd = safeEnd;
+    }
+    if (pageEnd <= y + 1) {
+      pageEnd = Math.min(y + pagePx, canvas.height);
+    }
+    if (pageEnd <= y) {
+      pageEnd = Math.min(y + 1, canvas.height);
+    }
+    const segH = pageEnd - y;
+    const segMmH = (segH * mmW) / canvas.width;
+    const segImg = cropToDataUrl(canvas, y, segH);
+    if (!isFirst) pdf.addPage();
+    isFirst = false;
+    pdf.addImage(segImg, "JPEG", 0, 0, mmW, segMmH);
+    y = pageEnd;
+  }
+  pdf.save(`${filenameBase}.pdf`);
+};
+
+const downloadHtmlElementAsPngById = async (elementId, filename) => {
+  const el = document.getElementById(elementId);
+  if (!el) throw new Error("Missing element");
+  const h2c = await new Promise((res, rej) => {
+    if (window.html2canvas) { res(window.html2canvas); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = () => res(window.html2canvas);
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  const canvas = await h2c(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
+  const a = document.createElement("a");
+  a.download = filename;
+  a.href = canvas.toDataURL("image/png", 0.95);
+  a.click();
+};
+
 const formToDb = (form, agentId) => ({
   agent_id: agentId, title: form.title, location: form.location,
   property_type: form.propertyType, listing_type: form.listingType,
@@ -828,120 +1016,10 @@ const PDFModal = ({listing,onClose,currentUser}) => {
   const hasAgentBrand=listing.agencyName||listing.agentName||!!headerLogoSrc;
 
   const downloadPDF=async()=>{
-    const el=document.getElementById('pdf-print-area');
-    if(!el) return;
+    if(!document.getElementById('pdf-print-area')) return;
     setPdfLoading(true);
     try{
-      // Wait for fonts/images so html2canvas has everything needed (bounded so export never hangs forever).
-      const waitForImages=async(root)=>{
-        const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]).catch(()=>{});
-        const imgs=Array.from(root.querySelectorAll("img"));
-        await Promise.all(imgs.map(async(img)=>{
-          if(img.complete){
-            try{if(typeof img.decode==="function") await withTimeout(img.decode(),4000);}catch{}
-            return;
-          }
-          await withTimeout(new Promise(resolve=>{
-            const done=()=>resolve();
-            img.addEventListener("load",done,{once:true});
-            img.addEventListener("error",done,{once:true});
-          }),12000);
-        }));
-        try{
-          if(document.fonts && document.fonts.ready) await withTimeout(document.fonts.ready,5000);
-        }catch{}
-      };
-      await waitForImages(el);
-
-      const h2c=await new Promise((res,rej)=>{
-        if(window.html2canvas){res(window.html2canvas);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload=()=>res(window.html2canvas);s.onerror=rej;document.head.appendChild(s);
-      });
-      const jsPDFCls=await new Promise((res,rej)=>{
-        if(window.jspdf){res(window.jspdf.jsPDF);return;}
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        s.onload=()=>res(window.jspdf.jsPDF);s.onerror=rej;document.head.appendChild(s);
-      });
-      const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
-      const mmW=210;
-      const pdf=new jsPDFCls({unit:'mm',format:'a4'});
-      const pageH=297;
-
-      // Page slicing: crop the tall bitmap based on A4 height (fixed width), but if that boundary
-      // would cut through a tagged photo block, move the boundary to photo.start.
-      const elRect=el.getBoundingClientRect();
-      const cssToCanvasY=(elRect.height>0)?(canvas.height/elRect.height):1;
-      const pagePx=(pageH*canvas.width)/mmW; // canvas pixels that correspond to A4 page height
-
-      const photoBounds=Array.from(el.querySelectorAll('[data-pdf-photo="1"]'))
-        .map(node=>{
-          const r=node.getBoundingClientRect();
-          const startCss=r.top-elRect.top;
-          const endCss=startCss+r.height;
-          return { start:Math.max(0,startCss*cssToCanvasY), end:Math.min(canvas.height,endCss*cssToCanvasY) };
-        })
-        .filter(b=>b.end>b.start)
-        .sort((a,b)=>a.start-b.start);
-
-      // Merge overlaps for stable boundary checks.
-      const mergedPhotoBounds=[];
-      for(const b of photoBounds){
-        const prev=mergedPhotoBounds[mergedPhotoBounds.length-1];
-        if(prev && b.start<=prev.end+1){
-          prev.end=Math.max(prev.end,b.end);
-        }else{
-          mergedPhotoBounds.push({...b});
-        }
-      }
-
-      const cropToDataUrl=(srcCanvas,sy,segH)=>{
-        const yInt=Math.floor(sy);
-        const maxH=srcCanvas.height-yInt;
-        const h=Math.max(1,Math.min(maxH,Math.ceil(segH)));
-        const sc=document.createElement('canvas');
-        sc.width=srcCanvas.width;
-        sc.height=h;
-        const ctx=sc.getContext('2d');
-        ctx.drawImage(srcCanvas,0,yInt,srcCanvas.width,h,0,0,srcCanvas.width,h);
-        return sc.toDataURL('image/jpeg',0.95);
-      };
-
-      let y=0;
-      let isFirst=true;
-      let guard=0;
-      while(y<canvas.height-1){
-        if(++guard>2000) break;
-        let pageEnd=Math.min(y+pagePx,canvas.height);
-
-        const crossing=mergedPhotoBounds.find(b=>b.start<pageEnd && b.end>pageEnd);
-        if(crossing){
-          const safeEnd=crossing.start;
-          if(safeEnd>y+1) pageEnd=safeEnd;
-        }
-
-        if(pageEnd<=y+1){
-          // Degenerate case (or a single photo block taller than the page).
-          pageEnd=Math.min(y+pagePx,canvas.height);
-        }
-        if(pageEnd<=y){
-          pageEnd=Math.min(y+1,canvas.height);
-        }
-
-        const segH=pageEnd-y;
-        const segMmH=(segH*mmW)/canvas.width;
-        const segImg=cropToDataUrl(canvas,y,segH);
-
-        if(!isFirst) pdf.addPage();
-        isFirst=false;
-        pdf.addImage(segImg,'JPEG',0,0,mmW,segMmH);
-
-        y=pageEnd;
-      }
-
-      pdf.save('Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
+      await exportElementToPdfById('pdf-print-area','Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase()));
     }catch(err){console.error(err);window.print();}
     finally{setPdfLoading(false);}
   };
@@ -1980,6 +2058,70 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
   );
 };
 
+/** Homepage-only: first page of PDF brochure (matches in-app PDF styling). */
+const HomePdfSamplePrint = () => {
+  const listing = HOME_SAMPLE_BROCHURE;
+  const td = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
+  const ref = `PHQ-${String(listing.id||"").slice(-6).toUpperCase()||"000000"}`;
+  const fields = [["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus]].filter(([,v])=>v);
+  const hasAgentBrand = listing.agencyName||listing.agentName;
+  return (
+    <div id="home-pdf-sample-print" style={{padding:"36px 44px",fontFamily:"'Inter',sans-serif",color:"#1a1410",background:"#fff",boxSizing:"border-box"}}>
+      {hasAgentBrand?(
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <div style={{width:64,height:64,borderRadius:10,border:"1px solid #eee",background:"#fafafa",flexShrink:0}} aria-hidden />
+            <div>
+              <div style={{fontWeight:900,fontSize:22,color:"var(--navy)",letterSpacing:"-0.5px"}}>{listing.agencyName||listing.agentName}</div>
+              {listing.agentPhone&&<div style={{fontSize:13,color:"#666",marginTop:2}}>📞 {listing.agentPhone}</div>}
+            </div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:11,color:"#aaa"}}>{td}</div>
+            <div style={{fontSize:11,color:"#aaa",marginTop:2}}>Ref: {ref}</div>
+          </div>
+        </div>
+      ):(
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
+          <div>
+            <img src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
+            <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:6,textTransform:"uppercase"}}>Professional Property Marketing</div>
+          </div>
+          <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
+        </div>
+      )}
+      <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:900,margin:"0 0 4px",color:"var(--navy)",lineHeight:1.15}}>{listing.title}</h1>
+      <div style={{color:"#888",fontSize:14,marginBottom:12}}>📍 {listing.location}</div>
+      <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6,flexWrap:"wrap"}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"var(--primary)"}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:15,fontWeight:400,color:"#888"}}>/month</span>}</div>
+        <div style={{display:"inline-block",background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)",borderRadius:20,padding:"3px 14px",fontSize:12,fontWeight:700}}>For {listing.listingType}</div>
+      </div>
+      {listing.description&&<div style={{background:"#fafafa",padding:16,borderRadius:10,fontSize:13,lineHeight:1.8,marginBottom:20,marginTop:14,border:"1px solid #eee",color:"#444"}}>{listing.description}</div>}
+      {fields.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Property Details</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 40px"}}>
+          {fields.map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #f4f4f4",fontSize:13}}><span style={{color:"#888"}}>{k}</span><span style={{fontWeight:700,color:"var(--navy)"}}>{v}</span></div>)}
+        </div>
+      </div>}
+      {listing.highlights?.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Key Highlights</div>
+        {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
+      </div>}
+      <div style={{fontSize:11,color:"#aaa",marginBottom:16,lineHeight:1.5}}>Full Northing PDFs add high-resolution photos, a location map, and extended specifications—this sample is page 1 only.</div>
+      <div style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
+          {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
+          <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Home = ({currentUser,onNavigate}) => {
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""});
@@ -1987,7 +2129,8 @@ const Home = ({currentUser,onNavigate}) => {
   const minPriceOpts=priceMode==="rent"?["5000","10000","15000","20000","25000","30000","40000","50000","75000","100000","150000","200000"]:["500000","1000000","2000000","3000000","5000000","7500000","10000000","20000000","50000000"];
   const maxPriceOpts=priceMode==="rent"?["15000","20000","25000","30000","40000","50000","75000","100000","150000","200000","300000","500000","750000","1000000"]:["1000000","2000000","3000000","5000000","7500000","10000000","20000000","50000000","100000000"];
   const fmtPriceOpt=(v)=>priceMode==="rent"?`${fmtP(v)} /mo`:fmtP(v);
-  const [waListing,setWAListing]=useState(null);const [pdfListing,setPdfListing]=useState(null);const [modal,setModal]=useState(null);
+  const [waListing,setWAListing]=useState(null);const [pdfListing,setPdfListing]=useState(null);const [modal,setModal]=useState(null);const [homeAssetDl,setHomeAssetDl]=useState(null);
+  const [homeSamplesExpanded,setHomeSamplesExpanded]=useState(false);
   useEffect(()=>{
     (async()=>{
       const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false}).limit(24);
@@ -2004,6 +2147,23 @@ const Home = ({currentUser,onNavigate}) => {
     if(filter.bathrooms&&Number(l.bathrooms||0)<Number(filter.bathrooms)) return false;
     return true;
   });
+  const runHomeWaDownload=async(kind)=>{
+    setHomeAssetDl(kind);
+    try{
+      await downloadHtmlElementAsPngById(
+        kind==="sale"?"home-wa-card-sale":"home-wa-card-rent",
+        kind==="sale"?"northing-sample-mumbai-sale-card.png":"northing-sample-mumbai-rent-card.png"
+      );
+    }catch(e){console.error(e); alert("Download failed — try again.");}
+    finally{setHomeAssetDl(null);}
+  };
+  const runHomePdfDownload=async()=>{
+    setHomeAssetDl("pdf");
+    try{
+      await exportElementToPdfById("home-pdf-sample-print","northing-sample-mumbai-brochure");
+    }catch(e){console.error(e); alert("PDF export failed — try again.");}
+    finally{setHomeAssetDl(null);}
+  };
   const heroTabActive = filter.type === "Commercial" ? "commercial" : filter.listing === "Rent" ? "rent" : "buy";
   const setHeroTab = (tab) => {
     if (tab === "commercial") setFilter((f) => ({ ...f, type: "Commercial" }));
@@ -2140,98 +2300,6 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         </div>
       </section>
-      <section className="home-band-split" aria-labelledby="home-wa-sample-heading">
-        <div className="home-wa-sample-inner">
-          <div>
-            <p style={{fontSize:11,fontWeight:600,color:"var(--primary2)",textTransform:"uppercase",letterSpacing:"0.16em",margin:"0 0 12px"}}>WhatsApp-ready</p>
-            <h2 id="home-wa-sample-heading" className="home-heading" style={{marginBottom:12}}>Listings that look sharp in chat</h2>
-            <p style={{fontSize:14,color:"var(--text-readable)",lineHeight:1.65,maxWidth:"40em"}}>
-              Northing generates a branded square card for every listing—the same layout agents download and share. Below are illustrative Mumbai samples for sale and rent.
-            </p>
-          </div>
-          <div className="home-wa-sample-pair">
-            <div className="home-wa-sample-col">
-            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Sale</span>
-            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
-                <div style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
-                  <img
-                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=840&q=80&auto=format&fit=crop"
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
-                  />
-                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
-                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR SALE</span>
-                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
-                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
-                    </div>
-                  </div>
-                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
-                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{fmtP(48500000)}</div>
-                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>3 BHK Sea-facing · Bandra West</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Pali Hill, Bandra West, Mumbai</div>
-                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-                      {["🛏 3 Beds","🚿 2 Baths","📐 1,250 sqft","🛋 Semi-Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
-                    </div>
-                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Aditi Mehta</div>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Harbourline Realty · +91 98201 44720</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-            <div className="home-wa-sample-col">
-            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Rent</span>
-            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
-                <div style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
-                  <img
-                    src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=840&q=80&auto=format&fit=crop"
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
-                  />
-                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
-                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR RENT</span>
-                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
-                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
-                    </div>
-                  </div>
-                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
-                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
-                      {fmtP(195000)}
-                      <span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>
-                    </div>
-                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>2 BHK Furnished · Lower Parel</div>
-                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Indiabulls Sky, Lower Parel, Mumbai</div>
-                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-                      {["🛏 2 Beds","🚿 2 Baths","📐 950 sqft","🛋 Fully Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
-                    </div>
-                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Vikram Kulkarni</div>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>UrbanNest Realty · +91 98203 90112</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
-      </section>
       <section id="prop-grid" className="home-prop-section">
         <div className="home-featured-toolbar">
           <div>
@@ -2242,7 +2310,7 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
           <div className="home-featured-actions">
             {(filter.type||filter.listing||filter.location||filter.minPrice||filter.maxPrice||filter.bedrooms||filter.bathrooms)&&<button type="button" onClick={()=>setFilter({type:"",listing:"",location:"",minPrice:"",maxPrice:"",bedrooms:"",bathrooms:""})} className="home-ui-clear-filters">✕ Clear Filters</button>}
-            <button type="button" onClick={()=>onNavigate("feed")} className="btn-outline">View All Properties</button>
+            <button type="button" onClick={()=>onNavigate("feed")} className="btn-primary">View All Properties</button>
           </div>
         </div>
         {loading?(
@@ -2281,6 +2349,141 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         )}
       </section>
+      <section id="home-sample-outputs" className="home-sample-outputs" aria-labelledby="home-sample-outputs-heading">
+        <div className="home-sample-outputs-inner">
+          <header className="home-sample-outputs-head">
+            <button type="button" className="home-sample-outputs-head-toggle" aria-expanded={homeSamplesExpanded} aria-controls="home-sample-outputs-panel" onClick={()=>setHomeSamplesExpanded(v=>!v)}>
+              <span className="section-label">Sample outputs</span>
+              <h2 id="home-sample-outputs-heading" className="home-heading" style={{margin:0}}>See What Northing Creates</h2>
+              <span className="home-sample-outputs-chevron">{homeSamplesExpanded?"Show less ▲":"Tap to expand ▼"}</span>
+            </button>
+          </header>
+          <div className="home-sample-outputs-clip">
+          <div id="home-sample-outputs-panel" className={"home-sample-outputs-body "+(homeSamplesExpanded?"home-sample-outputs-body--expanded":"home-sample-outputs-body--collapsed")}>
+          <div className="home-sample-block home-sample-block--wa" aria-labelledby="home-wa-sample-heading">
+        <div className="home-wa-sample-inner">
+          <div className="home-sample-intro">
+            <span className="section-label">WhatsApp-ready</span>
+            <h3 id="home-wa-sample-heading" className="home-heading">Listings that look sharp in chat</h3>
+            <p style={{fontSize:14,color:"var(--text-readable)",lineHeight:1.65,margin:0}}>
+              Northing generates a branded square card for every listing—the same layout agents download and share. Below are illustrative Mumbai samples for sale and rent.
+            </p>
+          </div>
+          <div className="home-wa-sample-pair">
+            <div className="home-wa-sample-col">
+            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Sale</span>
+            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
+                <div id="home-wa-card-sale" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+                  <img
+                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=840&q=80&auto=format&fit=crop"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
+                  />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR SALE</span>
+                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
+                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    </div>
+                  </div>
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{fmtP(48500000)}</div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>3 BHK Sea-facing · Bandra West</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Pali Hill, Bandra West, Mumbai</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                      {["🛏 3 Beds","🚿 2 Baths","📐 1,250 sqft","🛋 Semi-Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
+                    </div>
+                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Aditi Mehta</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Harbourline Realty · +91 98201 44720</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div className="home-wa-sample-col">
+            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Rent</span>
+            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
+                <div id="home-wa-card-rent" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+                  <img
+                    src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=840&q=80&auto=format&fit=crop"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
+                  />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR RENT</span>
+                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
+                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    </div>
+                  </div>
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
+                      {fmtP(195000)}
+                      <span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>2 BHK Furnished · Lower Parel</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Indiabulls Sky, Lower Parel, Mumbai</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                      {["🛏 2 Beds","🚿 2 Baths","📐 950 sqft","🛋 Fully Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
+                    </div>
+                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Vikram Kulkarni</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>UrbanNest Realty · +91 98203 90112</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+          <div className="home-wa-sample-actions">
+            <button type="button" className="btn-outline" disabled={homeAssetDl!==null} onClick={()=>runHomeWaDownload("sale")} style={{minHeight:44}}>{homeAssetDl==="sale"?"...":"Download sale card"}</button>
+            <button type="button" className="btn-outline" disabled={homeAssetDl!==null} onClick={()=>runHomeWaDownload("rent")} style={{minHeight:44}}>{homeAssetDl==="rent"?"...":"Download rent card"}</button>
+          </div>
+        </div>
+          </div>
+          <div className="home-sample-block home-sample-block--pdf" aria-labelledby="home-pdf-sample-heading">
+        <div className="home-wa-sample-inner">
+          <div className="home-sample-intro">
+            <span className="section-label">PDF-ready</span>
+            <h3 id="home-pdf-sample-heading" className="home-heading">Polished PDF brochures</h3>
+            <p style={{fontSize:14,color:"var(--text-readable)",lineHeight:1.65,margin:0}}>
+              Northing generates print-ready A4 reports with your branding, structured specs, and space for photos and maps—same layout agents use for client packs.
+            </p>
+          </div>
+          <div className="home-pdf-sample-frame">
+            <HomePdfSamplePrint />
+          </div>
+          <div className="home-pdf-download-wrap">
+            <button type="button" className="btn-primary" disabled={homeAssetDl!==null} onClick={runHomePdfDownload} style={{border:"none",minHeight:48,padding:"0 24px"}}>{homeAssetDl==="pdf"?"Generating...":"Download sample PDF"}</button>
+          </div>
+        </div>
+          </div>
+          </div>
+          {!homeSamplesExpanded&&(
+            <>
+              <div className="home-sample-outputs-fade" aria-hidden />
+              <button type="button" className="home-sample-outputs-reveal" onClick={()=>setHomeSamplesExpanded(true)}>Show all samples</button>
+            </>
+          )}
+          </div>
+        </div>
+      </section>
+      
       <section className="home-band-split">
         <div className="gr home-band-split-inner">
           {[
@@ -2321,15 +2524,30 @@ const Home = ({currentUser,onNavigate}) => {
       </section>
       <footer className="glass-footer" style={{padding:"clamp(36px,5vw,52px) 0",position:"relative"}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none"}} />
-        <div className="home-footer-inner">
-          <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
-            <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
-          </button>
-          <p style={{fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
-          <div style={{display:"flex",gap:22,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,alignItems:"center"}}>
-            <button type="button" onClick={()=>onNavigate("privacy")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Privacy</button>
-            <span style={{opacity:0.5}}>·</span>
-            <button type="button" onClick={()=>onNavigate("terms")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Terms</button>
+        <div className="home-footer-inner" style={{flexDirection:"column",alignItems:"stretch",gap:20}}>
+          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:20,width:"100%"}}>
+            <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
+              <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
+            </button>
+            <nav aria-label="Quick links" style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"flex-end"}}>
+              {[
+                ["Home","home"],
+                ["Browse","feed"],
+                ["Featured","home","prop-grid"],
+                ["Samples","home","home-sample-outputs"],
+                ["About","about"],
+              ].map(([label,pg,anchor])=>(
+                <button key={label} type="button" onClick={()=>anchor?onNavigate(pg,undefined,anchor):onNavigate(pg)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(248,250,252,0.14)",borderRadius:10,padding:"8px 14px",cursor:"pointer",color:"rgba(248,250,252,0.88)",font:"inherit",fontSize:12,fontWeight:600,transition:"background 0.2s, color 0.2s, border-color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.1)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.color="rgba(248,250,252,0.88)";}}>{label}</button>
+              ))}
+            </nav>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:16,width:"100%"}}>
+            <p style={{fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,margin:0}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
+            <div style={{display:"flex",gap:18,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,alignItems:"center"}}>
+              <button type="button" onClick={()=>onNavigate("privacy")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Privacy</button>
+              <span style={{opacity:0.5}}>·</span>
+              <button type="button" onClick={()=>onNavigate("terms")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Terms</button>
+            </div>
           </div>
         </div>
       </footer>
@@ -2436,8 +2654,11 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
         <img src={navBrandSrc} alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
       </button>
-      <div style={{display:"flex",gap:6,alignItems:"center"}}>
-        {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
+      <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"min(100%, 720px)"}}>
+        {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
+        <button type="button" onClick={()=>onNavigate("home",undefined,"prop-grid")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none",transition:"all 0.2s"}}>Featured</button>
+        <button type="button" onClick={()=>onNavigate("home",undefined,"home-sample-outputs")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none",transition:"all 0.2s"}}>Samples</button>
+        <button type="button" onClick={()=>onNavigate("about")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page==="about"?"var(--primary-light)":"transparent",color:page==="about"?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s"}}>About</button>
         {currentUser?<>
           <button onClick={()=>onNavigate("dashboard")} className="hm" style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
           <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--gray)",borderRadius:24,padding:"5px 12px 5px 5px",border:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>onNavigate("dashboard")}>
@@ -2773,6 +2994,7 @@ const parseShellLocation = () => {
   if (path === "/dashboard") return { page: "dashboard", agentId: null };
   if (path === "/privacy") return { page: "privacy", agentId: null };
   if (path === "/terms") return { page: "terms", agentId: null };
+  if (path === "/about") return { page: "about", agentId: null };
   return { page: "home", agentId: null };
 };
 
@@ -2783,6 +3005,7 @@ const shellPathForPage = (page, agentId) => {
   if (page === "dashboard") return "/dashboard";
   if (page === "privacy") return "/privacy";
   if (page === "terms") return "/terms";
+  if (page === "about") return "/about";
   return "/";
 };
 
@@ -2845,7 +3068,7 @@ export default function App() {
 
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
   /** `userOverride` avoids stale closure right after login (setUser + nav in same tick). */
-  const nav=(p,userOverride)=>{
+  const nav=(p,userOverride,homeAnchorId)=>{
     const effectiveUser = userOverride !== undefined ? userOverride : user;
     if (p === "dashboard" && !effectiveUser) {
       setPage("login");
@@ -2855,9 +3078,13 @@ export default function App() {
       return;
     }
     setPage(p);
-    if (p === "home" || p === "feed" || p === "login" || p === "dashboard" || p === "privacy" || p === "terms") {
+    if (p === "home" || p === "feed" || p === "login" || p === "dashboard" || p === "privacy" || p === "terms" || p === "about") {
       setAgentPageId(null);
       window.history.pushState(null, "", shellPathForPage(p, null));
+    }
+    if (p === "home" && homeAnchorId) {
+      setTimeout(()=>document.getElementById(homeAnchorId)?.scrollIntoView({behavior:"smooth"}), 140);
+      return;
     }
     window.scrollTo(0, 0);
   };
@@ -2897,6 +3124,7 @@ export default function App() {
       {page==="home"&&<Home currentUser={user} onNavigate={nav}/>}
       {page==="privacy"&&<PrivacyPolicyPage onNavigate={nav}/>}
       {page==="terms"&&<TermsOfServicePage onNavigate={nav}/>}
+      {page==="about"&&<AboutPage onNavigate={nav}/>}
       {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
       {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {page==="agentpage"&&agentPageId&&<AgentPage agentId={agentPageId} onNavigate={nav} currentUser={user}/>}
