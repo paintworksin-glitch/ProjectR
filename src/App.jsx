@@ -1,10 +1,11 @@
-import { useState, useEffect, useLayoutEffect, useRef, useReducer, useId, Component } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useReducer, Component } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from "@supabase/supabase-js";
 import LoginParticles from "./LoginParticles.jsx";
 import PrivacyPolicyPage from "./PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./TermsOfServicePage.jsx";
 import AboutPage from "./AboutPage.jsx";
+import { HomeHeroIllustration, SkylineHeroBackdrop, SkylineRibbon } from "./SkylineIllustration.jsx";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -16,10 +17,10 @@ const G = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Fraunces:ital,wght@0,700;0,800;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;0,8..60,800;1,8..60,600&display=swap');
   .home-heading { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-weight: 600; font-optical-sizing: auto; letter-spacing: -0.012em; line-height: 1.22; }
   .login-heading-serif { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; letter-spacing: -0.01em; line-height: 1.2; }
-  .h1big-hero.home-hero-section { min-height: 100vh; min-height: 100dvh; width: 100%; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
+  .h1big-hero.home-hero-section { min-height: clamp(480px, 72vh, 760px); min-height: clamp(480px, 72dvh, 760px); width: 100%; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
   .home-hero-overlay { position: absolute; inset: 0; z-index: 1; background: rgba(26, 26, 26, 0.6); pointer-events: none; }
   .home-hero-overlay--light { background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.32) 45%, rgba(255,255,255,0.14) 100%); pointer-events: none; }
-  .home-hero-inner { position: relative; z-index: 2; width: 100%; max-width: var(--home-content-max); margin: 0 auto; padding: clamp(32px, 5vw, 56px) var(--home-gutter-x) clamp(28px, 4vw, 48px); display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1 1 auto; min-height: 0; min-width: 0; box-sizing: border-box; will-change: transform; gap: clamp(28px, 4vw, 44px); }
+  .home-hero-inner { position: relative; z-index: 2; width: 100%; max-width: var(--home-content-max); margin: 0 auto; padding: clamp(24px, 4vw, 48px) var(--home-gutter-x) clamp(22px, 3.5vw, 40px); display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1 1 auto; min-height: 0; min-width: 0; box-sizing: border-box; will-change: transform; gap: clamp(22px, 3.5vw, 36px); }
   .home-hero-copy { width: 100%; max-width: 52rem; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; flex: 1 1 auto; justify-content: center; padding-top: clamp(12px, 3vh, 40px); }
   .home-hero-headline { margin: 0; text-wrap: balance; }
   .home-hero-headline-line { display: block; color: #fff; }
@@ -28,27 +29,46 @@ const G = `
   .home-hero-parallax-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
   .home-hero-parallax-bg img { position: absolute; left: 0; top: -10%; width: 100%; height: 120%; object-fit: cover; object-position: center; opacity: 1; will-change: transform; }
   .home-hero-parallax-bg--illustration { display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 55%, #e8edf4 100%); contain: layout style; }
-  .home-hero-illustration-svg { width: min(125vw, 1320px); max-width: none; height: auto; min-height: min(82vh, 600px); flex-shrink: 0; will-change: transform; display: block; }
+  .home-hero-illustration-svg { width: min(118vw, 1200px); max-width: none; height: auto; min-height: min(52vh, 440px); flex-shrink: 0; will-change: transform; display: block; }
   .home-hero-marquee-root { will-change: transform; }
   @media (prefers-reduced-motion: reduce) {
     .home-hero-marquee-root { will-change: auto; }
   }
   @media (max-width: 640px) {
-    .home-hero-illustration-svg { width: min(168vw, 900px); min-height: min(52vh, 380px); max-height: 48vh; }
+    .home-hero-illustration-svg { width: min(160vw, 880px); min-height: min(38vh, 300px); max-height: 40vh; }
     .home-hero-parallax-bg--illustration { align-items: flex-end; padding-bottom: env(safe-area-inset-bottom, 0px); }
   }
   @media (max-width: 380px) {
-    .home-hero-illustration-svg { min-height: min(48vh, 340px); }
+    .home-hero-illustration-svg { min-height: min(34vh, 280px); }
   }
   .skyline-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-  .skyline-backdrop-svg-wrap { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: min(220vw, 1680px); max-width: none; display: flex; align-items: flex-end; justify-content: center; line-height: 0; }
-  .skyline-backdrop-svg-wrap .home-hero-illustration-svg { width: 100%; height: auto; min-height: 0; min-width: 720px; max-height: min(52vh, 420px); flex-shrink: 0; opacity: 0.38; }
+  .skyline-backdrop-svg-wrap { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; display: flex; align-items: flex-end; justify-content: center; line-height: 0; }
+  .skyline-backdrop-svg-wrap .home-hero-illustration-svg { width: min(220vw, 1680px); max-width: none; height: auto; min-height: 0; min-width: 720px; max-height: min(52vh, 420px); flex-shrink: 0; opacity: 0.38; }
   .skyline-backdrop--tone-standard .skyline-backdrop-svg-wrap .home-hero-illustration-svg { opacity: 0.44; max-height: min(58vh, 480px); }
   .skyline-backdrop--dark .skyline-backdrop-scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(15,23,42,0.82) 0%, rgba(15,23,42,0.9) 50%, rgba(15,23,42,0.94) 100%); pointer-events: none; }
   @media (max-width: 900px) {
     .skyline-backdrop-svg-wrap .home-hero-illustration-svg { min-width: 600px; max-height: min(38vh, 260px); }
     .skyline-backdrop--tone-standard .skyline-backdrop-svg-wrap .home-hero-illustration-svg { max-height: min(42vh, 300px); }
   }
+  .skyline-ribbon { position: relative; width: 100%; overflow: hidden; pointer-events: none; flex-shrink: 0; }
+  .skyline-ribbon-svg-wrap { position: relative; width: 100%; display: flex; align-items: flex-end; justify-content: center; line-height: 0; }
+  .skyline-ribbon-svg-wrap .home-hero-illustration-svg { width: min(200vw, 1600px); max-width: none; height: auto; min-height: 0; min-width: 560px; flex-shrink: 0; opacity: 0.4; }
+  .skyline-ribbon-scrim { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+  .skyline-ribbon--light { height: clamp(48px, 9vw, 80px); margin: 0 -1px; background: linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(241,245,249,0.45) 100%); }
+  .skyline-ribbon--light .skyline-ribbon-scrim { background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.88) 72%, #fff 100%); }
+  .skyline-ribbon--band { height: clamp(56px, 11vw, 96px); margin-bottom: clamp(10px, 2vw, 20px); }
+  .skyline-ribbon--band .skyline-ribbon-svg-wrap .home-hero-illustration-svg { opacity: 0.34; max-height: min(110px, 18vw); }
+  .skyline-ribbon--band .skyline-ribbon-scrim { background: linear-gradient(180deg, rgba(251,252,254,0.25) 0%, rgba(245,247,250,0.92) 100%); }
+  .skyline-ribbon--trust { height: clamp(52px, 10vw, 84px); margin: 0 auto 20px; max-width: var(--home-content-max); width: 100%; opacity: 0.88; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.75) inset; padding: 0 var(--home-gutter-x); box-sizing: border-box; }
+  .skyline-ribbon--trust .skyline-ribbon-svg-wrap .home-hero-illustration-svg { opacity: 0.3; max-height: 88px; }
+  .skyline-ribbon--trust .skyline-ribbon-scrim { background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(246,248,251,0.92) 100%); }
+  .skyline-ribbon--footer { position: relative; z-index: 0; height: clamp(68px, 11vw, 100px); margin: 0; border-bottom: 1px solid rgba(255,255,255,0.09); }
+  .skyline-ribbon--footer .skyline-ribbon-svg-wrap .home-hero-illustration-svg { opacity: 0.2; max-height: min(92px, 13vw); filter: saturate(0.88) brightness(1.06); }
+  .skyline-ribbon--footer .skyline-ribbon-scrim { background: linear-gradient(180deg, rgba(15,23,42,0.4) 0%, rgba(15,23,42,0.94) 100%); }
+  .skyline-ribbon--page { height: clamp(44px, 11vw, 68px); margin-top: clamp(24px, 4vw, 40px); border-radius: 0 0 16px 16px; overflow: hidden; border: 1px solid rgba(226,232,240,0.65); border-top: none; box-shadow: 0 8px 32px rgba(15,23,42,0.04); }
+  .skyline-ribbon--page .skyline-ribbon-svg-wrap .home-hero-illustration-svg { opacity: 0.3; max-height: 60px; min-width: 460px; }
+  .skyline-ribbon--page .skyline-ribbon-scrim { background: linear-gradient(180deg, rgba(248,250,252,0.35) 0%, rgba(241,245,249,0.98) 100%); }
+  .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(44px, 5.5vw, 68px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); position: relative; }
   .home-hero-qs-dock { position: absolute; z-index: 4; right: max(14px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: min(400px, calc(100vw - 28px)); display: flex; flex-direction: column; align-items: stretch; gap: 0; pointer-events: none; }
   .home-hero-qs-dock > * { pointer-events: auto; }
   .home-hero-qs-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(226,232,240,0.95); background: rgba(255,255,255,0.96); box-shadow: 0 4px 24px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.04); font-family: inherit; font-size: 14px; font-weight: 700; color: var(--navy); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: box-shadow 0.22s ease, border-color 0.2s, transform 0.15s ease; text-align: left; }
@@ -216,7 +236,7 @@ const G = `
   .home-hero-section--light .home-hero-cta--primary:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 14px 32px rgba(0,0,0,0.14); }
   .home-hero-section--light .home-hero-cta--secondary { color: #1a1a1a; border: 2px solid rgba(26,26,26,0.28); }
   .home-hero-section--light .home-hero-cta--secondary:hover { background: rgba(26,26,26,0.05); border-color: rgba(26,26,26,0.45); }
-  .home-hero-section--light .home-hero-inner { justify-content: center; padding-bottom: max(96px, 11vh); }
+  .home-hero-section--light .home-hero-inner { justify-content: center; padding-bottom: max(64px, 7vh); }
   .home-section-subnav { position: sticky; top: 72px; z-index: 90; background: #fff; border-bottom: 1px solid rgba(226,232,240,0.9); box-shadow: 0 1px 0 rgba(15,23,42,0.04); }
   .home-section-subnav-inner { max-width: var(--home-content-max); margin: 0 auto; padding: 0 var(--home-gutter-x); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; min-height: 52px; box-sizing: border-box; }
   .home-section-subnav a { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: #1a1a1a; text-decoration: none; padding: 10px 14px; border-radius: 10px; transition: background 0.18s ease, color 0.18s ease; }
@@ -228,9 +248,7 @@ const G = `
     .home-hero-inner.home-hero-parallax-inner { transform: none !important; }
   }
   @media (max-width: 768px) {
-    .home-hero-parallax-bg--illustration,
-    .home-hero-inner.home-hero-parallax-inner { transform: none !important; will-change: auto !important; }
-    .home-hero-marquee-root { will-change: auto !important; }
+    .home-hero-marquee-root { will-change: transform; }
   }
   .home-prop-section { padding: clamp(36px, 4.5vw, 56px) var(--home-gutter-x) clamp(44px, 5.5vw, 64px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
   .home-prop-section + .home-sample-pane { padding-top: clamp(28px, 4vw, 44px); }
@@ -246,7 +264,6 @@ const G = `
   .home-ui-clear-filters:hover { border-color: rgba(26,26,26,0.22); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,0.035); transform: translateY(-0.5px); }
   .home-featured-actions .btn-outline { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-sizing: border-box; }
   .home-featured-actions .btn-primary { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; box-sizing: border-box; border: none; }
-  .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(44px, 5.5vw, 68px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); }
   .home-band-split-inner { max-width: var(--home-content-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 3vw, 28px); align-items: stretch; }
   .home-sample-pane { --sample-cream: #f9f6f0; --sample-card: #ede8e0; --sample-brown: #3c2a2c; --sample-brown-mid: #5c4548; position: relative; background: var(--sample-cream); padding: clamp(40px, 5.5vw, 72px) 0; border: none; overflow-x: clip; }
   .home-sample-pane-bg-artifacts { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
@@ -438,7 +455,7 @@ const G = `
     .login-page{flex-direction:column!important}
     .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
     .login-form-col{width:100%!important;flex:1}
-    .h1big-hero.home-hero-section{align-items:stretch!important}
+    .h1big-hero.home-hero-section{align-items:stretch!important;min-height:min(76dvh,620px)!important}
     .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
     .home-section-subnav-inner{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:48px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;justify-content:flex-start!important;gap:6px!important;scroll-padding-inline:8px!important}
     .home-section-subnav-inner::-webkit-scrollbar{display:none!important}
@@ -451,7 +468,7 @@ const G = `
     .home-hero-search-wrap{width:100%!important;max-width:100%!important;flex:0 0 auto!important;align-self:stretch!important;gap:12px!important}
     .home-hero-qs-dock{left:max(12px, env(safe-area-inset-left))!important;right:max(12px, env(safe-area-inset-right))!important;width:auto!important;bottom:calc(58px + max(4px, env(safe-area-inset-bottom)))!important;z-index:60!important}
     .home-hero-qs-toggle{min-height:48px!important;padding:13px 16px!important;touch-action:manipulation!important}
-    .home-hero-section--light .home-hero-inner{padding-bottom:max(168px, calc(58px + 15vh + env(safe-area-inset-bottom)))!important}
+    .home-hero-section--light .home-hero-inner{padding-bottom:max(132px, calc(58px + 10vh + env(safe-area-inset-bottom)))!important}
     .home-hero-search{flex:0 0 auto!important;width:100%!important;max-width:100%!important}
     .home-qs-inner{padding:20px 16px 22px!important}
     .home-qs-head{padding-bottom:16px!important;margin-bottom:0!important;gap:10px!important}
@@ -2778,179 +2795,6 @@ const HomePdfSamplePrint = () => {
   );
 };
 
-const HERO_INK = "#252525";
-const HERO_SW = 2.2;
-
-/** Positions one building in SVG coordinates (strip is 900 units wide; duplicated for marquee). */
-const HomeHeroBld = ({ x, y, children }) => <g transform={`translate(${x},${y})`}>{children}</g>;
-
-/** One full row of colourful cartoon buildings — drawn twice side-by-side for seamless horizontal scroll. */
-const HomeHeroBuildingsStrip = () => {
-  const ink = HERO_INK;
-  const sw = HERO_SW;
-  return (
-    <>
-      <HomeHeroBld x={40} y={438}>
-        <polygon points="-2,-54 30,-82 62,-54" fill="#7ec4e8" stroke={ink} strokeWidth={sw} strokeLinejoin="round" />
-        <rect x="0" y="-54" width="60" height="54" fill="#b8e0f5" stroke={ink} strokeWidth={sw} />
-        <rect x="22" y="-34" width="16" height="20" rx="1" fill="#4a9ec9" stroke={ink} strokeWidth="1.5" />
-      </HomeHeroBld>
-      <HomeHeroBld x={108} y={392}>
-        <rect x="0" y="-118" width="52" height="118" fill="#c8e6c9" stroke={ink} strokeWidth={sw} />
-        <rect x="8" y="-100" width="14" height="12" fill="#81c784" stroke={ink} strokeWidth="1.2" />
-        <rect x="30" y="-76" width="14" height="12" fill="#81c784" stroke={ink} strokeWidth="1.2" />
-        <rect x="8" y="-52" width="14" height="12" fill="#81c784" stroke={ink} strokeWidth="1.2" />
-        <rect x="30" y="-28" width="14" height="12" fill="#81c784" stroke={ink} strokeWidth="1.2" />
-        <rect x="15" y="-10" width="22" height="30" fill="#a5d6a7" stroke={ink} strokeWidth="1.5" />
-      </HomeHeroBld>
-      <HomeHeroBld x={178} y={148}>
-        <rect x="0" y="-42" width="68" height="42" fill="#e1bee7" stroke={ink} strokeWidth={sw} />
-        <polygon points="0,-42 34,-64 68,-42" fill="#ce93d8" stroke={ink} strokeWidth={sw} strokeLinejoin="round" />
-        <rect x="26" y="-30" width="18" height="22" fill="#ab47bc" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={598} y={162}>
-        <rect x="0" y="-48" width="78" height="48" fill="#ffe0b2" stroke={ink} strokeWidth={sw} />
-        <rect x="-5" y="-56" width="88" height="10" fill="#ffcc80" stroke={ink} strokeWidth="2" />
-        <rect x="14" y="-34" width="18" height="22" fill="#fb8c00" stroke={ink} strokeWidth="1.3" />
-        <rect x="46" y="-34" width="18" height="22" fill="#fb8c00" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={688} y={368}>
-        <rect x="0" y="-72" width="62" height="72" fill="#ffccbc" stroke={ink} strokeWidth={sw} />
-        <rect x="10" y="-92" width="20" height="20" fill="#ff8a65" stroke={ink} strokeWidth="2" />
-        <rect x="34" y="-102" width="20" height="32" fill="#ff7043" stroke={ink} strokeWidth="2" />
-        <rect x="22" y="-42" width="20" height="24" fill="#f4511e" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={752} y={412}>
-        <polygon points="0,-46 42,-68 84,-46" fill="#fff59d" stroke={ink} strokeWidth={sw} strokeLinejoin="round" />
-        <rect x="0" y="-46" width="84" height="46" fill="#fff9c4" stroke={ink} strokeWidth={sw} />
-        <rect x="32" y="-30" width="22" height="18" fill="#fdd835" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={14} y={278}>
-        <rect x="0" y="-66" width="48" height="66" fill="#f8bbd0" stroke={ink} strokeWidth={sw} />
-        <polygon points="0,-66 24,-90 48,-66" fill="#f48fb1" stroke={ink} strokeWidth={sw} strokeLinejoin="round" />
-        <rect x="16" y="-42" width="18" height="22" fill="#ec407a" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={298} y={508}>
-        <rect x="0" y="-40" width="96" height="40" fill="#b2dfdb" stroke={ink} strokeWidth={sw} />
-        <rect x="10" y="-54" width="76" height="14" fill="#80cbc4" stroke={ink} strokeWidth="2" />
-        <rect x="18" y="-28" width="16" height="20" fill="#26a69a" stroke={ink} strokeWidth="1.3" />
-        <rect x="62" y="-28" width="16" height="20" fill="#26a69a" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={458} y={524}>
-        <rect x="0" y="-62" width="56" height="62" fill="#d1c4e9" stroke={ink} strokeWidth={sw} />
-        <polygon points="0,-62 28,-88 56,-62" fill="#b39ddb" stroke={ink} strokeWidth={sw} strokeLinejoin="round" />
-        <rect x="20" y="-38" width="18" height="24" fill="#7e57c2" stroke={ink} strokeWidth="1.3" />
-      </HomeHeroBld>
-      <HomeHeroBld x={608} y={488}>
-        <rect x="0" y="-32" width="108" height="32" fill="#cfd8dc" stroke={ink} strokeWidth={sw} />
-        <rect x="12" y="-58" width="24" height="26" fill="#90a4ae" stroke={ink} strokeWidth="2" />
-        <rect x="42" y="-70" width="26" height="40" fill="#78909c" stroke={ink} strokeWidth="2" />
-        <rect x="74" y="-48" width="24" height="18" fill="#607d8b" stroke={ink} strokeWidth="2" />
-        <rect x="20" y="-18" width="14" height="16" fill="#455a64" stroke={ink} strokeWidth="1.2" />
-        <rect x="76" y="-18" width="14" height="16" fill="#455a64" stroke={ink} strokeWidth="1.2" />
-      </HomeHeroBld>
-      <HomeHeroBld x={368} y={118}>
-        <rect x="0" y="-28" width="44" height="28" fill="#aed581" stroke={ink} strokeWidth="2" />
-        <polygon points="0,-28 22,-46 44,-28" fill="#9ccc65" stroke={ink} strokeWidth="2" strokeLinejoin="round" />
-      </HomeHeroBld>
-      <HomeHeroBld x={808} y={272}>
-        <rect x="0" y="-52" width="40" height="52" fill="#90caf9" stroke={ink} strokeWidth={sw} />
-        <rect x="10" y="-38" width="11" height="11" fill="#1e88e5" stroke={ink} strokeWidth="1.1" />
-        <rect x="24" y="-24" width="11" height="11" fill="#1e88e5" stroke={ink} strokeWidth="1.1" />
-      </HomeHeroBld>
-      <HomeHeroBld x={248} y={198}>
-        <polygon points="0,-36 20,-54 40,-36" fill="#ffab91" stroke={ink} strokeWidth="2" strokeLinejoin="round" />
-        <rect x="0" y="-36" width="40" height="36" fill="#ffccbc" stroke={ink} strokeWidth="2" />
-        <rect x="13" y="-24" width="14" height="16" fill="#ff6e40" stroke={ink} strokeWidth="1.2" />
-      </HomeHeroBld>
-      <HomeHeroBld x={520} y={132}>
-        <rect x="0" y="-32" width="52" height="32" fill="#bcaaa4" stroke={ink} strokeWidth="2" />
-        <polygon points="0,-32 26,-50 52,-32" fill="#a1887f" stroke={ink} strokeWidth="2" strokeLinejoin="round" />
-        <circle cx="26" cy="-20" r="5" fill="#6d4c41" stroke={ink} strokeWidth="1.1" />
-      </HomeHeroBld>
-      <HomeHeroBld x={318} y={228}>
-        <rect x="0" y="-22" width="36" height="22" fill="#fff176" stroke={ink} strokeWidth="1.8" />
-        <polygon points="0,-22 18,-36 36,-22" fill="#ffee58" stroke={ink} strokeWidth="1.8" strokeLinejoin="round" />
-      </HomeHeroBld>
-      <HomeHeroBld x={682} y={248}>
-        <rect x="0" y="-26" width="48" height="26" fill="#c5cae9" stroke={ink} strokeWidth="2" />
-        <rect x="8" y="-40" width="32" height="14" fill="#7986cb" stroke={ink} strokeWidth="1.5" />
-      </HomeHeroBld>
-      <HomeHeroBld x={142} y={498}>
-        <polygon points="0,-44 24,-66 48,-44" fill="#80deea" stroke={ink} strokeWidth="2" strokeLinejoin="round" />
-        <rect x="0" y="-44" width="48" height="44" fill="#b2ebf2" stroke={ink} strokeWidth="2" />
-        <rect x="17" y="-28" width="14" height="18" fill="#00acc1" stroke={ink} strokeWidth="1.2" />
-      </HomeHeroBld>
-      <HomeHeroBld x={778} y={468}>
-        <rect x="0" y="-36" width="44" height="36" fill="#dce775" stroke={ink} strokeWidth="2" />
-        <polygon points="0,-36 22,-54 44,-36" fill="#cddc39" stroke={ink} strokeWidth="2" strokeLinejoin="round" />
-      </HomeHeroBld>
-      <HomeHeroBld x={200} y={320}>
-        <rect x="0" y="-30" width="56" height="30" fill="#ffecb3" stroke={ink} strokeWidth="2" />
-        <rect x="6" y="-42" width="44" height="12" fill="#ffc107" stroke={ink} strokeWidth="1.5" />
-        <rect x="20" y="-22" width="16" height="18" fill="#ff8f00" stroke={ink} strokeWidth="1.2" />
-      </HomeHeroBld>
-    </>
-  );
-};
-
-/** Colourful skyline; slow right→left drift (translate 0→−900px). Respects reduced motion only. */
-const HomeHeroIllustration = () => {
-  const clipId = `homeHeroSkyClip-${useId().replace(/:/g, "")}`;
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [marqueeDur, setMarqueeDur] = useState("125s");
-  useEffect(() => {
-    const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const setRm = () => setReduceMotion(!!mqRm.matches);
-    setRm();
-    mqRm.addEventListener("change", setRm);
-    const updDur = () => {
-      const w = window.innerWidth;
-      if (w <= 768) setMarqueeDur("190s");
-      else setMarqueeDur("125s");
-    };
-    updDur();
-    window.addEventListener("resize", updDur, { passive: true });
-    return () => {
-      mqRm.removeEventListener("change", setRm);
-      window.removeEventListener("resize", updDur);
-    };
-  }, []);
-  const showMarquee = !reduceMotion;
-  return (
-    <svg className="home-hero-illustration-svg" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
-      <defs>
-        <clipPath id={clipId}>
-          <rect width="900" height="640" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <g className="home-hero-marquee-root">
-          {showMarquee ? (
-            <animateTransform attributeName="transform" type="translate" additive="replace" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
-          ) : null}
-          <g transform="translate(0,0)">
-            <HomeHeroBuildingsStrip />
-          </g>
-          <g transform="translate(900,0)">
-            <HomeHeroBuildingsStrip />
-          </g>
-        </g>
-      </g>
-    </svg>
-  );
-};
-
-/** Same skyline marquee as home hero, behind a dark scrim — login/signup column & feed hero only. */
-const SkylineHeroBackdrop = ({ tone = "soft", className = "" }) => (
-  <div className={`skyline-backdrop skyline-backdrop--dark skyline-backdrop--tone-${tone === "standard" ? "standard" : "soft"} ${className}`.trim()} aria-hidden="true">
-    <div className="skyline-backdrop-svg-wrap">
-      <HomeHeroIllustration />
-    </div>
-    <div className="skyline-backdrop-scrim" />
-  </div>
-);
-
 /** Pollinations.ai — prompt-based illustrative images for sample cards (results vary by request). */
 const sampleOutputAiImageUrl = (prompt, w, h) =>
   `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&seed=42`;
@@ -3160,29 +3004,37 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return () => {};
     const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const mqMob = window.matchMedia("(max-width: 768px)");
     let raf = 0;
     const clearParallax = () => {
       cancelAnimationFrame(raf);
       const ill = heroParallaxIllustrationRef.current;
       const inner = heroParallaxInnerRef.current;
-      if (ill) ill.style.removeProperty("transform");
+      if (ill) {
+        ill.style.removeProperty("transform");
+        ill.style.removeProperty("top");
+        ill.style.removeProperty("bottom");
+      }
       if (inner) inner.style.removeProperty("transform");
     };
     const tick = () => {
-      if (mqRm.matches || mqMob.matches) return;
+      if (mqRm.matches) return;
       const sec = heroSectionRef.current;
       const ill = heroParallaxIllustrationRef.current;
       const inner = heroParallaxInnerRef.current;
       if (!sec || !ill) return;
       const rect = sec.getBoundingClientRect();
       const y = -rect.top;
-      const bgShift = y * 0.14;
-      ill.style.transform = `translate3d(0, ${bgShift}px, 0)`;
-      if (inner) inner.style.transform = `translate3d(0, ${y * -0.045}px, 0)`;
+      const narrow = window.matchMedia("(max-width: 768px)").matches;
+      const bgFactor = narrow ? 0.09 : 0.14;
+      const innerFactor = narrow ? -0.03 : -0.045;
+      const bgShift = y * bgFactor;
+      ill.style.removeProperty("transform");
+      ill.style.top = `${bgShift}px`;
+      ill.style.bottom = `${-bgShift}px`;
+      if (inner) inner.style.transform = `translate3d(0, ${y * innerFactor}px, 0)`;
     };
     const onScroll = () => {
-      if (mqRm.matches || mqMob.matches) return;
+      if (mqRm.matches) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(tick);
     };
@@ -3190,18 +3042,16 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       clearParallax();
-      if (mqRm.matches || mqMob.matches) return;
+      if (mqRm.matches) return;
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onScroll, { passive: true });
       tick();
     };
     const onMq = () => bindParallax();
     mqRm.addEventListener("change", onMq);
-    mqMob.addEventListener("change", onMq);
     bindParallax();
     return () => {
       mqRm.removeEventListener("change", onMq);
-      mqMob.removeEventListener("change", onMq);
       clearParallax();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
@@ -3368,6 +3218,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           </div>
         )}
       </section>
+      <SkylineRibbon variant="light" />
       <section id="home-sample-outputs" className="home-sample-pane" aria-labelledby="home-sample-outputs-heading">
         <div className="home-sample-pane-bg-artifacts" aria-hidden="true">
           <SkylineHeroBackdrop tone="soft" />
@@ -3427,6 +3278,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       </section>
       
       <section id="home-band-split" className="home-band-split">
+        <SkylineRibbon variant="band" />
         <div className="gr home-band-split-inner">
           {[
             {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
@@ -3446,6 +3298,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       <section id="home-testimonials" className="home-band-cta">
         <div style={{position:"absolute",top:-100,right:-60,width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle, rgba(26,26,26,0.06) 0%, transparent 68%)",pointerEvents:"none"}} />
         <div style={{position:"absolute",bottom:-80,left:-40,width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle, rgba(15,23,42,0.05) 0%, transparent 72%)",pointerEvents:"none"}} />
+        <SkylineRibbon variant="trust" />
         <div className="home-cta-inner">
           <div className="home-cta-eyebrow">
             <span>Trusted by Agents Across India</span>
@@ -3464,9 +3317,10 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           </div>
         </div>
       </section>
-      <footer className="glass-footer" style={{padding:"clamp(28px,4vw,44px) 0",position:"relative"}}>
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none"}} />
-        <div className="home-footer-inner" style={{flexDirection:"column",alignItems:"stretch",gap:20}}>
+      <footer className="glass-footer" style={{padding:"clamp(28px,4vw,44px) 0",position:"relative",overflow:"hidden"}}>
+        <SkylineRibbon variant="footer" />
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none",zIndex:1}} />
+        <div className="home-footer-inner" style={{flexDirection:"column",alignItems:"stretch",gap:20,position:"relative",zIndex:2}}>
           <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:20,width:"100%"}}>
             <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
               <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />

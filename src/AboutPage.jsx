@@ -1,3 +1,5 @@
+import { SkylineRibbon } from "./SkylineIllustration.jsx";
+
 /**
  * About Northing — matches home legal pages chrome.
  */
@@ -33,6 +35,7 @@ export default function AboutPage({ onNavigate }) {
         <p style={{ fontSize: 14, lineHeight: 1.75, color: "var(--text)", margin: 0 }}>
           Questions? Use the contact options in the app or reach us through your agent dashboard when you’re signed in.
         </p>
+        <SkylineRibbon variant="page" />
       </main>
     </div>
   );

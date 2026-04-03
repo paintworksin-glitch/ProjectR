@@ -1,3 +1,5 @@
+import { SkylineRibbon } from "./SkylineIllustration.jsx";
+
 /**
  * Terms of Service for Northing.in — matches home footer chrome.
  */
@@ -114,11 +116,13 @@ export default function TermsOfServicePage({ onNavigate }) {
             </a>
           </p>
         </section>
+        <SkylineRibbon variant="page" />
       </main>
 
-      <footer className="glass-footer" style={{ padding: "clamp(36px, 5vw, 52px) 0", position: "relative", marginTop: "auto" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)", pointerEvents: "none" }} />
-        <div className="home-footer-inner">
+      <footer className="glass-footer" style={{ padding: "clamp(36px, 5vw, 52px) 0", position: "relative", marginTop: "auto", overflow: "hidden" }}>
+        <SkylineRibbon variant="footer" />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)", pointerEvents: "none", zIndex: 1 }} />
+        <div className="home-footer-inner" style={{ position: "relative", zIndex: 2 }}>
           <button type="button" onClick={() => onNavigate("home")} style={{ display: "flex", alignItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer" }} aria-label="Northing home">
             <img src="/northing-logo-light.svg" alt="Northing" style={{ height: 48, width: "auto", maxWidth: 260, objectFit: "contain", display: "block" }} />
           </button>
