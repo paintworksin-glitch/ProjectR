@@ -503,15 +503,18 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .login-form-col{width:100%!important;flex:1}
     .h1big-hero.home-hero-section{align-items:stretch!important}
     .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
-    .home-section-subnav-inner{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:48px!important}
+    .home-section-subnav-inner{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:48px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;justify-content:flex-start!important;gap:6px!important;scroll-padding-inline:8px!important}
+    .home-section-subnav-inner::-webkit-scrollbar{display:none!important}
+    .home-section-subnav a{flex-shrink:0!important;white-space:nowrap!important;padding:11px 14px!important;min-height:44px!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;touch-action:manipulation!important}
     .home-hero-inner{display:flex!important;flex-direction:column!important;padding:28px max(20px, env(safe-area-inset-left)) 32px max(20px, env(safe-area-inset-right))!important;gap:clamp(22px,5vw,28px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
     .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
     .home-hero-copy{text-align:center!important;max-width:min(100%,440px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:0 1 auto!important;align-self:stretch!important;padding-top:clamp(8px,2vh,24px)!important}
     .home-hero-headline-line--sans{font-size:clamp(28px,7vw,40px)!important;line-height:1.06!important;letter-spacing:-0.032em!important}
     .home-hero-headline-line--serif{font-size:clamp(22px,5.5vw,30px)!important;line-height:1.1!important;margin-top:0.12em!important}
     .home-hero-search-wrap{width:100%!important;max-width:100%!important;flex:0 0 auto!important;align-self:stretch!important;gap:12px!important}
-    .home-hero-qs-dock{right:max(10px, env(safe-area-inset-right))!important;bottom:max(12px, env(safe-area-inset-bottom))!important;width:min(calc(100vw - 20px), 400px)!important}
-    .home-hero-section--light .home-hero-inner{padding-bottom:max(128px, 15vh)!important}
+    .home-hero-qs-dock{left:max(12px, env(safe-area-inset-left))!important;right:max(12px, env(safe-area-inset-right))!important;width:auto!important;bottom:calc(58px + max(4px, env(safe-area-inset-bottom)))!important;z-index:60!important}
+    .home-hero-qs-toggle{min-height:48px!important;padding:13px 16px!important;touch-action:manipulation!important}
+    .home-hero-section--light .home-hero-inner{padding-bottom:max(168px, calc(58px + 15vh + env(safe-area-inset-bottom)))!important}
     .home-hero-search{flex:0 0 auto!important;width:100%!important;max-width:100%!important}
     .home-qs-inner{padding:20px 16px 22px!important}
     .home-qs-head{padding-bottom:16px!important;margin-bottom:0!important;gap:10px!important}
@@ -539,12 +542,14 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .home-ui-clear-filters{width:100%!important;min-height:48px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:13px!important}
     .gr-listings{grid-template-columns:1fr!important;gap:14px!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
     .home-prop-section .gr-listings,.home-prop-section .gr.gr-listings{width:100%!important}
-    .home-prop-section .home-listing-card{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+    .home-prop-section .home-listing-card{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;touch-action:manipulation!important;-webkit-tap-highlight-color:rgba(0,0,0,0)!important}
     .home-listing-card .home-listing-media{height:min(52vw,220px)!important;min-height:180px!important}
     .home-listing-card .home-listing-body{padding:18px 16px 18px!important}
     .home-listing-card .home-listing-title{font-size:15px!important}
     .home-listing-card .home-listing-price{font-size:21px!important}
     .home-band-split{padding:36px max(20px, env(safe-area-inset-left)) 40px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
+    .home-band-split-inner{max-width:100%!important;width:100%!important}
+    .home-band-card .btn-primary{touch-action:manipulation!important}
     .home-sample-pane{padding:32px 0 36px!important;box-sizing:border-box!important}
     .home-sample-pane-shell{padding:0 max(20px, env(safe-area-inset-left)) 0 max(20px, env(safe-area-inset-right))!important}
     #home-sample-outputs{scroll-margin-top:max(16px, env(safe-area-inset-top))!important}
@@ -556,6 +561,14 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .home-sample-pane-grid-outer{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important}
     .home-sample-pane-grid{gap:16px!important;max-width:min(400px,100%)!important}
     .home-sample-pane-card-wrap{width:100%!important;max-width:100%!important}
+    .home-sample-pane-eyebrow{font-size:14px!important}
+    .home-sample-pane-card-open{gap:12px!important;touch-action:manipulation!important}
+    .home-sample-pane-card-title{font-size:15px!important;line-height:1.25!important}
+    .home-sample-pane-card-desc{font-size:13px!important;line-height:1.5!important}
+    .home-sample-modal-overlay{padding-left:max(12px, env(safe-area-inset-left))!important;padding-right:max(12px, env(safe-area-inset-right))!important}
+    .home-sample-modal-panel{max-width:100%!important;border-radius:18px!important}
+    .home-sample-modal-scroll{padding-left:max(20px, env(safe-area-inset-left))!important;padding-right:max(20px, env(safe-area-inset-right))!important}
+    .home-sample-modal-dl{padding-left:max(20px, env(safe-area-inset-left))!important;padding-right:max(20px, env(safe-area-inset-right))!important}
     .home-sample-pane-downloads{flex-direction:column!important;align-items:stretch!important;padding:0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right))!important}
     .home-sample-pane-downloads .btn-outline,.home-sample-pane-downloads .btn-primary{width:100%!important;justify-content:center!important}
     .home-wa-sample-frame{width:100%!important;height:auto!important;aspect-ratio:1/1!important;max-width:min(357px,100%)!important;margin-left:auto!important;margin-right:auto!important}
@@ -570,6 +583,8 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .home-cta-grid{gap:16px!important}
     .home-cta-grid .card.glass-card{padding:22px 18px!important}
     .home-cta-grid .home-cta-quote{font-size:15px!important;line-height:1.68!important}
+    .home-cta-grid .home-cta-testimonial-head{gap:14px!important}
+    .home-cta-grid .home-cta-avatar{min-width:44px!important;min-height:44px!important;width:44px!important;height:44px!important}
     .feed-page{overflow-x:clip!important;box-sizing:border-box!important;padding-bottom:max(84px, calc(52px + env(safe-area-inset-bottom)))!important}
     .feed-page-hero{padding:48px max(20px, env(safe-area-inset-left)) 88px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
     .feed-page-hero-inner{max-width:100%!important;padding:0 2px!important;box-sizing:border-box!important}
@@ -588,7 +603,8 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .home-section-subnav{top:56px!important}
     #prop-grid,#home-sample-outputs,#home-band-split,#home-testimonials{scroll-margin-top:108px!important}
     .home-page-shell .card.glass-card{touch-action:manipulation!important}
-    .home-footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:16px!important;padding:0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right))!important}
+    .home-footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:16px!important;padding:0 max(16px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right))!important}
+    .glass-footer .home-footer-inner button,.glass-footer .home-footer-inner a,.glass-footer .home-footer-inner nav button{min-height:44px!important;padding:10px 14px!important;touch-action:manipulation!important}
     .home-cta-inner{width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding-left:0!important;padding-right:0!important}
     @supports not (width: 1cqi) {
       .home-wa-sample-scale-wrap{transform:scale(min(0.85, calc((100vw - 96px) / 420)))!important}
@@ -599,10 +615,12 @@ ${x}`}class he extends Error{constructor({message:t,code:r,cause:n,name:i}){var 
     .home-hero-inner{padding-top:24px!important;padding-bottom:28px!important;gap:20px!important}
     .home-hero-headline-line--sans{font-size:clamp(24px,6.8vw,34px)!important;line-height:1.06!important}
     .home-hero-headline-line--serif{font-size:clamp(20px,5.2vw,28px)!important;line-height:1.1!important}
+    .home-hero-qs-dock{bottom:calc(56px + max(4px, env(safe-area-inset-bottom)))!important}
     .home-prop-section{padding-top:24px!important;padding-bottom:32px!important}
     .home-band-split,.home-band-cta{padding-top:32px!important;padding-bottom:36px!important}
     .home-sample-pane{padding-top:28px!important;padding-bottom:32px!important}
     .home-listing-card .home-listing-media{min-height:168px!important;height:48vw!important}
+    .home-sample-pane-grid{max-width:100%!important}
   }
   @media(max-width:420px){
     .home-qs-grid2{grid-template-columns:1fr!important;gap:15px!important}
