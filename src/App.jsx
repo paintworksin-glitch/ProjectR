@@ -153,6 +153,9 @@ const G = `
   .home-featured-actions .btn-outline { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-sizing: border-box; }
   .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(56px, 6.8vw, 80px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); }
   .home-band-split-inner { max-width: var(--home-content-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 3vw, 28px); align-items: stretch; }
+  .home-wa-sample-inner { max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
+  .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(20px, 4vw, 36px); margin-top: clamp(24px, 3.5vw, 36px); }
+  .home-wa-sample-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; }
   .home-band-card { padding: 30px 28px; display: flex; gap: 20px; align-items: flex-start; border-radius: var(--home-card-radius); }
   .home-band-card-media { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(160deg, #ea580c 0%, var(--primary2) 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(234,88,12,0.12), 0 6px 16px rgba(234,88,12,0.07); }
   .home-band-card h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin: 0 0 12px; letter-spacing: -0.018em; line-height: 1.24; }
@@ -260,6 +263,7 @@ const G = `
     .home-listing-card .home-listing-price{font-size:21px!important}
     .home-band-split{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
     .home-band-split-inner{grid-template-columns:1fr!important;gap:14px!important}
+    .home-wa-sample-pair{flex-direction:column!important;align-items:center!important;margin-top:20px!important;gap:24px!important}
     .home-band-card{padding:22px 18px!important;gap:14px!important}
     .home-band-card .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important}
     .home-band-cta{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
@@ -2133,6 +2137,98 @@ const Home = ({currentUser,onNavigate}) => {
               </div>
             </div>
           </div>
+          </div>
+        </div>
+      </section>
+      <section className="home-band-split" aria-labelledby="home-wa-sample-heading">
+        <div className="home-wa-sample-inner">
+          <div>
+            <p style={{fontSize:11,fontWeight:600,color:"var(--primary2)",textTransform:"uppercase",letterSpacing:"0.16em",margin:"0 0 12px"}}>WhatsApp-ready</p>
+            <h2 id="home-wa-sample-heading" className="home-heading" style={{marginBottom:12}}>Listings that look sharp in chat</h2>
+            <p style={{fontSize:14,color:"var(--text-readable)",lineHeight:1.65,maxWidth:"40em"}}>
+              Northing generates a branded square card for every listing—the same layout agents download and share. Below are illustrative Mumbai samples for sale and rent.
+            </p>
+          </div>
+          <div className="home-wa-sample-pair">
+            <div className="home-wa-sample-col">
+            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Sale</span>
+            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
+                <div style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+                  <img
+                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=840&q=80&auto=format&fit=crop"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
+                  />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR SALE</span>
+                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
+                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    </div>
+                  </div>
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{fmtP(48500000)}</div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>3 BHK Sea-facing · Bandra West</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Pali Hill, Bandra West, Mumbai</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                      {["🛏 3 Beds","🚿 2 Baths","📐 1,250 sqft","🛋 Semi-Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
+                    </div>
+                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Aditi Mehta</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Harbourline Realty · +91 98201 44720</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div className="home-wa-sample-col">
+            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Rent</span>
+            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
+                <div style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+                  <img
+                    src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=840&q=80&auto=format&fit=crop"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
+                  />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR RENT</span>
+                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
+                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    </div>
+                  </div>
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
+                      {fmtP(195000)}
+                      <span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>2 BHK Furnished · Lower Parel</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Indiabulls Sky, Lower Parel, Mumbai</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                      {["🛏 2 Beds","🚿 2 Baths","📐 950 sqft","🛋 Fully Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
+                    </div>
+                    <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:12}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Vikram Kulkarni</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>UrbanNest Realty · +91 98203 90112</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
           </div>
         </div>
       </section>
