@@ -2,6 +2,8 @@ import { useState, useEffect, useLayoutEffect, useRef, Component } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from "@supabase/supabase-js";
 import LoginParticles from "./LoginParticles.jsx";
+import PrivacyPolicyPage from "./PrivacyPolicyPage.jsx";
+import TermsOfServicePage from "./TermsOfServicePage.jsx";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -2228,10 +2230,10 @@ const Home = ({currentUser,onNavigate}) => {
             <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
           </button>
           <p style={{fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
-          <div style={{display:"flex",gap:22,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500}}>
-            <span style={{cursor:"pointer",transition:"color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.color="rgba(248,250,252,0.95)"} onMouseLeave={e=>e.currentTarget.style.color="rgba(248,250,252,0.55)"}>Privacy</span>
+          <div style={{display:"flex",gap:22,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,alignItems:"center"}}>
+            <button type="button" onClick={()=>onNavigate("privacy")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Privacy</button>
             <span style={{opacity:0.5}}>·</span>
-            <span style={{cursor:"pointer",transition:"color 0.2s"}} onMouseEnter={e=>e.currentTarget.style.color="rgba(248,250,252,0.95)"} onMouseLeave={e=>e.currentTarget.style.color="rgba(248,250,252,0.55)"}>Terms</span>
+            <button type="button" onClick={()=>onNavigate("terms")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Terms</button>
           </div>
         </div>
       </footer>
@@ -2673,6 +2675,8 @@ const parseShellLocation = () => {
   if (path === "/feed") return { page: "feed", agentId: null };
   if (path === "/login") return { page: "login", agentId: null };
   if (path === "/dashboard") return { page: "dashboard", agentId: null };
+  if (path === "/privacy") return { page: "privacy", agentId: null };
+  if (path === "/terms") return { page: "terms", agentId: null };
   return { page: "home", agentId: null };
 };
 
@@ -2681,6 +2685,8 @@ const shellPathForPage = (page, agentId) => {
   if (page === "feed") return "/feed";
   if (page === "login") return "/login";
   if (page === "dashboard") return "/dashboard";
+  if (page === "privacy") return "/privacy";
+  if (page === "terms") return "/terms";
   return "/";
 };
 
@@ -2753,7 +2759,7 @@ export default function App() {
       return;
     }
     setPage(p);
-    if (p === "home" || p === "feed" || p === "login" || p === "dashboard") {
+    if (p === "home" || p === "feed" || p === "login" || p === "dashboard" || p === "privacy" || p === "terms") {
       setAgentPageId(null);
       window.history.pushState(null, "", shellPathForPage(p, null));
     }
@@ -2793,6 +2799,8 @@ export default function App() {
       <style>{G}</style>
       {page!=="login"&&<Nav currentUser={user} page={page} onNavigate={nav} onLogout={logout} onSecretClick={secretTrigger}/>}
       {page==="home"&&<Home currentUser={user} onNavigate={nav}/>}
+      {page==="privacy"&&<PrivacyPolicyPage onNavigate={nav}/>}
+      {page==="terms"&&<TermsOfServicePage onNavigate={nav}/>}
       {page==="feed"&&<Feed currentUser={user} showToast={showToast} onNavigate={nav}/>}
       {page==="login"&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {page==="agentpage"&&agentPageId&&<AgentPage agentId={agentPageId} onNavigate={nav} currentUser={user}/>}
