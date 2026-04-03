@@ -216,6 +216,12 @@ const G = `
   .home-sample-intro .home-heading { margin-bottom: 0.65em; font-size: clamp(1.2rem, 2vw, 1.35rem); }
   .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(16px, 3.5vw, 28px); margin-top: clamp(28px, 4vw, 40px); }
   .home-wa-sample-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; }
+  .home-wa-sample-frame { width: 357px; height: 357px; max-width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-shrink: 0; container-type: inline-size; }
+  .home-wa-sample-scale-wrap { width: 420px; height: 420px; flex-shrink: 0; transform-origin: center center; transform: scale(0.85); }
+  @supports (width: 1cqi) {
+    .home-wa-sample-scale-wrap { transform: scale(min(0.85, calc(100cqi / 420))); }
+  }
+  .home-wa-card-mock { width: 420px; height: 420px; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 56px rgba(0,0,0,0.32); position: relative; background: #1a1410; }
   .home-wa-sample-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: clamp(22px, 3.2vw, 32px); padding-top: 2px; }
   .home-pdf-sample-frame { max-width: 720px; margin: clamp(12px, 2vw, 20px) auto 0; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 14px 44px rgba(15,23,42,0.08); border: 1px solid rgba(226,232,240,0.9); background: #fff; box-sizing: border-box; }
   .home-pdf-download-wrap { display: flex; justify-content: center; margin-top: clamp(22px, 3vw, 32px); }
@@ -295,7 +301,7 @@ const G = `
     .login-form-col{width:100%!important;flex:1}
     .h1big-hero{min-height:0!important;align-items:stretch!important}
     .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
-    .home-hero-inner{display:flex!important;flex-direction:column!important;padding:28px max(16px, env(safe-area-inset-left)) 32px max(16px, env(safe-area-inset-right))!important;gap:clamp(22px,5vw,28px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important}
+    .home-hero-inner{display:flex!important;flex-direction:column!important;padding:28px max(20px, env(safe-area-inset-left)) 32px max(20px, env(safe-area-inset-right))!important;gap:clamp(22px,5vw,28px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
     .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
     .home-hero-text{text-align:center!important;max-width:min(100%,420px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:0 0 auto!important;align-self:stretch!important}
     .home-hero-headline{font-size:clamp(28px,6vw,38px)!important;line-height:1.08!important;letter-spacing:-0.028em!important}
@@ -318,34 +324,46 @@ const G = `
     .home-hero-actions .home-hero-cta{width:100%!important;justify-content:center!important;box-sizing:border-box!important;min-height:52px!important;padding:15px 20px!important;font-size:15px!important}
     .home-hero-tabs{padding:5px!important;gap:5px!important;border-radius:14px!important}
     .home-hero-tab{font-size:13px!important;padding:12px 10px!important;min-height:46px!important;border-radius:11px!important;letter-spacing:-0.01em!important;display:flex!important;align-items:center!important;justify-content:center!important}
-    .home-prop-section{padding:28px max(16px, env(safe-area-inset-left)) 36px max(16px, env(safe-area-inset-right))!important;max-width:100%!important}
-    .home-featured-title{font-size:clamp(1.35rem,4.2vw,1.65rem)!important;line-height:1.15!important}
-    .home-featured-sub{font-size:14px!important;margin-top:10px!important;line-height:1.62!important}
+    .home-prop-section{padding:28px max(20px, env(safe-area-inset-left)) 36px max(20px, env(safe-area-inset-right))!important;max-width:100%!important;width:100%!important;box-sizing:border-box!important}
+    .home-featured-title{font-size:clamp(1.35rem,4.2vw,1.65rem)!important;line-height:1.15!important;text-align:left!important}
+    .home-featured-sub{font-size:14px!important;margin-top:10px!important;line-height:1.62!important;text-align:left!important;max-width:none!important}
     .home-featured-toolbar{margin-bottom:20px!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important}
+    .home-featured-toolbar>div:first-child{width:100%!important}
     .home-featured-actions{justify-content:stretch!important;padding-top:0!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;width:100%!important}
     .home-featured-actions .btn-outline,.home-featured-actions .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important;box-sizing:border-box!important;display:flex!important;align-items:center!important}
     .home-ui-clear-filters{width:100%!important;min-height:48px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:13px!important}
-    .gr-listings{grid-template-columns:1fr!important;gap:14px!important}
+    .gr-listings{grid-template-columns:1fr!important;gap:14px!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+    .home-prop-section .gr-listings,.home-prop-section .gr.gr-listings{width:100%!important}
+    .home-prop-section .home-listing-card{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
     .home-listing-card .home-listing-media{height:min(52vw,220px)!important;min-height:180px!important}
     .home-listing-card .home-listing-body{padding:18px 16px 18px!important}
     .home-listing-card .home-listing-title{font-size:15px!important}
     .home-listing-card .home-listing-price{font-size:21px!important}
-    .home-band-split{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
-    .home-sample-outputs{padding:28px max(16px, env(safe-area-inset-left)) 32px max(16px, env(safe-area-inset-right))!important}
-    .home-sample-outputs-inner{padding:24px 18px 28px!important;border-radius:16px!important}
+    .home-band-split{padding:36px max(20px, env(safe-area-inset-left)) 40px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
+    .home-sample-outputs{padding:28px max(20px, env(safe-area-inset-left)) 32px max(20px, env(safe-area-inset-right))!important;overflow-x:clip!important;box-sizing:border-box!important}
+    .home-sample-outputs-inner{padding:24px 18px 28px!important;border-radius:16px!important;max-width:100%!important;overflow-x:clip!important;box-sizing:border-box!important}
     .home-sample-outputs-head{margin-bottom:16px!important}
+    .home-sample-intro{text-align:left!important;max-width:none!important;width:100%!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+    .home-sample-intro .section-label{display:block!important;text-align:left!important}
+    .home-sample-intro .home-heading{text-align:left!important}
     .home-sample-outputs-body--collapsed{max-height:clamp(160px,28vh,240px)!important}
     .home-sample-outputs-reveal{padding:10px 18px!important;font-size:12px!important;bottom:10px!important}
     .home-sample-block + .home-sample-block{margin-top:32px!important;padding-top:32px!important}
-    .home-wa-sample-pair{margin-top:28px!important}
-    .home-wa-sample-actions{margin-top:24px!important}
-    .home-pdf-download-wrap{margin-top:24px!important}
+    .home-wa-sample-pair{flex-direction:column!important;align-items:stretch!important;margin-top:28px!important;gap:24px!important;width:100%!important;box-sizing:border-box!important}
+    .home-wa-sample-col{align-items:stretch!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+    .home-wa-sample-kind{align-self:flex-start}
+    .home-wa-sample-frame{width:100%!important;height:auto!important;aspect-ratio:1/1!important;max-width:min(357px,100%)!important;margin-left:auto!important;margin-right:auto!important}
+    .home-wa-sample-actions{margin-top:24px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;gap:10px!important}
+    .home-wa-sample-actions .btn-outline{width:100%!important;box-sizing:border-box!important;justify-content:center!important}
+    .home-pdf-download-wrap{margin-top:24px!important;display:flex!important;justify-content:center!important;width:100%!important}
+    .home-pdf-download-wrap .btn-primary{width:100%!important;max-width:400px!important;box-sizing:border-box!important}
+    .home-pdf-sample-frame{max-width:100%!important;box-sizing:border-box!important;border-radius:12px!important;box-shadow:0 8px 28px rgba(15,23,42,0.06)!important}
     .home-band-split-inner{grid-template-columns:1fr!important;gap:14px!important}
-    .home-wa-sample-pair{flex-direction:column!important;align-items:center!important;margin-top:20px!important;gap:24px!important}
-    .home-pdf-sample-frame{border-radius:12px!important;box-shadow:0 8px 28px rgba(15,23,42,0.06)!important}
-    .home-band-card{padding:22px 18px!important;gap:14px!important}
+    .home-band-card{padding:22px 18px!important;gap:14px!important;flex-direction:column!important;align-items:stretch!important}
+    .home-band-card .home-band-card-media{align-self:flex-start!important}
+    .home-band-card h3,.home-band-card p{text-align:left!important}
     .home-band-card .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important}
-    .home-band-cta{padding:36px max(16px, env(safe-area-inset-left)) 40px max(16px, env(safe-area-inset-right))!important}
+    .home-band-cta{padding:36px max(20px, env(safe-area-inset-left)) 40px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
     .home-cta-eyebrow{margin-bottom:22px!important}
     .home-cta-grid{gap:14px!important}
     .home-cta-grid .card.glass-card{padding:22px 18px!important}
@@ -355,6 +373,10 @@ const G = `
     #prop-grid{scroll-margin-top:20px!important}
     .home-page-shell .card.glass-card{touch-action:manipulation!important}
     .home-footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:16px!important;padding:0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right))!important}
+    .home-cta-inner{width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding-left:0!important;padding-right:0!important}
+    @supports not (width: 1cqi) {
+      .home-wa-sample-scale-wrap{transform:scale(min(0.85, calc((100vw - 96px) / 420)))!important}
+    }
   }
   @media(max-width:640px){.h1big:not(.home-hero-headline){font-size:32px!important}}
   @media(max-width:480px){
@@ -2577,10 +2599,10 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
           <div className="home-wa-sample-pair">
             <div className="home-wa-sample-col">
-            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Sale</span>
-            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
-                <div id="home-wa-card-sale" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+            <span className="home-wa-sample-kind" style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Sale</span>
+            <div className="home-wa-sample-frame">
+              <div className="home-wa-sample-scale-wrap">
+                <div id="home-wa-card-sale" className="home-wa-card-mock">
                   <img
                     src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1600&q=90&auto=format&fit=crop"
                     alt=""
@@ -2616,10 +2638,10 @@ const Home = ({currentUser,onNavigate}) => {
             </div>
             </div>
             <div className="home-wa-sample-col">
-            <span style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Rent</span>
-            <div style={{width:357,height:357,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
-                <div id="home-wa-card-rent" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
+            <span className="home-wa-sample-kind" style={{fontSize:11,fontWeight:700,color:"var(--navy)",letterSpacing:"0.06em",textTransform:"uppercase"}}>Rent</span>
+            <div className="home-wa-sample-frame">
+              <div className="home-wa-sample-scale-wrap">
+                <div id="home-wa-card-rent" className="home-wa-card-mock">
                   <img
                     src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&q=90&auto=format&fit=crop"
                     alt=""
