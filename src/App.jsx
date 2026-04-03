@@ -222,6 +222,9 @@ const G = `
     .home-wa-sample-scale-wrap { transform: scale(min(0.85, calc(100cqi / 420))); }
   }
   .home-wa-card-mock { width: 420px; height: 420px; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 56px rgba(0,0,0,0.32); position: relative; background: #1a1410; }
+  /* Keep Northing chip crisp when the mock card is CSS-scaled (avoids subpixel flex drift in WebKit). */
+  .home-wa-sample-scale-wrap .northing-wa-chip-lockup { transform: translateZ(0); }
+  .home-wa-sample-scale-wrap .northing-wa-chip-lockup span { -webkit-font-smoothing: antialiased; }
   .home-wa-sample-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: clamp(22px, 3.2vw, 32px); padding-top: 2px; }
   .home-pdf-sample-frame { max-width: 720px; margin: clamp(12px, 2vw, 20px) auto 0; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 14px 44px rgba(15,23,42,0.08); border: 1px solid rgba(226,232,240,0.9); background: #fff; box-sizing: border-box; }
   .home-pdf-download-wrap { display: flex; justify-content: center; margin-top: clamp(22px, 3vw, 32px); }
@@ -413,26 +416,66 @@ const getPublicSiteBase = () => { try { const v = import.meta.env?.VITE_PUBLIC_S
 /** Default platform wordmark for Northing-only UI (nav, generic PDF header). Never used as a substitute on agent white-label surfaces. */
 const DEFAULT_NORTHING_LOGO_SRC = "/northing-logo.svg";
 
-/** Northing lockup for small white chips on WA sample cards — vector mark + HTML text so flexbox centers reliably (SVG text + wide viewBox skews in badges). */
-const NorthingWaChipLockup = () => (
-  <div style={{ display: "flex", alignItems: "center", gap: 5, lineHeight: 0, flexShrink: 0 }}>
-    <svg width={24} height={24} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden style={{ display: "block", flexShrink: 0 }}>
-      <circle cx="15" cy="15" r="11.5" stroke="#0f172a" strokeWidth="1.25" />
-      <path d="M15 5l5.25 9.8h-10.5z" fill="#ea580c" />
-    </svg>
-    <span
+/** Northing lockup for WA sample cards — fixed row height so mark + wordmark align inside scaled cards (avoids baseline/line-box skew). */
+const NorthingWaChipLockup = () => {
+  const row = 22;
+  return (
+    <div
+      className="northing-wa-chip-lockup"
       style={{
-        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        fontSize: 15,
-        fontWeight: 600,
-        letterSpacing: "-0.03em",
-        color: "#0f172a",
-        lineHeight: 1,
-        display: "block",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        flexShrink: 0,
+        height: row,
+        boxSizing: "border-box",
       }}
     >
-      Northing
-    </span>
+      <svg width={row} height={row} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden style={{ display: "block", flexShrink: 0 }}>
+        <circle cx="15" cy="15" r="11.5" stroke="#0f172a" strokeWidth="1.25" />
+        <path d="M15 5l5.25 9.8h-10.5z" fill="#ea580c" />
+      </svg>
+      <span
+        style={{
+          fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontSize: 14,
+          fontWeight: 600,
+          letterSpacing: "-0.03em",
+          color: "#0f172a",
+          lineHeight: `${row}px`,
+          height: row,
+          display: "flex",
+          alignItems: "center",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
+      >
+        Northing
+      </span>
+    </div>
+  );
+};
+
+/** White pill around the Northing lockup — symmetric padding, no line-height tricks (prevents uneven vertical padding in the chip). */
+const WaSampleCardLogoChip = () => (
+  <div
+    style={{
+      background: "#fff",
+      border: "1px solid rgba(15,23,42,0.08)",
+      borderRadius: 12,
+      padding: "7px 11px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: "0 2px 14px rgba(0,0,0,0.28)",
+      WebkitFontSmoothing: "antialiased",
+      flexShrink: 0,
+      boxSizing: "border-box",
+      minHeight: 36,
+    }}
+  >
+    <NorthingWaChipLockup />
   </div>
 );
 
@@ -2612,11 +2655,9 @@ const Home = ({currentUser,onNavigate}) => {
                     style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
                   />
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
-                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR SALE</span>
-                    <div style={{background:"#fff",border:"1px solid rgba(15,23,42,0.08)",borderRadius:12,padding:"7px 12px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 14px rgba(0,0,0,0.28)",WebkitFontSmoothing:"antialiased",lineHeight:0}}>
-                      <NorthingWaChipLockup />
-                    </div>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"nowrap",gap:8,minWidth:0}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px",flexShrink:0,whiteSpace:"nowrap"}}>FOR SALE</span>
+                    <WaSampleCardLogoChip />
                   </div>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
                     <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{fmtP(48500000)}</div>
@@ -2651,11 +2692,9 @@ const Home = ({currentUser,onNavigate}) => {
                     style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
                   />
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
-                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR RENT</span>
-                    <div style={{background:"#fff",border:"1px solid rgba(15,23,42,0.08)",borderRadius:12,padding:"7px 12px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 14px rgba(0,0,0,0.28)",WebkitFontSmoothing:"antialiased",lineHeight:0}}>
-                      <NorthingWaChipLockup />
-                    </div>
+                  <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"nowrap",gap:8,minWidth:0}}>
+                    <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px",flexShrink:0,whiteSpace:"nowrap"}}>FOR RENT</span>
+                    <WaSampleCardLogoChip />
                   </div>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
                     <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
