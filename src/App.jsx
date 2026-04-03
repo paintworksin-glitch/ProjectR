@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Component } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from "@supabase/supabase-js";
 import LoginParticles from "./LoginParticles.jsx";
 const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
@@ -755,6 +756,27 @@ const PDFModal = ({listing,onClose}) => {
     if(!el) return;
     setPdfLoading(true);
     try{
+      // Wait for fonts/images so html2canvas has everything needed (bounded so export never hangs forever).
+      const waitForImages=async(root)=>{
+        const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]).catch(()=>{});
+        const imgs=Array.from(root.querySelectorAll("img"));
+        await Promise.all(imgs.map(async(img)=>{
+          if(img.complete){
+            try{if(typeof img.decode==="function") await withTimeout(img.decode(),4000);}catch{}
+            return;
+          }
+          await withTimeout(new Promise(resolve=>{
+            const done=()=>resolve();
+            img.addEventListener("load",done,{once:true});
+            img.addEventListener("error",done,{once:true});
+          }),12000);
+        }));
+        try{
+          if(document.fonts && document.fonts.ready) await withTimeout(document.fonts.ready,5000);
+        }catch{}
+      };
+      await waitForImages(el);
+
       const h2c=await new Promise((res,rej)=>{
         if(window.html2canvas){res(window.html2canvas);return;}
         const s=document.createElement('script');
@@ -769,22 +791,87 @@ const PDFModal = ({listing,onClose}) => {
       });
       const canvas=await h2c(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',logging:false,windowWidth:720});
       const mmW=210;
-      const mmH=(canvas.height*mmW)/canvas.width;
       const pdf=new jsPDFCls({unit:'mm',format:'a4'});
       const pageH=297;
-      let y=0;
-      while(y<mmH){
-        if(y>0) pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,-y,mmW,mmH);
-        y+=pageH;
+
+      // Page slicing: crop the tall bitmap based on A4 height (fixed width), but if that boundary
+      // would cut through a tagged photo block, move the boundary to photo.start.
+      const elRect=el.getBoundingClientRect();
+      const cssToCanvasY=(elRect.height>0)?(canvas.height/elRect.height):1;
+      const pagePx=(pageH*canvas.width)/mmW; // canvas pixels that correspond to A4 page height
+
+      const photoBounds=Array.from(el.querySelectorAll('[data-pdf-photo="1"]'))
+        .map(node=>{
+          const r=node.getBoundingClientRect();
+          const startCss=r.top-elRect.top;
+          const endCss=startCss+r.height;
+          return { start:Math.max(0,startCss*cssToCanvasY), end:Math.min(canvas.height,endCss*cssToCanvasY) };
+        })
+        .filter(b=>b.end>b.start)
+        .sort((a,b)=>a.start-b.start);
+
+      // Merge overlaps for stable boundary checks.
+      const mergedPhotoBounds=[];
+      for(const b of photoBounds){
+        const prev=mergedPhotoBounds[mergedPhotoBounds.length-1];
+        if(prev && b.start<=prev.end+1){
+          prev.end=Math.max(prev.end,b.end);
+        }else{
+          mergedPhotoBounds.push({...b});
+        }
       }
+
+      const cropToDataUrl=(srcCanvas,sy,segH)=>{
+        const yInt=Math.floor(sy);
+        const maxH=srcCanvas.height-yInt;
+        const h=Math.max(1,Math.min(maxH,Math.ceil(segH)));
+        const sc=document.createElement('canvas');
+        sc.width=srcCanvas.width;
+        sc.height=h;
+        const ctx=sc.getContext('2d');
+        ctx.drawImage(srcCanvas,0,yInt,srcCanvas.width,h,0,0,srcCanvas.width,h);
+        return sc.toDataURL('image/jpeg',0.95);
+      };
+
+      let y=0;
+      let isFirst=true;
+      let guard=0;
+      while(y<canvas.height-1){
+        if(++guard>2000) break;
+        let pageEnd=Math.min(y+pagePx,canvas.height);
+
+        const crossing=mergedPhotoBounds.find(b=>b.start<pageEnd && b.end>pageEnd);
+        if(crossing){
+          const safeEnd=crossing.start;
+          if(safeEnd>y+1) pageEnd=safeEnd;
+        }
+
+        if(pageEnd<=y+1){
+          // Degenerate case (or a single photo block taller than the page).
+          pageEnd=Math.min(y+pagePx,canvas.height);
+        }
+        if(pageEnd<=y){
+          pageEnd=Math.min(y+1,canvas.height);
+        }
+
+        const segH=pageEnd-y;
+        const segMmH=(segH*mmW)/canvas.width;
+        const segImg=cropToDataUrl(canvas,y,segH);
+
+        if(!isFirst) pdf.addPage();
+        isFirst=false;
+        pdf.addImage(segImg,'JPEG',0,0,mmW,segMmH);
+
+        y=pageEnd;
+      }
+
       pdf.save('Northing-'+((listing.title||'property').replace(/\s+/g,'-').toLowerCase())+'.pdf');
     }catch(err){console.error(err);window.print();}
-    setPdfLoading(false);
+    finally{setPdfLoading(false);}
   };
 
-  return (
-    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
+  const shell=(
+    <div className="afd" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:12000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)"}} onClick={onClose}>
       <div className="asl" style={{background:"#fff",borderRadius:18,maxWidth:720,width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 32px 80px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px",borderBottom:"1px solid #eee",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontWeight:800,fontSize:14,color:"var(--navy)"}}>PDF Preview</div>
@@ -850,7 +937,7 @@ const PDFModal = ({listing,onClose}) => {
               <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Property Photos</div>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {listing.photos.map((p,i)=>(
-                  <div key={i} style={{position:"relative"}}>
+                  <div key={i} data-pdf-photo="1" style={{position:"relative"}}>
                     <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
                     {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
                   </div>
@@ -898,6 +985,7 @@ const PDFModal = ({listing,onClose}) => {
       </div>
     </div>
   );
+  return typeof document!=="undefined"&&document.body?createPortal(shell,document.body):shell;
 };
 
 const useSecretAdmin = (cb) => {
