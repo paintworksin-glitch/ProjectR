@@ -227,6 +227,11 @@ const G = `
     .home-hero-parallax-bg--illustration { transform: none !important; will-change: auto; }
     .home-hero-inner.home-hero-parallax-inner { transform: none !important; }
   }
+  @media (max-width: 768px) {
+    .home-hero-parallax-bg--illustration,
+    .home-hero-inner.home-hero-parallax-inner { transform: none !important; will-change: auto !important; }
+    .home-hero-marquee-root { will-change: auto !important; }
+  }
   .home-prop-section { padding: clamp(36px, 4.5vw, 56px) var(--home-gutter-x) clamp(44px, 5.5vw, 64px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
   .home-prop-section + .home-sample-pane { padding-top: clamp(28px, 4vw, 44px); }
   #prop-grid { scroll-margin-top: 120px; }
@@ -2889,7 +2894,7 @@ const HomeHeroBuildingsStrip = () => {
   );
 };
 
-/** Colourful skyline; slow right→left loop via SMIL (SVG user units). Respects reduced motion. */
+/** Colourful skyline; slow right→left drift (translate 0→−900px). Respects reduced motion only. */
 const HomeHeroIllustration = () => {
   const clipId = `homeHeroSkyClip-${useId().replace(/:/g, "")}`;
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -2899,7 +2904,11 @@ const HomeHeroIllustration = () => {
     const setRm = () => setReduceMotion(!!mqRm.matches);
     setRm();
     mqRm.addEventListener("change", setRm);
-    const updDur = () => setMarqueeDur(window.innerWidth < 640 ? "155s" : "125s");
+    const updDur = () => {
+      const w = window.innerWidth;
+      if (w <= 768) setMarqueeDur("190s");
+      else setMarqueeDur("125s");
+    };
     updDur();
     window.addEventListener("resize", updDur, { passive: true });
     return () => {
@@ -2907,6 +2916,7 @@ const HomeHeroIllustration = () => {
       window.removeEventListener("resize", updDur);
     };
   }, []);
+  const showMarquee = !reduceMotion;
   return (
     <svg className="home-hero-illustration-svg" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
       <defs>
@@ -2916,8 +2926,8 @@ const HomeHeroIllustration = () => {
       </defs>
       <g clipPath={`url(#${clipId})`}>
         <g className="home-hero-marquee-root">
-          {!reduceMotion ? (
-            <animateTransform attributeName="transform" type="translate" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
+          {showMarquee ? (
+            <animateTransform attributeName="transform" type="translate" additive="replace" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
           ) : null}
           <g transform="translate(0,0)">
             <HomeHeroBuildingsStrip />
@@ -3149,10 +3159,18 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
   const heroParallaxInnerRef = useRef(null);
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return () => {};
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq.matches) return () => {};
+    const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const mqMob = window.matchMedia("(max-width: 768px)");
     let raf = 0;
+    const clearParallax = () => {
+      cancelAnimationFrame(raf);
+      const ill = heroParallaxIllustrationRef.current;
+      const inner = heroParallaxInnerRef.current;
+      if (ill) ill.style.removeProperty("transform");
+      if (inner) inner.style.removeProperty("transform");
+    };
     const tick = () => {
+      if (mqRm.matches || mqMob.matches) return;
       const sec = heroSectionRef.current;
       const ill = heroParallaxIllustrationRef.current;
       const inner = heroParallaxInnerRef.current;
@@ -3164,14 +3182,27 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       if (inner) inner.style.transform = `translate3d(0, ${y * -0.045}px, 0)`;
     };
     const onScroll = () => {
+      if (mqRm.matches || mqMob.matches) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(tick);
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    tick();
+    const bindParallax = () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      clearParallax();
+      if (mqRm.matches || mqMob.matches) return;
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll, { passive: true });
+      tick();
+    };
+    const onMq = () => bindParallax();
+    mqRm.addEventListener("change", onMq);
+    mqMob.addEventListener("change", onMq);
+    bindParallax();
     return () => {
-      cancelAnimationFrame(raf);
+      mqRm.removeEventListener("change", onMq);
+      mqMob.removeEventListener("change", onMq);
+      clearParallax();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
