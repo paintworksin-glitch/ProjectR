@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage({ onNavigate }) {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--cream)" }}>
-      <main style={{ flex: 1, width: "100%", maxWidth: 720, margin: "0 auto", padding: "28px var(--home-gutter-x, 24px) 48px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, width: "100%", maxWidth: 720, margin: "0 auto", padding: "28px max(20px, env(safe-area-inset-left)) max(80px, calc(40px + env(safe-area-inset-bottom))) max(20px, env(safe-area-inset-right))", boxSizing: "border-box" }}>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
           <button type="button" onClick={() => onNavigate("home")} style={{ ...linkBtn, color: "var(--primary)", fontWeight: 600 }}>
             ← Back to Home

@@ -286,15 +286,19 @@ const G = `
     #pdf-print-area * { visibility:visible !important; }
   }
   @media(max-width:768px){
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+    body{font-size:16px;line-height:1.6}
+    .inp{font-size:16px!important;min-height:48px!important;box-sizing:border-box!important}
+    textarea.inp{min-height:100px!important;font-size:16px!important}
     .nav-desktop-cluster{display:none!important}
     .nav-mob-actions{display:flex!important}
     .nav-mob-toggle{display:inline-flex!important}
-    .glass-nav-enhance{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:60px!important}
+    .glass-nav-enhance{padding-left:max(20px, env(safe-area-inset-left))!important;padding-right:max(20px, env(safe-area-inset-right))!important;min-height:56px!important}
     .nav-logo-img{height:46px!important;max-width:200px!important}
     .hm{display:none!important}
     .gr{grid-template-columns:1fr!important}
     .gr3{grid-template-columns:1fr!important}
-    .mob-nav{display:flex!important;align-items:stretch!important;justify-content:space-around!important;padding:10px 8px max(12px, env(safe-area-inset-bottom))!important;background:rgba(255,255,255,0.97)!important;backdrop-filter:blur(16px) saturate(180%)!important;-webkit-backdrop-filter:blur(16px) saturate(180%)!important;border-top:1px solid rgba(226,232,240,0.95)!important;border-top-left-radius:16px!important;border-top-right-radius:16px!important;box-shadow:0 -6px 28px rgba(15,23,42,0.06)!important}
+    .mob-nav{display:flex!important;align-items:stretch!important;justify-content:space-around!important;padding:10px max(10px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right))!important;background:rgba(255,255,255,0.97)!important;backdrop-filter:blur(16px) saturate(180%)!important;-webkit-backdrop-filter:blur(16px) saturate(180%)!important;border-top:1px solid rgba(226,232,240,0.95)!important;border-top-left-radius:16px!important;border-top-right-radius:16px!important;box-shadow:0 -6px 28px rgba(15,23,42,0.06)!important}
     .mob-nav button{min-height:52px!important;min-width:56px!important;padding:10px 8px!important;border-radius:14px!important;align-items:center!important;justify-content:center!important;gap:4px!important;color:var(--navy2)!important}
     .mob-nav button:active{background:rgba(241,245,249,0.95)!important}
     .mob-nav button span:first-child{font-size:22px!important;line-height:1!important}
@@ -377,10 +381,24 @@ const G = `
     .home-band-card h3,.home-band-card p{text-align:left!important}
     .home-band-card .btn-primary{width:100%!important;min-height:48px!important;justify-content:center!important}
     .home-band-cta{padding:36px max(20px, env(safe-area-inset-left)) 40px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
-    .home-cta-eyebrow{margin-bottom:22px!important}
-    .home-cta-grid{gap:14px!important}
+    .home-cta-eyebrow{text-align:left!important;margin-bottom:18px!important;padding:0 2px!important;box-sizing:border-box!important}
+    .home-cta-eyebrow span{letter-spacing:0.14em!important}
+    .home-cta-grid{gap:16px!important}
     .home-cta-grid .card.glass-card{padding:22px 18px!important}
-    .home-cta-grid .home-cta-quote{font-size:14px!important;line-height:1.65!important}
+    .home-cta-grid .home-cta-quote{font-size:15px!important;line-height:1.68!important}
+    .feed-page{overflow-x:clip!important;box-sizing:border-box!important;padding-bottom:max(84px, calc(52px + env(safe-area-inset-bottom)))!important}
+    .feed-page-hero{padding:48px max(20px, env(safe-area-inset-left)) 88px max(20px, env(safe-area-inset-right))!important;box-sizing:border-box!important}
+    .feed-page-hero-inner{max-width:100%!important;padding:0 2px!important;box-sizing:border-box!important}
+    .feed-page-hero-inner h1.h1big{font-size:clamp(26px,7.2vw,40px)!important;line-height:1.12!important;margin-bottom:14px!important}
+    .feed-page-hero-inner>p{font-size:15px!important;line-height:1.55!important;margin-bottom:24px!important;padding:0!important}
+    .feed-search-tape{flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:12px!important;max-width:100%!important;box-sizing:border-box!important}
+    .feed-search-tape select,.feed-search-tape .feed-search-input{width:100%!important;min-height:48px!important;font-size:16px!important;box-sizing:border-box!important;-webkit-appearance:none;appearance:none}
+    .feed-page-inner{padding:0 max(20px, env(safe-area-inset-left)) 56px max(20px, env(safe-area-inset-right))!important;margin-top:-40px!important;box-sizing:border-box!important;max-width:100%!important}
+    .feed-toolbar-card{flex-direction:column!important;align-items:stretch!important;gap:14px!important}
+    .feed-toolbar-card .feed-toolbar-row{width:100%!important;justify-content:space-between!important;gap:10px!important}
+    .feed-toolbar-card select.inp.feed-sort-select{max-width:100%!important;width:100%!important;margin:0!important}
+    .nav-drawer-panel{padding:calc(12px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left))!important}
+    .nav-drawer-links button{min-height:48px!important;padding:14px 18px!important;font-size:15px!important}
     .home-empty-state-card{padding:36px 20px!important}
     .home-empty-state-card .home-empty-icon{font-size:40px!important;margin-bottom:14px!important}
     #prop-grid{scroll-margin-top:20px!important}
@@ -403,6 +421,11 @@ const G = `
   }
   @media(max-width:420px){
     .home-qs-grid2{grid-template-columns:1fr!important;gap:15px!important}
+  }
+  @media (max-width: 768px) and (hover: none) {
+    .card:hover, .card-flat:hover { transform: none !important; }
+    .home-page-shell .card:not(.glass-card):hover,
+    .home-page-shell .card.glass-card:hover { transform: none !important; }
   }
 `;
 
@@ -2284,36 +2307,36 @@ const Feed = ({currentUser,showToast,onNavigate}) => {
     else{await supabase.from("saved_listings").insert({user_id:currentUser.id,listing_id:id});setSavedIds(s=>[...s,id]);showToast("Saved! ❤️","success");}
   };
   return (
-    <div style={{minHeight:"100vh",background:"var(--cream)"}}>
-      <div style={{background:"var(--navy)",padding:"80px 24px 110px",position:"relative",overflow:"hidden"}}>
+    <div className="feed-page" style={{minHeight:"100vh",background:"var(--cream)"}}>
+      <div className="feed-page-hero" style={{background:"var(--navy)",padding:"80px 24px 110px",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-100,right:-100,width:400,height:400,borderRadius:"50%",background:"rgba(61,170,126,0.1)"}} className="af"/>
-        <div style={{maxWidth:700,margin:"0 auto",position:"relative",textAlign:"center"}}>
+        <div className="feed-page-hero-inner" style={{maxWidth:700,margin:"0 auto",position:"relative",textAlign:"center"}}>
           <span style={{fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:2,display:"block",marginBottom:12}}>India's Property Marketing Platform</span>
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:48,fontWeight:800,color:"#fff",marginBottom:16,lineHeight:1.1}} className="h1big">Find Your <span style={{color:"var(--green)"}}>Dream</span> Property</h1>
           <p style={{fontSize:16,color:"rgba(255,255,255,0.6)",marginBottom:32}}>Browse verified listings from professional agents across India.</p>
-          <div style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:16,padding:8,display:"flex",gap:8,maxWidth:620,margin:"0 auto",backdropFilter:"blur(12px)",flexWrap:"wrap"}}>
+          <div className="feed-search-tape" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:16,padding:8,display:"flex",gap:8,maxWidth:620,margin:"0 auto",backdropFilter:"blur(12px)",flexWrap:"wrap"}}>
             <select value={filters.listingType} onChange={e=>setF("listingType",e.target.value)} style={{background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",borderRadius:10,padding:"8px 12px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",minWidth:90}}>
               <option value="" style={{background:"#1a1410",color:"#fff"}}>All</option>
               <option value="Rent" style={{background:"#1a1410",color:"#fff"}}>Rent</option>
               <option value="Sale" style={{background:"#1a1410",color:"#fff"}}>Buy</option>
             </select>
-            <input value={filters.search} onChange={e=>setF("search",e.target.value)} placeholder="Search by location or title…" className="inp" style={{flex:1,minWidth:160,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}}/>
+            <input value={filters.search} onChange={e=>setF("search",e.target.value)} placeholder="Search by location or title…" className="inp feed-search-input" style={{flex:1,minWidth:160,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff"}}/>
             <div style={{display:"flex",gap:6}} className="hm">
               {["Apartment","Villa","Commercial"].map(t=><button key={t} onClick={()=>setF("propertyType",filters.propertyType===t?"":t)} style={{padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:filters.propertyType===t?"var(--green)":"rgba(255,255,255,0.08)",color:"#fff",border:`1px solid ${filters.propertyType===t?"var(--green)":"rgba(255,255,255,0.15)"}`,transition:"all 0.2s"}}>{t}</button>)}
             </div>
           </div>
         </div>
       </div>
-      <div style={{maxWidth:1180,margin:"-50px auto 0",padding:"0 20px 60px",position:"relative"}}>
-        <div className="card" style={{padding:"16px 20px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div className="feed-page-inner" style={{maxWidth:1180,margin:"-50px auto 0",padding:"0 20px 60px",position:"relative"}}>
+        <div className="card feed-toolbar-card" style={{padding:"16px 20px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+          <div className="feed-toolbar-row" style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",flex:1}}>
             <button onClick={()=>setOpen(o=>!o)} style={{padding:"8px 16px",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",background:open?"var(--navy)":"var(--gray)",color:open?"#fff":"var(--text)",border:`1px solid ${open?"var(--navy)":"var(--border)"}`,transition:"all 0.2s"}}>
               🔍 Filters {af>0&&<span style={{background:open?"rgba(255,255,255,0.2)":"var(--green-light)",color:open?"#fff":"var(--green)",borderRadius:10,padding:"1px 7px",fontSize:11,marginLeft:4}}>{af}</span>}
             </button>
             {af>0&&<button onClick={clear} style={{fontSize:12,color:"var(--muted)",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>Clear all</button>}
             <span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{loading?"Loading…":`${filtered.length} ${filtered.length===1?"property":"properties"} found`}</span>
           </div>
-          <select value={sort} onChange={e=>setSort(e.target.value)} className="inp" style={{width:"auto",fontSize:13}}>
+          <select value={sort} onChange={e=>setSort(e.target.value)} className="inp feed-sort-select" style={{width:"auto",fontSize:13}}>
             <option value="newest">Newest First</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option>
           </select>
         </div>
