@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, Component } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from "@supabase/supabase-js";
 import LoginParticles from "./LoginParticles.jsx";
@@ -2665,10 +2665,29 @@ const BrokerPublicPage = ({ name }) => {
   );
 };
 
+/** Parse shell URL: public broker profile `/?agent=id`, or /feed, /login, /dashboard, else home. */
+const parseShellLocation = () => {
+  const path = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+  const agent = new URLSearchParams(window.location.search).get("agent");
+  if (agent) return { page: "agentpage", agentId: agent };
+  if (path === "/feed") return { page: "feed", agentId: null };
+  if (path === "/login") return { page: "login", agentId: null };
+  if (path === "/dashboard") return { page: "dashboard", agentId: null };
+  return { page: "home", agentId: null };
+};
+
+const shellPathForPage = (page, agentId) => {
+  if (page === "agentpage" && agentId) return `/?agent=${encodeURIComponent(agentId)}`;
+  if (page === "feed") return "/feed";
+  if (page === "login") return "/login";
+  if (page === "dashboard") return "/dashboard";
+  return "/";
+};
 
 export default function App() {
-  const [page,setPage]=useState("home");
-  const [agentPageId,setAgentPageId]=useState(null);
+  const shellInit = parseShellLocation();
+  const [page,setPage]=useState(shellInit.page);
+  const [agentPageId,setAgentPageId]=useState(shellInit.agentId);
   const [user,setUser]=useState(null);
   const [authLoading,setAuthLoading]=useState(true);
   const [toast,setToast]=useState(null);
@@ -2678,9 +2697,6 @@ export default function App() {
   const [kitListing,setKitListing]=useState(null);
 
   useEffect(()=>{
-    const params=new URLSearchParams(window.location.search);
-    const agentParam=params.get("agent");
-    if(agentParam){setAgentPageId(agentParam);setPage("agentpage");}
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:profile}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
@@ -2688,7 +2704,6 @@ export default function App() {
           const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",profile.id);
           const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
           setUser({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
-          //if(!agentParam) setPage("dashboard");
         }
       }
       setAuthLoading(false);
@@ -2698,9 +2713,53 @@ export default function App() {
     _h.openKit=(l)=>setKitListing(l);
   },[]);
 
+  /** Logged-out users must not stay on /dashboard (direct URL or refresh). */
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("agent")) return;
+    if (window.location.pathname === "/dashboard" && !user) {
+      window.history.replaceState(null, "", "/login");
+      setPage("login");
+      setAgentPageId(null);
+    }
+  }, [authLoading, user]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const { page: nextPage, agentId } = parseShellLocation();
+      if (nextPage === "dashboard" && !user) {
+        window.history.replaceState(null, "", "/login");
+        setPage("login");
+        setAgentPageId(null);
+        return;
+      }
+      setPage(nextPage);
+      setAgentPageId(agentId);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [user]);
+
   const showToast=(msg,type="info")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
-  const nav=(p)=>{setPage(p);window.scrollTo(0,0);};
-  const login=(u)=>{setUser(u);nav("dashboard");};
+  /** `userOverride` avoids stale closure right after login (setUser + nav in same tick). */
+  const nav=(p,userOverride)=>{
+    const effectiveUser = userOverride !== undefined ? userOverride : user;
+    if (p === "dashboard" && !effectiveUser) {
+      setPage("login");
+      setAgentPageId(null);
+      window.history.pushState(null, "", "/login");
+      window.scrollTo(0, 0);
+      return;
+    }
+    setPage(p);
+    if (p === "home" || p === "feed" || p === "login" || p === "dashboard") {
+      setAgentPageId(null);
+      window.history.pushState(null, "", shellPathForPage(p, null));
+    }
+    window.scrollTo(0, 0);
+  };
+  const login=(u)=>{setUser(u);nav("dashboard", u);};
   const refreshSessionUser=async()=>{
     const {data:{session}}=await supabase.auth.getSession();
     if(!session?.user) return;
@@ -2741,7 +2800,6 @@ export default function App() {
       {page==="dashboard"&&user?.role==="seller"&&<AgentDash currentUser={user} showToast={showToast} onPhoneLinked={refreshSessionUser}/>}
       {page==="dashboard"&&user?.role==="user"&&<UserDash currentUser={user} showToast={showToast} onPhoneLinked={refreshSessionUser}/>}
       {page==="dashboard"&&user?.role==="master"&&<MasterDash showToast={showToast}/>}
-      {page==="dashboard"&&!user&&<LoginPage onLogin={login} showToast={showToast} onNavigate={nav}/>}
       {adminModal&&<SecretAdminModal onLogin={login} onClose={()=>setAdminModal(false)} showToast={showToast}/>}
       {waListing&&<WACardModal listing={waListing} onClose={()=>setWAListing(null)} currentUser={user}/>}
       {pdfListing&&<PDFModal listing={pdfListing} onClose={()=>setPDFListing(null)} currentUser={user}/>}
