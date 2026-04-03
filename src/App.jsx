@@ -14,7 +14,7 @@ const G = `
   .home-heading { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-weight: 600; font-optical-sizing: auto; letter-spacing: -0.012em; line-height: 1.22; }
   .login-heading-serif { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; letter-spacing: -0.01em; line-height: 1.2; }
   .h1big-hero { min-height: clamp(260px, 38vh, 420px); width: 100%; display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; }
-  .home-hero-inner { position: relative; z-index: 1; width: 100%; max-width: var(--home-content-max); margin: 0 auto; padding: clamp(56px, 6.2vw, 80px) var(--home-gutter-x) clamp(64px, 7.2vw, 88px); display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(min(100%, 300px), 398px); align-items: start; column-gap: clamp(36px, 4.8vw, 56px); row-gap: clamp(30px, 3.8vw, 42px); box-sizing: border-box; flex: 1 1 auto; min-width: 0; will-change: transform; }
+  .home-hero-inner { position: relative; z-index: 1; width: 100%; max-width: var(--home-content-max); margin: 0 auto; padding: clamp(40px, 5.2vw, 68px) var(--home-gutter-x) clamp(48px, 6vw, 76px); display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(min(100%, 300px), 398px); align-items: start; column-gap: clamp(28px, 4vw, 48px); row-gap: clamp(24px, 3.2vw, 36px); box-sizing: border-box; flex: 1 1 auto; min-width: 0; will-change: transform; }
   .home-hero-text { min-width: 0; max-width: 42rem; align-self: start; justify-self: start; }
   .home-hero-headline { font-size: clamp(40px, 4.35vw, 58px); line-height: 1.06; letter-spacing: -0.03em; font-weight: 800; color: var(--navy); text-wrap: balance; }
   .home-hero-headline-line { display: block; }
@@ -24,11 +24,11 @@ const G = `
   .home-hero-parallax-bg img { position: absolute; left: 0; top: -8%; width: 100%; height: 116%; object-fit: cover; object-position: center; opacity: 0.055; will-change: transform; }
   .home-hero-search-wrap { min-width: 0; width: 100%; max-width: 400px; justify-self: end; display: flex; flex-direction: column; align-self: stretch; gap: 14px; }
   .home-hero-search { flex: 0 1 380px; max-width: 100%; min-width: 0; width: 100%; border-radius: var(--home-card-radius) !important; padding: 0 !important; overflow: hidden; background: #fff !important; border: var(--home-card-border) !important; box-shadow: var(--home-card-shadow) !important; backdrop-filter: blur(8px) saturate(120%) !important; -webkit-backdrop-filter: blur(8px) saturate(120%) !important; }
-  .home-qs-inner { padding: 26px 26px 28px; }
-  .home-qs-head { display: flex; align-items: center; gap: 12px; margin-bottom: 0; padding-bottom: 20px; border-bottom: 1px solid rgba(226,232,240,0.42); }
+  .home-qs-inner { padding: 22px 22px 24px; }
+  .home-qs-head { display: flex; align-items: center; gap: 12px; margin-bottom: 0; padding-bottom: 16px; border-bottom: 1px solid rgba(226,232,240,0.42); }
   .home-qs-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.25rem; font-weight: 700; color: var(--navy); margin: 0; letter-spacing: -0.024em; line-height: 1.2; }
   .home-qs-icon { font-size: 1.1rem; opacity: 0.78; line-height: 1; flex-shrink: 0; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,247,237,0.72); border: 1px solid rgba(254,215,170,0.32); }
-  .home-qs-stack { display: flex; flex-direction: column; gap: 18px; margin-top: 22px; }
+  .home-qs-stack { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
   .home-qs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; align-items: start; }
   .home-qs-grid2 + .home-qs-grid2 { margin-top: 2px; }
   .home-qs-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-readable); margin-bottom: 9px; letter-spacing: 0.005em; line-height: 1.4; }
@@ -41,7 +41,7 @@ const G = `
   .home-hero-search .inp.home-qs-inp:focus { border-color: rgba(234,88,12,0.38) !important; background: #fff !important; box-shadow: 0 0 0 3px rgba(234,88,12,0.08), inset 0 1px 0 rgba(255,255,255,1) !important; outline: none; }
   .home-hero-search .inp.home-qs-inp:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(241,245,249,0.85) !important; }
   .home-qs-submit { width: 100%; margin-top: 10px; padding: 15px 20px !important; border-radius: 12px !important; font-size: 15px !important; font-weight: 700; letter-spacing: -0.017em; }
-  .home-hero-actions { display: flex; gap: 14px 18px; margin-top: clamp(32px, 4.2vw, 44px); padding-top: 6px; flex-wrap: wrap; align-items: center; }
+  .home-hero-actions { display: flex; gap: 12px 16px; margin-top: clamp(24px, 3.5vw, 36px); padding-top: 4px; flex-wrap: wrap; align-items: center; }
   .home-hero-cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; letter-spacing: -0.014em; line-height: 1.2; text-align: center; box-sizing: border-box; }
   .home-hero-actions .home-hero-cta.btn-primary { box-shadow: 0 1px 2px rgba(234,88,12,0.12), 0 4px 14px rgba(234,88,12,0.08), inset 0 1px 0 rgba(255,255,255,0.22); }
   .home-hero-actions .home-hero-cta.btn-primary:hover:not(:disabled) { transform: translateY(-0.5px); filter: brightness(1.02); box-shadow: 0 2px 8px rgba(234,88,12,0.14), 0 8px 22px rgba(234,88,12,0.1), inset 0 1px 0 rgba(255,255,255,0.26); }
@@ -69,7 +69,7 @@ const G = `
     --white: #ffffff; --gray: #f1f5f9; --border: #e8ecf1; --text: #0f172a;
     --muted: #64748b; --text-readable: #475569; --text-body: #334155;
     --home-content-max: 1120px;
-    --home-gutter-x: clamp(22px, 4vw, 40px);
+    --home-gutter-x: clamp(18px, 3.2vw, 32px);
     --shadow: 0 1px 2px rgba(15,23,42,0.028), 0 8px 24px rgba(15,23,42,0.032);
     --shadow-lg: 0 2px 8px rgba(15,23,42,0.028), 0 24px 48px rgba(15,23,42,0.05);
     --shadow-card-hover: 0 6px 20px rgba(15,23,42,0.045), 0 2px 6px rgba(15,23,42,0.028);
@@ -132,35 +132,67 @@ const G = `
     backdrop-filter: blur(28px) saturate(185%);
     -webkit-backdrop-filter: blur(28px) saturate(185%);
   }
+  .nav-desktop-cluster { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; max-width: min(100%, 720px); }
+  .nav-mob-actions { display: none; align-items: center; gap: 10px; flex-shrink: 0; }
+  .nav-mob-toggle {
+    display: none; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid rgba(226,232,240,0.95); background: rgba(255,255,255,0.96); cursor: pointer; color: var(--navy2);
+    font-size: 20px; line-height: 1; box-shadow: 0 1px 2px rgba(15,23,42,0.04); transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  }
+  .nav-mob-toggle:active { transform: scale(0.96); }
+  .nav-mob-cta {
+    padding: 9px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; border: none; cursor: pointer; font-family: inherit;
+    background: linear-gradient(180deg, #f97316 0%, var(--primary) 48%, #c2410c 100%); color: #fff;
+    box-shadow: 0 1px 2px rgba(234,88,12,0.15); white-space: nowrap;
+  }
+  .nav-drawer-backdrop { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,0.38); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .nav-drawer-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(100%, 400px); max-width: 100vw; z-index: 9999;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); box-shadow: -16px 0 56px rgba(15,23,42,0.14);
+    display: flex; flex-direction: column; padding: calc(16px + env(safe-area-inset-top)) 20px 24px calc(20px + env(safe-area-inset-right));
+    box-sizing: border-box; border-left: 1px solid rgba(226,232,240,0.85); animation: navDrawerIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes navDrawerIn { from { transform: translateX(100%); opacity: 0.96; } to { transform: translateX(0); opacity: 1; } }
+  .nav-drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(226,232,240,0.75); }
+  .nav-drawer-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.125rem; font-weight: 700; color: var(--navy); letter-spacing: -0.02em; margin: 0; }
+  .nav-drawer-close { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(226,232,240,0.9); background: #fff; cursor: pointer; font-size: 22px; line-height: 1; color: var(--navy2); display: flex; align-items: center; justify-content: center; }
+  .nav-drawer-links { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+  .nav-drawer-links button {
+    text-align: left; padding: 14px 16px; border-radius: 12px; border: none; background: transparent; font-size: 15px; font-weight: 600;
+    color: var(--navy2); font-family: inherit; cursor: pointer; transition: background 0.18s, color 0.18s;
+  }
+  .nav-drawer-links button:hover, .nav-drawer-links button:focus-visible { background: rgba(241,245,249,0.95); color: var(--primary); outline: none; }
+  .nav-drawer-links button.nav-drawer-link-active { background: var(--primary-light); color: var(--primary); }
+  .nav-drawer-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(226,232,240,0.75); display: flex; flex-direction: column; gap: 8px; }
   .btn-danger { background: #FEF2F2; border: 1.5px solid #FECACA; color: #DC2626; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: inherit; }
   .btn-danger:hover { background: #FEE2E2; }
   .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.2px; display: inline-block; }
   .tag { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); }
   .tag-navy { background: rgba(15,23,42,0.05); color: var(--navy); border: 1px solid var(--border); }
-  .section-label { font-size: 11px; font-weight: 600; color: var(--primary2); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; display: block; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--primary2); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; display: block; }
   .home-hero-section { background: linear-gradient(175deg, #ffffff 0%, #fafbfd 42%, #f3f5f8 100%); border-bottom: 1px solid rgba(226,232,240,0.42); isolation: isolate; }
   @media (prefers-reduced-motion: reduce) {
     .home-hero-parallax-bg img { transform: none !important; will-change: auto; }
     .home-hero-inner.home-hero-parallax-inner { transform: none !important; }
   }
-  .home-prop-section { padding: clamp(48px, 5.5vw, 68px) var(--home-gutter-x) clamp(60px, 6.8vw, 84px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
-  .home-prop-section + .home-sample-outputs { padding-top: clamp(40px, 5vw, 56px); }
-  #prop-grid { scroll-margin-top: 36px; }
-  #home-sample-outputs { scroll-margin-top: 36px; }
-  .home-featured-toolbar { display: flex; gap: 22px 32px; margin-bottom: clamp(30px, 3.8vw, 44px); flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
+  .home-prop-section { padding: clamp(36px, 4.5vw, 56px) var(--home-gutter-x) clamp(44px, 5.5vw, 64px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
+  .home-prop-section + .home-sample-outputs { padding-top: clamp(28px, 4vw, 44px); }
+  #prop-grid { scroll-margin-top: 28px; }
+  #home-sample-outputs { scroll-margin-top: 28px; }
+  .home-featured-toolbar { display: flex; gap: 22px 32px; margin-bottom: clamp(22px, 3vw, 36px); flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
   .home-featured-title { font-size: clamp(1.4rem, 2.45vw, 1.72rem); font-weight: 700; color: var(--navy); letter-spacing: -0.022em; line-height: 1.18; }
-  .home-featured-sub { font-size: 15px; color: var(--text-readable); margin-top: 14px; font-weight: 400; line-height: 1.68; max-width: 40em; }
+  .home-featured-sub { font-size: 15px; color: var(--text-readable); margin-top: 10px; font-weight: 400; line-height: 1.62; max-width: 40em; }
   .home-featured-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-end; padding-top: 2px; }
   .home-ui-clear-filters { padding: 10px 18px; border-radius: 12px; background: #fff; color: var(--navy2); border: 1px solid rgba(226,232,240,0.75); font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; line-height: 1.25; box-shadow: 0 1px 2px rgba(15,23,42,0.02); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: border-color 0.22s, color 0.2s, box-shadow 0.24s, transform 0.2s ease; min-height: 44px; box-sizing: border-box; }
   .home-ui-clear-filters:hover { border-color: rgba(234,88,12,0.22); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,0.035); transform: translateY(-0.5px); }
   .home-featured-actions .btn-outline { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-sizing: border-box; }
   .home-featured-actions .btn-primary { min-height: 44px; padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; box-sizing: border-box; border: none; }
-  .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(56px, 6.8vw, 80px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); }
+  .home-band-split { background: linear-gradient(180deg, #fbfcfe 0%, #f5f7fa 100%); padding: clamp(44px, 5.5vw, 68px) var(--home-gutter-x); border-top: 1px solid rgba(226,232,240,0.45); border-bottom: 1px solid rgba(226,232,240,0.45); }
   .home-band-split-inner { max-width: var(--home-content-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 3vw, 28px); align-items: stretch; }
-  .home-sample-outputs { padding: clamp(40px, 5vw, 64px) var(--home-gutter-x); background: transparent; border: none; }
-  .home-sample-outputs-inner { max-width: 920px; margin: 0 auto; width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35); border: 1px solid rgba(255,255,255,0.65); border-radius: var(--home-card-radius); box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 20px 48px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.85); padding: clamp(28px, 3.8vw, 44px) clamp(20px, 3vw, 36px); }
+  .home-sample-outputs { padding: clamp(28px, 4vw, 48px) var(--home-gutter-x); background: transparent; border: none; }
+  .home-sample-outputs-inner { max-width: 920px; margin: 0 auto; width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35); border: 1px solid rgba(255,255,255,0.65); border-radius: var(--home-card-radius); box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 20px 48px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.85); padding: clamp(22px, 3.2vw, 36px) clamp(18px, 2.2vw, 32px); }
   .home-sample-outputs-inner .home-wa-sample-inner { max-width: none; margin: 0; }
-  .home-sample-outputs-head { text-align: center; max-width: 38rem; margin-left: auto; margin-right: auto; margin-bottom: clamp(20px, 2.5vw, 28px); }
+  .home-sample-outputs-head { text-align: center; max-width: 38rem; margin-left: auto; margin-right: auto; margin-bottom: clamp(16px, 2vw, 24px); }
   .home-sample-outputs-head-toggle { width: 100%; max-width: 38rem; margin: 0 auto; display: block; padding: 12px 16px 16px; background: transparent; border: none; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: center; color: inherit; transition: background 0.2s ease, box-shadow 0.2s ease; -webkit-tap-highlight-color: transparent; }
   .home-sample-outputs-head-toggle:hover { background: rgba(241,245,249,0.65); }
   .home-sample-outputs-head-toggle:focus-visible { outline: 2px solid rgba(234,88,12,0.45); outline-offset: 2px; }
@@ -179,22 +211,22 @@ const G = `
     .home-sample-outputs-body { transition: none; }
   }
   .home-wa-sample-inner { max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
-  .home-sample-block + .home-sample-block { margin-top: clamp(40px, 5vw, 56px); padding-top: clamp(40px, 5vw, 56px); border-top: 1px solid rgba(226,232,240,0.55); }
+  .home-sample-block + .home-sample-block { margin-top: clamp(32px, 4vw, 44px); padding-top: clamp(32px, 4vw, 44px); border-top: 1px solid rgba(226,232,240,0.55); }
   .home-sample-intro { max-width: 42rem; }
   .home-sample-intro .home-heading { margin-bottom: 0.65em; font-size: clamp(1.2rem, 2vw, 1.35rem); }
-  .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(20px, 4vw, 36px); margin-top: clamp(36px, 5vw, 56px); }
+  .home-wa-sample-pair { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(16px, 3.5vw, 28px); margin-top: clamp(28px, 4vw, 40px); }
   .home-wa-sample-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; }
-  .home-wa-sample-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: clamp(28px, 4vw, 40px); padding-top: 4px; }
+  .home-wa-sample-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: clamp(22px, 3.2vw, 32px); padding-top: 2px; }
   .home-pdf-sample-frame { max-width: 720px; margin: clamp(12px, 2vw, 20px) auto 0; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 14px 44px rgba(15,23,42,0.08); border: 1px solid rgba(226,232,240,0.9); background: #fff; box-sizing: border-box; }
-  .home-pdf-download-wrap { display: flex; justify-content: center; margin-top: clamp(28px, 3.5vw, 40px); }
+  .home-pdf-download-wrap { display: flex; justify-content: center; margin-top: clamp(22px, 3vw, 32px); }
   .home-band-card { padding: 30px 28px; display: flex; gap: 20px; align-items: flex-start; border-radius: var(--home-card-radius); }
   .home-band-card-media { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(160deg, #ea580c 0%, var(--primary2) 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(234,88,12,0.12), 0 6px 16px rgba(234,88,12,0.07); }
   .home-band-card h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin: 0 0 12px; letter-spacing: -0.018em; line-height: 1.24; }
   .home-band-card p { font-size: 14px; color: var(--text-readable); line-height: 1.64; margin: 0 0 20px; max-width: 40em; }
   .home-band-card .btn-primary { min-height: 44px; padding: 11px 22px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; box-sizing: border-box; }
-  .home-band-cta { position: relative; background: linear-gradient(180deg, #f6f8fb 0%, #f0f3f7 48%, #f8fafc 100%); padding: clamp(56px, 6.8vw, 80px) var(--home-gutter-x); overflow: hidden; }
+  .home-band-cta { position: relative; background: linear-gradient(180deg, #f6f8fb 0%, #f0f3f7 48%, #f8fafc 100%); padding: clamp(44px, 5.5vw, 68px) var(--home-gutter-x); overflow: hidden; }
   .home-cta-inner { max-width: var(--home-content-max); margin: 0 auto; position: relative; z-index: 1; }
-  .home-cta-eyebrow { text-align: center; margin-bottom: clamp(28px, 3.5vw, 40px); }
+  .home-cta-eyebrow { text-align: center; margin-bottom: clamp(22px, 3vw, 32px); }
   .home-cta-eyebrow span { font-size: 11px; font-weight: 600; color: var(--primary2); text-transform: uppercase; letter-spacing: 0.16em; }
   .home-cta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(18px, 2.2vw, 24px); }
   .home-cta-grid .card.glass-card { padding: 28px 24px; border-radius: var(--home-card-radius); }
@@ -245,6 +277,11 @@ const G = `
     #pdf-print-area * { visibility:visible !important; }
   }
   @media(max-width:768px){
+    .nav-desktop-cluster{display:none!important}
+    .nav-mob-actions{display:flex!important}
+    .nav-mob-toggle{display:inline-flex!important}
+    .glass-nav-enhance{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:60px!important}
+    .nav-logo-img{height:46px!important;max-width:200px!important}
     .hm{display:none!important}
     .gr{grid-template-columns:1fr!important}
     .gr3{grid-template-columns:1fr!important}
@@ -257,7 +294,7 @@ const G = `
     .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
     .login-form-col{width:100%!important;flex:1}
     .h1big-hero{min-height:0!important;align-items:stretch!important}
-    .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(76px, calc(56px + env(safe-area-inset-bottom)))!important}
+    .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
     .home-hero-inner{display:flex!important;flex-direction:column!important;padding:28px max(16px, env(safe-area-inset-left)) 32px max(16px, env(safe-area-inset-right))!important;gap:clamp(22px,5vw,28px)!important;align-items:stretch!important;width:100%!important;max-width:100%!important}
     .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
     .home-hero-text{text-align:center!important;max-width:min(100%,420px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:0 0 auto!important;align-self:stretch!important}
@@ -353,6 +390,29 @@ const fmtP = (p) => { if(!p) return "POA"; const n=Number(p); if(n>=10000000) re
 const getPublicSiteBase = () => { try { const v = import.meta.env?.VITE_PUBLIC_SITE_URL; if (v && String(v).trim()) return String(v).replace(/\/$/, ""); } catch (_) {} return typeof window !== "undefined" ? window.location.origin : ""; };
 /** Default platform wordmark for Northing-only UI (nav, generic PDF header). Never used as a substitute on agent white-label surfaces. */
 const DEFAULT_NORTHING_LOGO_SRC = "/northing-logo.svg";
+
+/** Northing lockup for small white chips on WA sample cards — vector mark + HTML text so flexbox centers reliably (SVG text + wide viewBox skews in badges). */
+const NorthingWaChipLockup = () => (
+  <div style={{ display: "flex", alignItems: "center", gap: 5, lineHeight: 0, flexShrink: 0 }}>
+    <svg width={24} height={24} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden style={{ display: "block", flexShrink: 0 }}>
+      <circle cx="15" cy="15" r="11.5" stroke="#0f172a" strokeWidth="1.25" />
+      <path d="M15 5l5.25 9.8h-10.5z" fill="#ea580c" />
+    </svg>
+    <span
+      style={{
+        fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontSize: 15,
+        fontWeight: 600,
+        letterSpacing: "-0.03em",
+        color: "#0f172a",
+        lineHeight: 1,
+        display: "block",
+      }}
+    >
+      Northing
+    </span>
+  </div>
+);
 
 /** Watermark / ZIP: logo from agent profile only; no Northing image fallback. */
 const watermarkBrandOptionsFromAgent = (listing, agentBrand) => ({
@@ -579,9 +639,55 @@ const exportElementToPdfById = async (elementId, filenameBase) => {
   pdf.save(`${filenameBase}.pdf`);
 };
 
+/** WhatsApp-friendly square export; high-quality downscale from html2canvas. */
+const WA_CARD_EXPORT_PX = 1080;
+
+const waitForImagesInElement = (root) => {
+  const imgs = root.querySelectorAll("img");
+  return Promise.all(
+    [...imgs].map(
+      (img) =>
+        new Promise((resolve) => {
+          if (img.complete && img.naturalWidth > 0) {
+            resolve();
+            return;
+          }
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        })
+    )
+  );
+};
+
+const normalizeWaCardCanvas = (srcCanvas) => {
+  const out = document.createElement("canvas");
+  out.width = WA_CARD_EXPORT_PX;
+  out.height = WA_CARD_EXPORT_PX;
+  const ctx = out.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(srcCanvas, 0, 0, srcCanvas.width, srcCanvas.height, 0, 0, WA_CARD_EXPORT_PX, WA_CARD_EXPORT_PX);
+  return out;
+};
+
 const downloadHtmlElementAsPngById = async (elementId, filename) => {
   const el = document.getElementById(elementId);
   if (!el) throw new Error("Missing element");
+  if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
+  await waitForImagesInElement(el);
+
+  const ancestors = [];
+  let p = el.parentElement;
+  while (p && p !== document.body) {
+    const ct = window.getComputedStyle(p).transform;
+    if (ct && ct !== "none") {
+      ancestors.push({ node: p, prev: p.style.transform });
+      p.style.transform = "none";
+    }
+    p = p.parentElement;
+  }
+
   const h2c = await new Promise((res, rej) => {
     if (window.html2canvas) { res(window.html2canvas); return; }
     const s = document.createElement("script");
@@ -590,11 +696,67 @@ const downloadHtmlElementAsPngById = async (elementId, filename) => {
     s.onerror = rej;
     document.head.appendChild(s);
   });
-  const canvas = await h2c(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
-  const a = document.createElement("a");
-  a.download = filename;
-  a.href = canvas.toDataURL("image/png", 0.95);
-  a.click();
+
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 2 : 2;
+  const scale = Math.min(5, Math.max(4, dpr * 2));
+
+  try {
+    const rawCanvas = await h2c(el, {
+      scale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: false,
+      imageTimeout: 25000,
+      removeContainer: true,
+      foreignObjectRendering: false,
+      onclone: (_doc, clone) => {
+        clone.style.webkitFontSmoothing = "antialiased";
+        const nodes = [clone, ...clone.querySelectorAll("*")];
+        nodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          const st = node.style;
+          if (st.backdropFilter || st.webkitBackdropFilter) {
+            st.backdropFilter = "none";
+            st.webkitBackdropFilter = "none";
+            if (!st.backgroundColor || st.backgroundColor === "transparent") {
+              st.backgroundColor = "rgba(0,0,0,0.52)";
+            }
+          }
+        });
+      },
+    });
+
+    const canvas = normalizeWaCardCanvas(rawCanvas);
+
+    const triggerDownload = (blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = filename;
+      a.href = url;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    };
+
+    if (canvas.toBlob) {
+      await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) reject(new Error("PNG export failed"));
+          else {
+            triggerDownload(blob);
+            resolve();
+          }
+        }, "image/png");
+      });
+    } else {
+      const a = document.createElement("a");
+      a.download = filename;
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    }
+  } finally {
+    ancestors.forEach(({ node, prev }) => { node.style.transform = prev || ""; });
+  }
 };
 
 const formToDb = (form, agentId) => ({
@@ -875,17 +1037,61 @@ const WACardModal = ({listing,onClose,currentUser}) => {
   const captureCard=async()=>{
     const h2c=await loadH2C();
     const card=document.getElementById("wa-card");
-    return h2c(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:null,logging:false});
+    if(!card) throw new Error("Card not found");
+    if(document.fonts?.ready) await document.fonts.ready.catch(()=>{});
+    await waitForImagesInElement(card);
+    const dpr=typeof window!=="undefined"?window.devicePixelRatio||2:2;
+    const scale=Math.min(5,Math.max(4,dpr*2));
+    const raw=await h2c(card,{
+      scale,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:null,
+      logging:false,
+      imageTimeout:25000,
+      removeContainer:true,
+      foreignObjectRendering:false,
+      onclone:(_doc,clone)=>{
+        clone.style.webkitFontSmoothing="antialiased";
+        const nodes=[clone,...clone.querySelectorAll("*")];
+        nodes.forEach((node)=>{
+          if(!(node instanceof HTMLElement))return;
+          const st=node.style;
+          if(st.backdropFilter||st.webkitBackdropFilter){
+            st.backdropFilter="none";
+            st.webkitBackdropFilter="none";
+            if(!st.backgroundColor||st.backgroundColor==="transparent")st.backgroundColor="rgba(0,0,0,0.52)";
+          }
+        });
+      },
+    });
+    return normalizeWaCardCanvas(raw);
   };
 
   const downloadImage=async()=>{
     setDownloading(true);
     try{
       const canvas=await captureCard();
-      const a=document.createElement("a");
-      a.download=`Northing-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
-      a.href=canvas.toDataURL("image/png",0.95);
-      a.click();
+      const name=`Northing-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.png`;
+      if(canvas.toBlob){
+        await new Promise((res,rej)=>{
+          canvas.toBlob((blob)=>{
+            if(!blob){rej();return;}
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement("a");
+            a.download=name;
+            a.href=url;
+            a.click();
+            setTimeout(()=>URL.revokeObjectURL(url),3000);
+            res();
+          },"image/png");
+        });
+      }else{
+        const a=document.createElement("a");
+        a.download=name;
+        a.href=canvas.toDataURL("image/png");
+        a.click();
+      }
     }catch(e){alert("Download failed — try screenshotting the card manually.");}
     setDownloading(false);
   };
@@ -2376,8 +2582,9 @@ const Home = ({currentUser,onNavigate}) => {
               <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
                 <div id="home-wa-card-sale" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
                   <img
-                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=840&q=80&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1600&q=90&auto=format&fit=crop"
                     alt=""
+                    crossOrigin="anonymous"
                     loading="lazy"
                     decoding="async"
                     style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
@@ -2385,13 +2592,13 @@ const Home = ({currentUser,onNavigate}) => {
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
                   <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR SALE</span>
-                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
-                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    <div style={{background:"#fff",border:"1px solid rgba(15,23,42,0.08)",borderRadius:12,padding:"7px 12px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 14px rgba(0,0,0,0.28)",WebkitFontSmoothing:"antialiased",lineHeight:0}}>
+                      <NorthingWaChipLockup />
                     </div>
                   </div>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
                     <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>{fmtP(48500000)}</div>
-                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>3 BHK Sea-facing · Bandra West</div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.35,letterSpacing:"0.015em"}}>3 BHK Sea-facing · Bandra West</div>
                     <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Pali Hill, Bandra West, Mumbai</div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
                       {["🛏 3 Beds","🚿 2 Baths","📐 1,250 sqft","🛋 Semi-Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
@@ -2414,8 +2621,9 @@ const Home = ({currentUser,onNavigate}) => {
               <div style={{transform:"scale(0.85)",transformOrigin:"center center"}}>
                 <div id="home-wa-card-rent" style={{width:420,height:420,borderRadius:20,overflow:"hidden",boxShadow:"0 24px 56px rgba(0,0,0,0.32)",position:"relative",background:"#1a1410"}}>
                   <img
-                    src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=840&q=80&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&q=90&auto=format&fit=crop"
                     alt=""
+                    crossOrigin="anonymous"
                     loading="lazy"
                     decoding="async"
                     style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}
@@ -2423,8 +2631,8 @@ const Home = ({currentUser,onNavigate}) => {
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
                   <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR RENT</span>
-                    <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
-                      <img src="/northing-logo-light.svg" alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/>
+                    <div style={{background:"#fff",border:"1px solid rgba(15,23,42,0.08)",borderRadius:12,padding:"7px 12px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 14px rgba(0,0,0,0.28)",WebkitFontSmoothing:"antialiased",lineHeight:0}}>
+                      <NorthingWaChipLockup />
                     </div>
                   </div>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"18px 18px 16px"}}>
@@ -2432,7 +2640,7 @@ const Home = ({currentUser,onNavigate}) => {
                       {fmtP(195000)}
                       <span style={{fontSize:14,fontWeight:400,color:"rgba(255,255,255,0.6)"}}>/mo</span>
                     </div>
-                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.3}}>2 BHK Furnished · Lower Parel</div>
+                    <div style={{fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,lineHeight:1.35,letterSpacing:"0.015em"}}>2 BHK Furnished · Lower Parel</div>
                     <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>📍 Indiabulls Sky, Lower Parel, Mumbai</div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
                       {["🛏 2 Beds","🚿 2 Baths","📐 950 sqft","🛋 Fully Furnished"].map((d,i)=><span key={i} style={{background:"rgba(255,255,255,0.12)",backdropFilter:"blur(4px)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:600,color:"#fff"}}>{d}</span>)}
@@ -2522,7 +2730,7 @@ const Home = ({currentUser,onNavigate}) => {
           </div>
         </div>
       </section>
-      <footer className="glass-footer" style={{padding:"clamp(36px,5vw,52px) 0",position:"relative"}}>
+      <footer className="glass-footer" style={{padding:"clamp(28px,4vw,44px) 0",position:"relative"}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none"}} />
         <div className="home-footer-inner" style={{flexDirection:"column",alignItems:"stretch",gap:20}}>
           <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:20,width:"100%"}}>
@@ -2647,20 +2855,65 @@ const AgentPage = ({agentId,onNavigate,currentUser}) => {
 
 const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   const [scrolled,setScrolled]=useState(false);
+  const [mobOpen,setMobOpen]=useState(false);
   useEffect(()=>{const h=()=>setScrolled(window.scrollY>10);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
+  useEffect(()=>{setMobOpen(false);},[page]);
+  useEffect(()=>{
+    if(mobOpen){document.body.style.overflow="hidden";}else{document.body.style.overflow="";}
+    return()=>{document.body.style.overflow="";};
+  },[mobOpen]);
+  useEffect(()=>{
+    if(!mobOpen)return;
+    const esc=(e)=>{if(e.key==="Escape")setMobOpen(false);};
+    window.addEventListener("keydown",esc);
+    return()=>window.removeEventListener("keydown",esc);
+  },[mobOpen]);
   const navBrandSrc=(currentUser?.role==="agent"||currentUser?.role==="seller")&&currentUser?.logoUrl?currentUser.logoUrl:DEFAULT_NORTHING_LOGO_SRC;
+  const closeMob=()=>setMobOpen(false);
+  const wrapNav=(fn)=>()=>{fn();closeMob();};
+  const deskBtn={padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",border:"none",transition:"all 0.2s"};
+  const mobDrawer=mobOpen?(
+    <>
+      <div className="nav-drawer-backdrop" onClick={closeMob} role="presentation" aria-hidden="true"/>
+      <aside id="nav-mobile-drawer" className="nav-drawer-panel" role="dialog" aria-modal="true" aria-label="Main menu">
+        <div className="nav-drawer-head">
+          <p className="nav-drawer-title">Menu</p>
+          <button type="button" className="nav-drawer-close" onClick={closeMob} aria-label="Close menu">×</button>
+        </div>
+        <div className="nav-drawer-links">
+          <button type="button" className={page==="home"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("home"))}>Home</button>
+          <button type="button" className={page==="feed"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("feed"))}>Browse</button>
+          <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"prop-grid"))}>Featured</button>
+          <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"home-sample-outputs"))}>Samples</button>
+          <button type="button" className={page==="about"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("about"))}>About</button>
+          {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
+        </div>
+        <div className="nav-drawer-foot">
+          {currentUser?(
+            <button type="button" onClick={wrapNav(onLogout)} style={{padding:"12px 16px",borderRadius:12,fontWeight:600,fontSize:14,border:"1px solid var(--border)",background:"var(--gray)",cursor:"pointer",fontFamily:"inherit",color:"var(--muted)"}}>Sign out</button>
+          ):(
+            <>
+              <button type="button" className="btn-outline" style={{padding:"12px 16px",borderRadius:12,fontWeight:600,fontSize:14,width:"100%",boxSizing:"border-box"}} onClick={wrapNav(()=>onNavigate("login"))}>Log In</button>
+              <button type="button" className="btn-primary" style={{padding:"12px 16px",borderRadius:12,fontWeight:700,fontSize:14,border:"none",width:"100%",boxSizing:"border-box"}} onClick={wrapNav(()=>onNavigate("login"))}>Sign Up</button>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
+  ):null;
   return (
-    <nav className="glass-nav-enhance" style={{position:"sticky",top:0,zIndex:100,minHeight:72,height:"auto",paddingTop:10,paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:24,paddingRight:24,borderBottom:"1px solid rgba(148,163,184,0.22)",transition:"box-shadow 0.35s ease, border-color 0.3s",boxShadow:scrolled?"0 4px 20px rgba(15,23,42,0.05), 0 10px 40px rgba(15,23,42,0.04), 0 1px 0 rgba(255,255,255,0.85) inset":"0 1px 0 rgba(255,255,255,0.65) inset"}}>
-      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0"}} aria-label="Northing home">
-        <img src={navBrandSrc} alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
+    <>
+    <nav className="glass-nav-enhance" style={{position:"sticky",top:0,zIndex:100,minHeight:64,height:"auto",paddingTop:8,paddingBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:20,paddingRight:20,borderBottom:"1px solid rgba(148,163,184,0.22)",transition:"box-shadow 0.35s ease, border-color 0.3s",boxShadow:scrolled?"0 4px 20px rgba(15,23,42,0.05), 0 10px 40px rgba(15,23,42,0.04), 0 1px 0 rgba(255,255,255,0.85) inset":"0 1px 0 rgba(255,255,255,0.65) inset"}}>
+      <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0",flexShrink:0}} aria-label="Northing home">
+        <img className="nav-logo-img" src={navBrandSrc} alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
       </button>
-      <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"min(100%, 720px)"}}>
-        {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
-        <button type="button" onClick={()=>onNavigate("home",undefined,"prop-grid")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none",transition:"all 0.2s"}}>Featured</button>
-        <button type="button" onClick={()=>onNavigate("home",undefined,"home-sample-outputs")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none",transition:"all 0.2s"}}>Samples</button>
-        <button type="button" onClick={()=>onNavigate("about")} style={{padding:"7px 12px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:page==="about"?"var(--primary-light)":"transparent",color:page==="about"?"var(--primary)":"var(--muted)",border:"none",transition:"all 0.2s"}}>About</button>
+      <div className="nav-desktop-cluster">
+        {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{...deskBtn,background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
+        <button type="button" onClick={()=>onNavigate("home",undefined,"prop-grid")} style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>Featured</button>
+        <button type="button" onClick={()=>onNavigate("home",undefined,"home-sample-outputs")} style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>Samples</button>
+        <button type="button" onClick={()=>onNavigate("about")} style={{...deskBtn,background:page==="about"?"var(--primary-light)":"transparent",color:page==="about"?"var(--primary)":"var(--muted)"}}>About</button>
         {currentUser?<>
-          <button onClick={()=>onNavigate("dashboard")} className="hm" style={{padding:"7px 14px",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--muted)",border:"none"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
+          <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
           <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--gray)",borderRadius:24,padding:"5px 12px 5px 5px",border:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>onNavigate("dashboard")}>
             <div style={{width:28,height:28,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:800}}>{currentUser.name?.charAt(0)}</div>
             <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}} className="hm">{currentUser.name?.split(" ")[0]}</span>
@@ -2671,7 +2924,14 @@ const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button onClick={()=>onNavigate("login")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
         </>}
       </div>
+      <div className="nav-mob-actions">
+        <button type="button" className="nav-mob-toggle" aria-expanded={mobOpen} aria-controls="nav-mobile-drawer" aria-label={mobOpen?"Close menu":"Open menu"} onClick={()=>setMobOpen(o=>!o)}>
+          {mobOpen?"✕":"☰"}
+        </button>
+      </div>
     </nav>
+    {mobDrawer&&createPortal(mobDrawer,document.body)}
+    </>
   );
 };
 
