@@ -9,7 +9,7 @@ const templates = {
 const MarketModule = ({ listings = [], brand }) => {
   const [listingId, setListingId] = useState(listings[0]?.id || "");
   const [template, setTemplate] = useState("classic");
-  const [brandColor, setBrandColor] = useState(brand?.color || "#FF6B00");
+  const [brandColor, setBrandColor] = useState(brand?.color || "#1a1a1a");
   const [logoUrl, setLogoUrl] = useState(brand?.logoUrl || "");
   const cardRef = useRef();
   const listing = useMemo(() => listings.find((l) => l.id === listingId) || listings[0], [listings, listingId]);
