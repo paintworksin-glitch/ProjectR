@@ -258,6 +258,7 @@ const G = `
   }
   @media (max-width: 768px) {
     .home-hero-marquee-root { will-change: transform; }
+    .h1big-hero.home-hero-section .home-hero-marquee-root { will-change: auto; }
   }
   .home-prop-section { padding: clamp(36px, 4.5vw, 56px) var(--home-gutter-x) clamp(44px, 5.5vw, 64px); max-width: var(--home-content-max); margin: 0 auto; width: 100%; box-sizing: border-box; }
   .home-prop-section + .home-sample-pane { padding-top: clamp(28px, 4vw, 44px); }
@@ -464,7 +465,7 @@ const G = `
     .login-page{flex-direction:column!important}
     .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
     .login-form-col{width:100%!important;flex:1}
-    .h1big-hero.home-hero-section{align-items:stretch!important;min-height:clamp(480px, 68dvh, 640px)!important}
+    .h1big-hero.home-hero-section{align-items:stretch!important;min-height:clamp(448px, 58dvh, 600px)!important}
     .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
     .home-section-subnav-inner{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:48px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;justify-content:flex-start!important;gap:6px!important;scroll-padding-inline:8px!important}
     .home-section-subnav-inner::-webkit-scrollbar{display:none!important}
@@ -472,14 +473,15 @@ const G = `
     .home-hero-inner{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;justify-content:center!important;padding:clamp(20px,4vw,36px) max(20px, env(safe-area-inset-left)) clamp(20px,3.5vw,32px) max(20px, env(safe-area-inset-right))!important;gap:clamp(18px,4vw,28px)!important;align-items:center!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;min-height:0!important}
     .home-hero-section--light .home-hero-inner{justify-content:center!important;padding-bottom:max(132px, calc(52px + 56px + min(10vh, 72px) + env(safe-area-inset-bottom)))!important}
     .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
-    .home-hero-copy{text-align:center!important;max-width:min(100%,440px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:1 1 auto!important;align-self:stretch!important;justify-content:center!important;padding-top:clamp(10px,2.5vh,32px)!important}
+    .home-hero-copy{text-align:center!important;max-width:min(100%,440px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:1 1 auto!important;align-self:stretch!important;justify-content:center!important;padding:clamp(12px,2.8vh,36px) max(14px,3.5vw) clamp(8px,1.5vh,16px)!important}
     .home-hero-headline-line--sans{font-size:clamp(28px,7vw,40px)!important;line-height:1.06!important;letter-spacing:-0.032em!important}
     .home-hero-headline-line--serif{font-size:clamp(22px,5.5vw,30px)!important;line-height:1.1!important;margin-top:0.12em!important}
     .home-hero-search-wrap{width:100%!important;max-width:100%!important;flex:0 0 auto!important;align-self:stretch!important;gap:12px!important}
     .home-hero-qs-dock{position:absolute!important;left:auto!important;right:max(14px, env(safe-area-inset-right))!important;bottom:calc(52px + max(8px, env(safe-area-inset-bottom)))!important;width:min(400px, calc(100vw - 28px))!important;margin:0!important;z-index:4!important;pointer-events:none!important;align-self:auto!important;flex-shrink:0!important}
     .home-hero-qs-toggle{min-height:48px!important;padding:13px 16px!important;touch-action:manipulation!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration{align-items:flex-end!important;justify-content:center!important;padding-bottom:env(safe-area-inset-bottom, 0px)!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{width:min(155vw, 900px)!important;min-height:0!important;max-height:min(32vh, 260px)!important;transform:translateY(8px)!important}
+    .h1big-hero.home-hero-section .home-hero-overlay--light{background:linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.52) 36%, rgba(255,255,255,0.24) 56%, rgba(255,255,255,0.11) 100%)!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration{align-items:flex-end!important;justify-content:center!important;padding-bottom:env(safe-area-inset-bottom, 0px)!important;overflow:hidden!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{width:min(148vw, 860px)!important;min-height:0!important;max-height:min(28vh, 232px)!important;opacity:0.94!important;transform:translateY(10px)!important}
     .home-hero-search{flex:0 0 auto!important;width:100%!important;max-width:100%!important}
     .home-qs-inner{padding:20px 16px 22px!important}
     .home-qs-head{padding-bottom:16px!important;margin-bottom:0!important;gap:10px!important}
@@ -580,7 +582,7 @@ const G = `
     .home-hero-inner{padding-top:clamp(16px,4vw,24px)!important;gap:clamp(16px,4vw,24px)!important}
     .home-hero-headline-line--sans{font-size:clamp(24px,6.8vw,34px)!important;line-height:1.06!important}
     .home-hero-headline-line--serif{font-size:clamp(20px,5.2vw,28px)!important;line-height:1.1!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(30vh,220px)!important;transform:translateY(4px)!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(26vh,200px)!important;opacity:0.93!important;transform:translateY(12px)!important}
     .home-prop-section{padding-top:24px!important;padding-bottom:32px!important}
     .home-band-split,.home-band-cta{padding-top:32px!important;padding-bottom:36px!important}
     .home-sample-pane{padding-top:28px!important;padding-bottom:32px!important}
@@ -2986,11 +2988,17 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       const ill = heroParallaxIllustrationRef.current;
       const inner = heroParallaxInnerRef.current;
       if (!sec || !ill) return;
+      const narrow = window.matchMedia("(max-width: 768px)").matches;
+      if (narrow) {
+        ill.style.removeProperty("top");
+        ill.style.removeProperty("bottom");
+        if (inner) inner.style.removeProperty("transform");
+        return;
+      }
       const rect = sec.getBoundingClientRect();
       const y = -rect.top;
-      const narrow = window.matchMedia("(max-width: 768px)").matches;
-      const bgFactor = narrow ? 0.09 : 0.14;
-      const innerFactor = narrow ? -0.03 : -0.045;
+      const bgFactor = 0.14;
+      const innerFactor = -0.045;
       const bgShift = y * bgFactor;
       ill.style.removeProperty("transform");
       ill.style.top = `${bgShift}px`;
@@ -3030,7 +3038,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
     <div style={{background:"#ffffff",width:"100%",maxWidth:"100%",boxSizing:"border-box"}} className="home-page-shell">
       <section ref={heroSectionRef} className="h1big-hero home-hero-section home-hero-section--light" style={{position:"relative",width:"100%",maxWidth:"100%",overflow:"hidden"}}>
         <div ref={heroParallaxIllustrationRef} className="home-hero-parallax-bg home-hero-parallax-bg--illustration" aria-hidden="true">
-          <HomeHeroIllustration />
+          <HomeHeroIllustration variant="homeHero" />
         </div>
         <div className="home-hero-overlay home-hero-overlay--light" aria-hidden="true" />
         <div ref={heroParallaxInnerRef} className="home-hero-inner home-hero-parallax-inner">

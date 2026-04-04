@@ -120,33 +120,52 @@ const HomeHeroBuildingsStrip = () => {
  * Colourful skyline; slow right→left drift (SMIL translate 0→−900). Parent must not use CSS transform
  * (that breaks SMIL in many browsers) — hero parallax uses top/bottom on the wrapper instead.
  */
-export function HomeHeroIllustration() {
+/**
+ * @param {{ variant?: "default" | "homeHero" }} props
+ * `homeHero` — on narrow viewports only: crops to a lower skyline band (fewer shapes), slower drift; ribbons/backdrops omit this prop.
+ */
+export function HomeHeroIllustration({ variant = "default" } = {}) {
   const clipId = `homeHeroSkyClip-${useId().replace(/:/g, "")}`;
   const [reduceMotion, setReduceMotion] = useState(false);
   const [marqueeDur, setMarqueeDur] = useState("125s");
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
+  );
   useEffect(() => {
     const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
     const setRm = () => setReduceMotion(!!mqRm.matches);
     setRm();
     mqRm.addEventListener("change", setRm);
+    const mqNarrow = window.matchMedia("(max-width: 768px)");
+    const setN = () => setNarrow(!!mqNarrow.matches);
+    setN();
+    mqNarrow.addEventListener("change", setN);
     const updDur = () => {
       const w = window.innerWidth;
-      if (w <= 768) setMarqueeDur("190s");
+      if (variant === "homeHero" && w <= 768) {
+        if (w <= 480) setMarqueeDur("340s");
+        else setMarqueeDur("280s");
+      } else if (w <= 768) setMarqueeDur("190s");
       else setMarqueeDur("125s");
     };
     updDur();
     window.addEventListener("resize", updDur, { passive: true });
     return () => {
       mqRm.removeEventListener("change", setRm);
+      mqNarrow.removeEventListener("change", setN);
       window.removeEventListener("resize", updDur);
     };
-  }, []);
+  }, [variant]);
   const showMarquee = !reduceMotion;
+  const homeHeroMobile = variant === "homeHero" && narrow;
+  /** Crop to lower ~52% of viewBox so only the “street” band shows — fewer shapes, no roofline clutter in the headline zone (mobile home hero only). */
+  const clipY = homeHeroMobile ? 308 : 0;
+  const clipH = homeHeroMobile ? 332 : 640;
   return (
     <svg className="home-hero-illustration-svg" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
       <defs>
         <clipPath id={clipId}>
-          <rect width="900" height="640" />
+          <rect x="0" y={clipY} width="900" height={clipH} />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
