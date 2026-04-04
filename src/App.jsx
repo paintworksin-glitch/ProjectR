@@ -6,8 +6,17 @@ import PrivacyPolicyPage from "./PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "./TermsOfServicePage.jsx";
 import AboutPage from "./AboutPage.jsx";
 import { HomeHeroIllustration, SkylineHeroBackdrop, SkylineRibbon } from "./SkylineIllustration.jsx";
-const SUPABASE_URL      = "https://thgnziutmpmnsrkjoext.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
+import {
+  listingAiConfigured,
+  scorePhotoWithListingAi,
+  generateListingAiDescription,
+} from "./listingAi.js";
+
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || "https://thgnziutmpmnsrkjoext.supabase.co";
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoZ256aXV0bXBtbnNya2pvZXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTUwOTcsImV4cCI6MjA4ODA5MTA5N30.SYLiGFgGChnibmEP5RQVmJzlfr_nBDpJJCOmTCZgZ9Y";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /** Where to return from /property/:id Back (set when opening a listing from feed or home). */
@@ -801,6 +810,22 @@ const findDups = (form, all, editId) => all.filter(l => {
   return (ts>0.6?2:0)+(ls>0.7?2:0)+(pm?1:0)+(dm?1:0)>=3;
 });
 
+/** Allowed keys from `listings.details` JSONB — arbitrary keys cannot override table-backed fields. */
+const LISTING_DETAIL_KEYS = [
+  "toilets", "condition", "builtYear", "modernKitchen", "wcType", "superBuiltUp", "carpetArea",
+  "parkingType", "vastuDirection", "totalFloors", "propertyFloor", "maintenance", "societyFormed",
+  "ocReceived", "reraRegistered", "reraNumber", "logoUrl", "agentAddress", "agentWebsite", "aiDescription",
+];
+const pickListingDetails = (raw) => {
+  const d = raw && typeof raw === "object" ? raw : null;
+  if (!d) return {};
+  const out = {};
+  for (const k of LISTING_DETAIL_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(d, k) && d[k] !== undefined) out[k] = d[k];
+  }
+  return out;
+};
+
 const mapListing = (l) => !l ? null : ({
   id: l.id, agentId: l.agent_id, title: l.title, location: l.location,
   propertyType: l.property_type, listingType: l.listing_type,
@@ -809,10 +834,10 @@ const mapListing = (l) => !l ? null : ({
   description: l.description, highlights: l.highlights || [],
   agentName: l.agent_name, agentPhone: l.agent_phone, agentEmail: l.agent_email,
   agencyName: l.agency_name, photos: l.photos || [], createdAt: l.created_at,
-  ...(l.details || {}),
-  logoUrl: l.details?.logoUrl || null,
-  agentAddress: l.details?.agentAddress || null,
-  agentWebsite: l.details?.agentWebsite || null,
+  ...pickListingDetails(l.details),
+  logoUrl: l.details?.logoUrl ?? null,
+  agentAddress: l.details?.agentAddress ?? null,
+  agentWebsite: l.details?.agentWebsite ?? null,
   viewCount: l.view_count||0,
   waCount: l.wa_count||0,
   pdfCount: l.pdf_count||0,
@@ -1654,17 +1679,19 @@ const PDFModal = ({listing,onClose,currentUser}) => {
             {listing.location&&<div style={{marginTop:8,textAlign:"right"}}><a href={googleMapsSearchUrl(listing.location)} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:600,color:"var(--primary)"}}>Open in Google Maps →</a></div>}
           </div>
 
-          {/* ── AGENT FOOTER ── */}
+          {/* ── FOOTER: Northing lockup only for non–agent-branded PDFs ── */}
           <div style={{borderTop:"2px solid #f0f0f0",paddingTop:16,marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
               <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
               {listing.agentEmail&&<div style={{fontSize:12,color:"#888"}}>{listing.agentEmail}</div>}
               {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
             </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
-              <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
-            </div>
+            {!hasAgentBrand ? (
+              <div style={{textAlign:"right"}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
+                <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1898,80 +1925,6 @@ const FI=({label,k,form,set,type="text",placeholder="",err,span})=>(<div style={
 const FS=({label,k,form,set,opts,fmtLabel})=>(<div style={{marginBottom:13}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<select value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp"><option value="">Select…</option>{opts.map(o=><option key={o} value={o}>{fmtLabel?fmtLabel(o):o}</option>)}</select></div>);
 const FormSec=({title,children})=>(<div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}><h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>{title}</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>{children}</div></div>);
 
-const anthropicApiKey = () => { try { return String(import.meta.env?.VITE_ANTHROPIC_API_KEY || "").trim(); } catch { return ""; } };
-
-const scorePhotoWithClaude = async (base64, mediaType) => {
-  const key = anthropicApiKey();
-  if (!key) return { overall: 5, lighting: 5, angle: 5, appeal: 5, clarity: 5, reason: "Add VITE_ANTHROPIC_API_KEY for AI photo scoring" };
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 300,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: `You are a real estate photography expert. Score this property photo for use as a listing cover image. Rate each from 1-10: lighting, angle, appeal, clarity. Respond ONLY with valid JSON no markdown: {"lighting":7,"angle":8,"appeal":9,"clarity":8,"overall":8,"reason":"one sentence"}` },
-          ],
-        }],
-      }),
-    });
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "{}";
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
-  } catch {
-    return { overall: 5, lighting: 5, angle: 5, appeal: 5, clarity: 5, reason: "Could not score" };
-  }
-};
-
-/** Short buyer-facing blurb; stored in listings.details.aiDescription. Requires VITE_ANTHROPIC_API_KEY. */
-const generatePropertyAiDescription = async (form) => {
-  const key = anthropicApiKey();
-  if (!key) return null;
-  const priceLabel = form.listingType === "Rent" ? `₹${form.price}/month (rent)` : `₹${form.price} (sale)`;
-  const facts = [
-    `Title: ${form.title || "—"}`,
-    `Location: ${form.location || "—"}`,
-    `Property: ${form.propertyType || "—"}, Listing: ${form.listingType || "—"}`,
-    `Price: ${priceLabel}`,
-    `Size: ${form.sizesqft ? `${form.sizesqft} sqft` : "—"}`,
-    `Beds/Baths: ${form.bedrooms || "—"} / ${form.bathrooms || "—"}`,
-    `Furnishing: ${form.furnishingStatus || "—"}`,
-    `Parking: ${form.parkingType || "—"}`,
-    `Highlights: ${(form.highlights || []).slice(0, 6).join("; ") || "—"}`,
-  ].join("\n");
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        messages: [{
-          role: "user",
-          content: `You write concise, trustworthy property blurbs for an Indian real estate marketplace (Northing).\n\nListing facts:\n${facts}\n\nAgent description (use only as context; do not contradict stated facts):\n${String(form.description || "").slice(0, 2000)}\n\nWrite 2–3 short paragraphs (under 130 words total) for buyers: lifestyle, location context, and why this listing matters. Professional plain English. No markdown, no bullet symbols, no invented amenities or legal claims. If facts are thin, stay general and honest.`,
-        }],
-      }),
-    });
-    const data = await res.json();
-    const text = (data.content?.[0]?.text || "").trim();
-    return text || null;
-  } catch {
-    return null;
-  }
-};
-
 const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved}) => {
   const isEdit=!!listingId; const fileRef=useRef(); const [hl,setHl]=useState(""); const [dupModal,setDupModal]=useState(null); const [saving,setSaving]=useState(false); const [photoLoading,setPhotoLoading]=useState(false); const [aiDescBusy,setAiDescBusy]=useState(false);
   const [aiStatus,setAiStatus]=useState("idle"); // idle | analyzing | done
@@ -2008,13 +1961,20 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       setPhotoLoading(false);
       e.target.value="";
       if(!newUrls.length) return;
+      if (!listingAiConfigured()) {
+        setAiStatus("idle");
+        setAiPick(null);
+        setCoverIdx(0);
+        showToast("Photos uploaded ✓ (set VITE_LISTING_AI_URL + listing-ai function for AI cover pick)","success");
+        return;
+      }
       // 2. Silently score all unscored photos
       setAiStatus("analyzing");
       const scored=[...allMeta];
       for(let i=0;i<scored.length;i++){
         if(scored[i].score) continue;
         setScoringIdx(i);
-        const result=await scorePhotoWithClaude(scored[i].base64,scored[i].mediaType);
+        const result=await scorePhotoWithListingAi(supabase,scored[i].base64,scored[i].mediaType);
         scored[i]={...scored[i],score:result};
         setPhotoMeta([...scored]);
       }
@@ -2050,8 +2010,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         const row = formToDb(form, currentUser.id);
         const { data: inserted, error } = await supabase.from("listings").insert(row).select("id").single();
         if (error) throw error;
-        if (inserted?.id && anthropicApiKey()) {
-          const aiText = await generatePropertyAiDescription(form);
+        if (inserted?.id && listingAiConfigured()) {
+          const aiText = await generateListingAiDescription(supabase, form);
           if (aiText) {
             const mergedDetails = { ...(row.details || {}), aiDescription: aiText };
             const { error: patchErr } = await supabase.from("listings").update({ details: mergedDetails }).eq("id", inserted.id);
@@ -2113,7 +2073,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 10px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ AI property summary</h3>
-        <p style={{margin:"0 0 14px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Shown on the public property page. New listings get a draft automatically when <code style={{fontSize:12,background:"var(--cream)",padding:"2px 6px",borderRadius:4}}>VITE_ANTHROPIC_API_KEY</code> is set.</p>
+        <p style={{margin:"0 0 14px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Shown on the public property page. New listings get a draft automatically when <code style={{fontSize:12,background:"var(--cream)",padding:"2px 6px",borderRadius:4}}>VITE_LISTING_AI_URL</code> points at your deployed listing-ai edge function.</p>
         {form.aiDescription ? (
           <textarea value={form.aiDescription} onChange={(e) => set("aiDescription", e.target.value)} className="inp" rows={5} style={{resize:"vertical",marginBottom:12,fontSize:14,lineHeight:1.55}} placeholder="AI-generated summary…" />
         ) : (
@@ -2123,13 +2083,13 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           <button
             type="button"
             className="btn-green"
-            style={{padding:"10px 18px",borderRadius:10,fontSize:13,opacity:anthropicApiKey()?1:0.55}}
-            disabled={aiDescBusy || !anthropicApiKey()}
+            style={{padding:"10px 18px",borderRadius:10,fontSize:13,opacity:listingAiConfigured()?1:0.55}}
+            disabled={aiDescBusy || !listingAiConfigured()}
             onClick={async () => {
-              if (!anthropicApiKey()) { showToast("Add VITE_ANTHROPIC_API_KEY and rebuild", "error"); return; }
+              if (!listingAiConfigured()) { showToast("Set VITE_LISTING_AI_URL and deploy the listing-ai Supabase function", "error"); return; }
               setAiDescBusy(true);
               try {
-                const t = await generatePropertyAiDescription(form);
+                const t = await generateListingAiDescription(supabase, form);
                 if (t) {
                   set("aiDescription", t);
                   showToast(isEdit ? "Summary ready — tap Save to update the listing" : "Summary ready — it will be saved when you create the listing", "success");
@@ -2141,7 +2101,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           >
             {aiDescBusy ? "Generating…" : form.aiDescription ? "Regenerate" : "Generate now"}
           </button>
-          {!anthropicApiKey() ? <span style={{fontSize:12,color:"var(--muted)"}}>API key missing in build</span> : null}
+          {!listingAiConfigured() ? <span style={{fontSize:12,color:"var(--muted)"}}>Listing AI URL not configured</span> : null}
         </div>
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
@@ -2158,7 +2118,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span>📸 Photos * (min 1, max 10)</span>
-          {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>Claude picking best cover…</span>}
+          {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>AI picking best cover…</span>}
           {aiStatus==="done"&&<span style={{fontSize:11,color:"#059669",fontWeight:600,textTransform:"none",letterSpacing:0}}>✨ Best cover auto-selected</span>}
         </h3>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
@@ -2441,8 +2401,8 @@ const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
                 </div>
               </div>
               <div style={{textAlign:"right",fontSize:10,color:"var(--muted)"}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"var(--muted)"}}>Northing</div>
-                <div>Powered by Northing</div>
+                <div>{new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
+                <div style={{marginTop:4,fontWeight:600}}>Brochure header preview</div>
               </div>
             </div>
           </div>
@@ -2786,10 +2746,12 @@ const HomePdfSamplePrint = () => {
           <div style={{fontWeight:700,fontSize:14,color:"var(--navy)"}}>{listing.agentName||""}</div>
           {listing.agentPhone&&<div style={{fontSize:12,color:"#888"}}>📞 {listing.agentPhone}</div>}
         </div>
-        <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
-          <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
-        </div>
+        {!hasAgentBrand ? (
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:800,color:"#ccc"}}>Northing</div>
+            <div style={{fontSize:10,color:"#ccc"}}>Powered by Northing</div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
