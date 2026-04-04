@@ -129,22 +129,22 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [marqueeDur, setMarqueeDur] = useState("125s");
   const [narrow, setNarrow] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
   );
   useEffect(() => {
     const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
     const setRm = () => setReduceMotion(!!mqRm.matches);
     setRm();
     mqRm.addEventListener("change", setRm);
-    const mqNarrow = window.matchMedia("(max-width: 768px)");
+    const mqNarrow = window.matchMedia("(max-width: 767px)");
     const setN = () => setNarrow(!!mqNarrow.matches);
     setN();
     mqNarrow.addEventListener("change", setN);
     const updDur = () => {
       const w = window.innerWidth;
-      if (variant === "homeHero" && w <= 768) {
-        if (w <= 480) setMarqueeDur("420s");
-        else setMarqueeDur("340s");
+      if (variant === "homeHero" && w <= 767) {
+        if (w <= 480) setMarqueeDur("520s");
+        else setMarqueeDur("440s");
       } else if (w <= 768) setMarqueeDur("190s");
       else setMarqueeDur("125s");
     };
@@ -158,14 +158,16 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
   }, [variant]);
   const showMarquee = !reduceMotion;
   const homeHeroMobile = variant === "homeHero" && narrow;
-  /** Crop to lower ~52% of viewBox so only the “street” band shows — fewer shapes, no roofline clutter in the headline zone (mobile home hero only). */
-  const clipY = homeHeroMobile ? 340 : 0;
-  const clipH = homeHeroMobile ? 300 : 640;
+  /** Desktop: full frame. Mobile home hero: narrow lower band (~50% less visible area than 900×300) = fewer buildings on screen; SMIL still shifts 900px for seamless loop. */
+  const clipX = homeHeroMobile ? 195 : 0;
+  const clipY = homeHeroMobile ? 408 : 0;
+  const clipW = homeHeroMobile ? 510 : 900;
+  const clipH = homeHeroMobile ? 208 : 640;
   return (
-    <svg className="home-hero-illustration-svg" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
+    <svg className={"home-hero-illustration-svg" + (homeHeroMobile ? " home-hero-illustration-svg--heroMobile" : "")} viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
       <defs>
         <clipPath id={clipId}>
-          <rect x="0" y={clipY} width="900" height={clipH} />
+          <rect x={clipX} y={clipY} width={clipW} height={clipH} />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
