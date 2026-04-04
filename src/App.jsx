@@ -38,6 +38,8 @@ const G = `
   .home-hero-parallax-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
   .home-hero-parallax-bg img { position: absolute; left: 0; top: -10%; width: 100%; height: 120%; object-fit: cover; object-position: center; opacity: 1; will-change: transform; }
   .home-hero-parallax-bg--illustration { display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 55%, #e8edf4 100%); contain: layout style; }
+  .home-hero-parallax-bg-inner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
+  .home-hero-mobile-art-rail { display: none; }
   .home-hero-illustration-svg { width: min(118vw, 1200px); max-width: none; height: auto; min-height: min(52vh, 440px); flex-shrink: 0; will-change: transform; display: block; }
   .home-hero-marquee-root { will-change: transform; }
   @media (prefers-reduced-motion: reduce) {
@@ -246,6 +248,25 @@ const G = `
   .home-hero-section--light .home-hero-cta--secondary { color: #1a1a1a; border: 2px solid rgba(26,26,26,0.28); }
   .home-hero-section--light .home-hero-cta--secondary:hover { background: rgba(26,26,26,0.05); border-color: rgba(26,26,26,0.45); }
   .home-hero-section--light .home-hero-inner { justify-content: center; padding-bottom: max(64px, 7vh); }
+  @media (min-width: 769px) {
+    .h1big-hero.home-hero-section .home-hero-inner .home-hero-mobile-art-rail { display: none !important; }
+    .h1big-hero.home-hero-section .home-hero-inner .home-hero-qs-dock {
+      position: absolute !important;
+      right: max(14px, env(safe-area-inset-right)) !important;
+      bottom: max(18px, env(safe-area-inset-bottom)) !important;
+      left: auto !important;
+      width: min(400px, calc(100vw - 28px)) !important;
+      max-width: none !important;
+      margin: 0 !important;
+      pointer-events: none !important;
+    }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-parallax-bg-inner {
+      position: absolute !important;
+      inset: 0 !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+  }
   .home-section-subnav { position: sticky; top: 72px; z-index: 90; background: #fff; border-bottom: 1px solid rgba(226,232,240,0.9); box-shadow: 0 1px 0 rgba(15,23,42,0.04); }
   .home-section-subnav-inner { max-width: var(--home-content-max); margin: 0 auto; padding: 0 var(--home-gutter-x); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; min-height: 52px; box-sizing: border-box; }
   .home-section-subnav a { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: #1a1a1a; text-decoration: none; padding: 10px 14px; border-radius: 10px; transition: background 0.18s ease, color 0.18s ease; }
@@ -465,23 +486,31 @@ const G = `
     .login-page{flex-direction:column!important}
     .login-hero-col{width:100%!important;min-height:260px;padding:40px 28px!important}
     .login-form-col{width:100%!important;flex:1}
-    .h1big-hero.home-hero-section{align-items:stretch!important;min-height:clamp(448px, 58dvh, 600px)!important}
+    .h1big-hero.home-hero-section{align-items:stretch!important;min-height:clamp(432px, 56dvh, 560px)!important}
     .home-page-shell{overflow-x:clip!important;max-width:100%!important;padding-bottom:max(68px, calc(48px + env(safe-area-inset-bottom)))!important}
     .home-section-subnav-inner{padding-left:max(16px, env(safe-area-inset-left))!important;padding-right:max(16px, env(safe-area-inset-right))!important;min-height:48px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;justify-content:flex-start!important;gap:6px!important;scroll-padding-inline:8px!important}
     .home-section-subnav-inner::-webkit-scrollbar{display:none!important}
     .home-section-subnav a{flex-shrink:0!important;white-space:nowrap!important;padding:11px 14px!important;min-height:44px!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;touch-action:manipulation!important}
     .home-hero-inner{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;justify-content:center!important;padding:clamp(20px,4vw,36px) max(20px, env(safe-area-inset-left)) clamp(20px,3.5vw,32px) max(20px, env(safe-area-inset-right))!important;gap:clamp(18px,4vw,28px)!important;align-items:center!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;min-height:0!important}
     .home-hero-section--light .home-hero-inner{justify-content:center!important;padding-bottom:max(132px, calc(52px + 56px + min(10vh, 72px) + env(safe-area-inset-bottom)))!important}
+    .h1big-hero.home-hero-section .home-hero-inner{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;justify-content:flex-start!important;align-items:stretch!important;gap:0!important;padding:max(10px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-right))!important;min-height:0!important}
+    .h1big-hero.home-hero-section.home-hero-section--light .home-hero-inner{padding-bottom:max(12px, calc(8px + env(safe-area-inset-bottom)))!important}
     .home-hero-search-wrap{justify-self:stretch!important;max-width:100%!important}
     .home-hero-copy{text-align:center!important;max-width:min(100%,440px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;flex:1 1 auto!important;align-self:stretch!important;justify-content:center!important;padding:clamp(12px,2.8vh,36px) max(14px,3.5vw) clamp(8px,1.5vh,16px)!important}
+    .h1big-hero.home-hero-section .home-hero-copy{flex:0 0 auto!important;justify-content:flex-start!important;align-items:center!important;max-width:min(100%,380px)!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;padding:6px 0 4px!important;gap:0!important}
     .home-hero-headline-line--sans{font-size:clamp(28px,7vw,40px)!important;line-height:1.06!important;letter-spacing:-0.032em!important}
     .home-hero-headline-line--serif{font-size:clamp(22px,5.5vw,30px)!important;line-height:1.1!important;margin-top:0.12em!important}
     .home-hero-search-wrap{width:100%!important;max-width:100%!important;flex:0 0 auto!important;align-self:stretch!important;gap:12px!important}
-    .home-hero-qs-dock{position:absolute!important;left:auto!important;right:max(14px, env(safe-area-inset-right))!important;bottom:calc(52px + max(8px, env(safe-area-inset-bottom)))!important;width:min(400px, calc(100vw - 28px))!important;margin:0!important;z-index:4!important;pointer-events:none!important;align-self:auto!important;flex-shrink:0!important}
+    .h1big-hero.home-hero-section .home-hero-inner .home-hero-qs-dock{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;max-width:min(380px,100%)!important;margin:12px auto 0!important;z-index:4!important;pointer-events:none!important;align-self:center!important;flex-shrink:0!important}
     .home-hero-qs-toggle{min-height:48px!important;padding:13px 16px!important;touch-action:manipulation!important}
-    .h1big-hero.home-hero-section .home-hero-overlay--light{background:linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.52) 36%, rgba(255,255,255,0.24) 56%, rgba(255,255,255,0.11) 100%)!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration{align-items:flex-end!important;justify-content:center!important;padding-bottom:env(safe-area-inset-bottom, 0px)!important;overflow:hidden!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{width:min(148vw, 860px)!important;min-height:0!important;max-height:min(28vh, 232px)!important;opacity:0.94!important;transform:translateY(10px)!important}
+    .h1big-hero.home-hero-section .home-hero-overlay--light{background:linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.9) 18%, rgba(255,255,255,0.55) 34%, rgba(255,255,255,0.32) 48%, rgba(255,255,255,0.16) 62%, rgba(255,255,255,0.1) 100%)!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration{align-items:stretch!important;justify-content:center!important;padding-bottom:0!important;overflow:hidden!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-parallax-bg-inner{position:absolute!important;left:0!important;right:0!important;top:min(30vh,240px)!important;bottom:0!important;display:flex!important;align-items:flex-end!important;justify-content:center!important;overflow:hidden!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{width:min(142vw, 820px)!important;min-height:0!important;max-height:min(22vh, 188px)!important;opacity:0.9!important;transform:translateY(4px)!important}
+    .h1big-hero.home-hero-section .home-hero-mobile-art-rail{display:block!important;flex:0 0 auto!important;min-height:clamp(72px,13vw,104px)!important;max-height:clamp(72px,13vw,104px)!important;width:100%!important;max-width:min(380px,100%)!important;margin:10px auto 0!important;pointer-events:none!important;position:relative!important;z-index:2!important}
+    .h1big-hero.home-hero-section .home-hero-headline-line--serif{margin-top:0.08em!important}
+    .h1big-hero.home-hero-section .home-hero-actions{margin-top:12px!important;gap:10px!important;width:100%!important;max-width:100%!important;padding:0!important}
+    .h1big-hero.home-hero-section .home-hero-actions .home-hero-cta{min-height:52px!important;box-sizing:border-box!important}
     .home-hero-search{flex:0 0 auto!important;width:100%!important;max-width:100%!important}
     .home-qs-inner{padding:20px 16px 22px!important}
     .home-qs-head{padding-bottom:16px!important;margin-bottom:0!important;gap:10px!important}
@@ -582,7 +611,7 @@ const G = `
     .home-hero-inner{padding-top:clamp(16px,4vw,24px)!important;gap:clamp(16px,4vw,24px)!important}
     .home-hero-headline-line--sans{font-size:clamp(24px,6.8vw,34px)!important;line-height:1.06!important}
     .home-hero-headline-line--serif{font-size:clamp(20px,5.2vw,28px)!important;line-height:1.1!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(26vh,200px)!important;opacity:0.93!important;transform:translateY(12px)!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(20vh,168px)!important;opacity:0.88!important;transform:translateY(2px)!important}
     .home-prop-section{padding-top:24px!important;padding-bottom:32px!important}
     .home-band-split,.home-band-cta{padding-top:32px!important;padding-bottom:36px!important}
     .home-sample-pane{padding-top:28px!important;padding-bottom:32px!important}
@@ -3038,7 +3067,9 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
     <div style={{background:"#ffffff",width:"100%",maxWidth:"100%",boxSizing:"border-box"}} className="home-page-shell">
       <section ref={heroSectionRef} className="h1big-hero home-hero-section home-hero-section--light" style={{position:"relative",width:"100%",maxWidth:"100%",overflow:"hidden"}}>
         <div ref={heroParallaxIllustrationRef} className="home-hero-parallax-bg home-hero-parallax-bg--illustration" aria-hidden="true">
-          <HomeHeroIllustration variant="homeHero" />
+          <div className="home-hero-parallax-bg-inner">
+            <HomeHeroIllustration variant="homeHero" />
+          </div>
         </div>
         <div className="home-hero-overlay home-hero-overlay--light" aria-hidden="true" />
         <div ref={heroParallaxInnerRef} className="home-hero-inner home-hero-parallax-inner">
@@ -3052,8 +3083,8 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
               <button type="button" onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="home-hero-cta home-hero-cta--secondary">📋 List Your Property</button>
             </div>
           </div>
-        </div>
-        <div className="home-hero-qs-dock">
+          <div className="home-hero-mobile-art-rail" aria-hidden="true" />
+          <div className="home-hero-qs-dock">
           <button type="button" className="home-hero-qs-toggle" id="home-hero-qs-toggle" aria-expanded={homeQsOpen} aria-controls="home-hero-qs-panel" onClick={()=>setHomeQsOpen((v)=>!v)}>
             <span className="home-hero-qs-toggle-icon" aria-hidden>🔍</span>
             <span>Quick search</span>
@@ -3130,6 +3161,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </section>

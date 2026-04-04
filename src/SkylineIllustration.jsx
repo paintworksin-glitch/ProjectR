@@ -143,8 +143,8 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
     const updDur = () => {
       const w = window.innerWidth;
       if (variant === "homeHero" && w <= 768) {
-        if (w <= 480) setMarqueeDur("340s");
-        else setMarqueeDur("280s");
+        if (w <= 480) setMarqueeDur("420s");
+        else setMarqueeDur("340s");
       } else if (w <= 768) setMarqueeDur("190s");
       else setMarqueeDur("125s");
     };
@@ -159,8 +159,8 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
   const showMarquee = !reduceMotion;
   const homeHeroMobile = variant === "homeHero" && narrow;
   /** Crop to lower ~52% of viewBox so only the “street” band shows — fewer shapes, no roofline clutter in the headline zone (mobile home hero only). */
-  const clipY = homeHeroMobile ? 308 : 0;
-  const clipH = homeHeroMobile ? 332 : 640;
+  const clipY = homeHeroMobile ? 340 : 0;
+  const clipH = homeHeroMobile ? 300 : 640;
   return (
     <svg className="home-hero-illustration-svg" viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
       <defs>
