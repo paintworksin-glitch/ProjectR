@@ -129,22 +129,22 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [marqueeDur, setMarqueeDur] = useState("125s");
   const [narrow, setNarrow] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false
   );
   useEffect(() => {
     const mqRm = window.matchMedia("(prefers-reduced-motion: reduce)");
     const setRm = () => setReduceMotion(!!mqRm.matches);
     setRm();
     mqRm.addEventListener("change", setRm);
-    const mqNarrow = window.matchMedia("(max-width: 767px)");
+    const mqNarrow = window.matchMedia("(max-width: 768px)");
     const setN = () => setNarrow(!!mqNarrow.matches);
     setN();
     mqNarrow.addEventListener("change", setN);
     const updDur = () => {
       const w = window.innerWidth;
-      if (variant === "homeHero" && w <= 767) {
-        if (w <= 480) setMarqueeDur("520s");
-        else setMarqueeDur("440s");
+      if (variant === "homeHero" && w <= 768) {
+        if (w <= 480) setMarqueeDur("1152s");
+        else setMarqueeDur("984s");
       } else if (w <= 768) setMarqueeDur("190s");
       else setMarqueeDur("125s");
     };
@@ -158,11 +158,11 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
   }, [variant]);
   const showMarquee = !reduceMotion;
   const homeHeroMobile = variant === "homeHero" && narrow;
-  /** Desktop: full frame. Mobile home hero: narrow lower band (~50% less visible area than 900×300) = fewer buildings on screen; SMIL still shifts 900px for seamless loop. */
-  const clipX = homeHeroMobile ? 195 : 0;
-  const clipY = homeHeroMobile ? 408 : 0;
-  const clipW = homeHeroMobile ? 510 : 900;
-  const clipH = homeHeroMobile ? 208 : 640;
+  /** Desktop: full frame. Mobile home hero: tight bottom band + narrow horizontal slice = far fewer buildings; SMIL still shifts 900px for seamless loop. */
+  const clipX = homeHeroMobile ? 296 : 0;
+  const clipY = homeHeroMobile ? 508 : 0;
+  const clipW = homeHeroMobile ? 272 : 900;
+  const clipH = homeHeroMobile ? 106 : 640;
   return (
     <svg className={"home-hero-illustration-svg" + (homeHeroMobile ? " home-hero-illustration-svg--heroMobile" : "")} viewBox="0 0 900 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" shapeRendering="geometricPrecision">
       <defs>
@@ -171,17 +171,33 @@ export function HomeHeroIllustration({ variant = "default" } = {}) {
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        <g className="home-hero-marquee-root">
-          {showMarquee ? (
-            <animateTransform attributeName="transform" type="translate" additive="replace" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
-          ) : null}
-          <g transform="translate(0,0)">
-            <HomeHeroBuildingsStrip />
+        {homeHeroMobile ? (
+          <g transform="translate(450 618) scale(0.88) translate(-450 -618)">
+            <g className="home-hero-marquee-root">
+              {showMarquee ? (
+                <animateTransform attributeName="transform" type="translate" additive="replace" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
+              ) : null}
+              <g transform="translate(0,0)">
+                <HomeHeroBuildingsStrip />
+              </g>
+              <g transform="translate(900,0)">
+                <HomeHeroBuildingsStrip />
+              </g>
+            </g>
           </g>
-          <g transform="translate(900,0)">
-            <HomeHeroBuildingsStrip />
+        ) : (
+          <g className="home-hero-marquee-root">
+            {showMarquee ? (
+              <animateTransform attributeName="transform" type="translate" additive="replace" from="0 0" to="-900 0" dur={marqueeDur} repeatCount="indefinite" calcMode="linear" />
+            ) : null}
+            <g transform="translate(0,0)">
+              <HomeHeroBuildingsStrip />
+            </g>
+            <g transform="translate(900,0)">
+              <HomeHeroBuildingsStrip />
+            </g>
           </g>
-        </g>
+        )}
       </g>
     </svg>
   );

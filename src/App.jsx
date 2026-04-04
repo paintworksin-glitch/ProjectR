@@ -464,29 +464,32 @@ const G = `
     #pdf-print-area { display:block !important; position:static !important; width:100% !important; padding:32px !important; box-sizing:border-box !important; }
     #pdf-print-area * { visibility:visible !important; }
   }
-  @media (max-width: 767px) {
-    .h1big-hero.home-hero-section { isolation: isolate !important; align-items: stretch !important; min-height: clamp(416px, 50dvh, 520px) !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg { z-index: 0 !important; pointer-events: none !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg-inner { pointer-events: none !important; overflow: hidden !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration { overflow: hidden !important; pointer-events: none !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { pointer-events: none !important; min-height: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-inner { position: relative !important; z-index: 2 !important; isolation: isolate !important; display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; justify-content: flex-start !important; align-items: stretch !important; gap: 0 !important; padding: max(10px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-right)) !important; padding-bottom: max(12px, env(safe-area-inset-bottom)) !important; min-height: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-copy { position: relative !important; z-index: 2 !important; flex: 0 0 auto !important; justify-content: flex-start !important; align-items: center !important; max-width: min(100%, 380px) !important; width: 100% !important; margin-left: auto !important; margin-right: auto !important; padding: 6px 0 4px !important; gap: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-mobile-art-rail { position: relative !important; z-index: 2 !important; display: block !important; flex: 0 0 auto !important; min-height: clamp(76px, 14vw, 108px) !important; max-height: clamp(76px, 14vw, 108px) !important; width: 100% !important; max-width: min(380px, 100%) !important; margin: 12px auto 0 !important; pointer-events: none !important; }
-    .h1big-hero.home-hero-section .home-hero-inner .home-hero-qs-dock { position: relative !important; left: auto !important; right: auto !important; bottom: auto !important; top: auto !important; width: 100% !important; max-width: min(380px, 100%) !important; margin: 14px auto 0 !important; z-index: 5 !important; pointer-events: none !important; align-self: center !important; flex-shrink: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-overlay--light { z-index: 1 !important; background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.93) 16%, rgba(255,255,255,0.72) 30%, rgba(255,255,255,0.38) 44%, rgba(255,255,255,0.2) 58%, rgba(255,255,255,0.1) 100%) !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration { align-items: stretch !important; justify-content: center !important; padding-bottom: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-parallax-bg-inner { position: absolute !important; left: 0 !important; right: 0 !important; top: clamp(196px, 36%, 252px) !important; bottom: 0 !important; display: flex !important; align-items: flex-end !important; justify-content: center !important; overflow: hidden !important; z-index: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { width: min(130vw, 720px) !important; min-height: 0 !important; max-height: min(19vh, 164px) !important; opacity: 0.85 !important; transform: none !important; }
-    .h1big-hero.home-hero-section .home-hero-headline-line--serif { margin-top: 0.06em !important; }
-    .h1big-hero.home-hero-section .home-hero-actions { position: relative !important; z-index: 2 !important; margin-top: 10px !important; gap: 10px !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
-    .h1big-hero.home-hero-section .home-hero-actions .home-hero-cta { min-height: 52px !important; box-sizing: border-box !important; width: 100% !important; }
-    .h1big-hero.home-hero-section .home-hero-marquee-root { will-change: auto !important; }
-  }
-  @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { opacity: 0.92 !important; }
+  @media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { opacity: 0.75 !important; filter: saturate(0.81) !important; }
   }
   @media(max-width:768px){
+    .h1big-hero.home-hero-section { isolation: isolate !important; align-items: stretch !important; min-height: clamp(480px, 60dvh, 600px) !important; }
+    .h1big-hero.home-hero-section .home-hero-decor-layer { contain: layout paint !important; pointer-events: none !important; z-index: 0 !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg { z-index: 0 !important; pointer-events: none !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg-inner { pointer-events: none !important; overflow: hidden !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration { overflow: hidden !important; pointer-events: none !important; z-index: 0 !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { pointer-events: none !important; min-height: 0 !important; }
+    .h1big-hero.home-hero-section .home-hero-inner { position: relative !important; z-index: 2 !important; isolation: isolate !important; display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; justify-content: flex-start !important; align-items: stretch !important; gap: 0 !important; padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-right)) !important; min-height: 0 !important; background: linear-gradient(180deg, rgba(255,255,255,0.998) 0%, rgba(255,255,255,0.97) 36%, rgba(255,255,255,0.9) 52%, rgba(255,255,255,0.52) 74%, rgba(255,255,255,0.12) 90%, transparent 100%) !important; }
+    .h1big-hero.home-hero-section .home-hero-copy { position: relative !important; z-index: 2 !important; flex: 0 0 auto !important; justify-content: flex-start !important; align-items: center !important; max-width: min(100%, 360px) !important; width: 100% !important; margin-left: auto !important; margin-right: auto !important; padding: 14px 0 11px !important; gap: 0 !important; box-sizing: border-box !important; }
+    .h1big-hero.home-hero-section .home-hero-headline-line--sans { color: #111111 !important; text-shadow: 0 1px 0 rgba(255,255,255,0.98), 0 0 1px rgba(255,255,255,0.9) !important; }
+    .h1big-hero.home-hero-section .home-hero-headline-line--serif { color: #1f1f1f !important; text-shadow: 0 1px 0 rgba(255,255,255,0.98), 0 0 1px rgba(255,255,255,0.88) !important; }
+    .h1big-hero.home-hero-section .home-hero-mobile-art-rail { position: relative !important; z-index: 2 !important; display: block !important; flex: 0 0 0 !important; min-height: 0 !important; max-height: 0 !important; height: 0 !important; width: 100% !important; max-width: min(360px, 100%) !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+    .h1big-hero.home-hero-section .home-hero-inner .home-hero-qs-dock { position: relative !important; left: auto !important; right: auto !important; bottom: auto !important; top: auto !important; width: 100% !important; max-width: min(360px, 100%) !important; margin: 10px auto 0 !important; z-index: 5 !important; pointer-events: none !important; align-self: center !important; flex-shrink: 0 !important; box-sizing: border-box !important; }
+    .h1big-hero.home-hero-section .home-hero-inner .home-hero-qs-dock .home-hero-search-wrap { max-width: 100% !important; width: 100% !important; align-self: stretch !important; }
+    .h1big-hero.home-hero-section .home-hero-overlay--light { z-index: 1 !important; background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.98) 12%, rgba(255,255,255,0.92) 26%, rgba(255,255,255,0.66) 42%, rgba(255,255,255,0.32) 58%, rgba(255,255,255,0.14) 74%, rgba(255,255,255,0.07) 88%, rgba(255,255,255,0.05) 100%) !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration { align-items: stretch !important; justify-content: center !important; padding-bottom: 0 !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-parallax-bg-inner { position: absolute !important; left: 0 !important; right: 0 !important; top: clamp(278px, 60dvh, 388px) !important; bottom: 0 !important; display: flex !important; align-items: flex-end !important; justify-content: center !important; overflow: hidden !important; z-index: 0 !important; }
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg { width: min(102vw, 520px) !important; min-height: 0 !important; max-height: min(11vh, 96px) !important; opacity: 0.5 !important; transform: none !important; filter: saturate(0.74) !important; }
+    .h1big-hero.home-hero-section .home-hero-illustration-svg--heroMobile { max-height: min(11vh, 96px) !important; opacity: 0.5 !important; }
+    .h1big-hero.home-hero-section .home-hero-headline-line--serif { margin-top: 0.06em !important; }
+    .h1big-hero.home-hero-section .home-hero-actions { position: relative !important; z-index: 2 !important; flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; margin-top: 15px !important; gap: 12px !important; width: 100% !important; max-width: min(360px, 100%) !important; margin-left: auto !important; margin-right: auto !important; padding: 2px 0 0 !important; box-sizing: border-box !important; box-shadow: 0 10px 32px rgba(15,23,42,0.05) !important; border-radius: 14px !important; }
+    .h1big-hero.home-hero-section .home-hero-actions .home-hero-cta { min-height: 52px !important; height: 52px !important; box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; flex: 0 0 auto !important; }
+    .h1big-hero.home-hero-section .home-hero-marquee-root { will-change: auto !important; }
     html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     body{font-size:16px;line-height:1.6}
     .inp{font-size:16px!important;min-height:48px!important;box-sizing:border-box!important}
@@ -616,11 +619,11 @@ const G = `
   }
   @media(max-width:640px){.h1big:not(.home-hero-headline){font-size:32px!important}}
   @media(max-width:480px){
-    .h1big-hero.home-hero-section .home-hero-inner{padding-top:max(8px, env(safe-area-inset-top))!important;gap:0!important}
+    .h1big-hero.home-hero-section .home-hero-inner{padding-top:max(16px, env(safe-area-inset-top))!important;gap:0!important}
     .home-hero-inner{padding-top:clamp(16px,4vw,24px)!important;gap:clamp(16px,4vw,24px)!important}
     .home-hero-headline-line--sans{font-size:clamp(24px,6.8vw,34px)!important;line-height:1.06!important}
     .home-hero-headline-line--serif{font-size:clamp(20px,5.2vw,28px)!important;line-height:1.1!important}
-    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(17vh,148px)!important;opacity:0.82!important;transform:none!important}
+    .h1big-hero.home-hero-section .home-hero-parallax-bg--illustration .home-hero-illustration-svg{max-height:min(10vh,88px)!important;opacity:0.47!important;transform:none!important;filter:saturate(0.7)!important}
     .home-prop-section{padding-top:24px!important;padding-bottom:32px!important}
     .home-band-split,.home-band-cta{padding-top:32px!important;padding-bottom:36px!important}
     .home-sample-pane{padding-top:28px!important;padding-bottom:32px!important}
@@ -3026,7 +3029,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       const ill = heroParallaxIllustrationRef.current;
       const inner = heroParallaxInnerRef.current;
       if (!sec || !ill) return;
-      const narrow = window.matchMedia("(max-width: 767px)").matches;
+      const narrow = window.matchMedia("(max-width: 768px)").matches;
       if (narrow) {
         ill.style.removeProperty("top");
         ill.style.removeProperty("bottom");
@@ -3075,7 +3078,7 @@ const Home = ({currentUser,onNavigate,onOpenProperty}) => {
   return (
     <div style={{background:"#ffffff",width:"100%",maxWidth:"100%",boxSizing:"border-box"}} className="home-page-shell">
       <section ref={heroSectionRef} className="h1big-hero home-hero-section home-hero-section--light" style={{position:"relative",width:"100%",maxWidth:"100%",overflow:"hidden"}}>
-        <div ref={heroParallaxIllustrationRef} className="home-hero-parallax-bg home-hero-parallax-bg--illustration" aria-hidden="true">
+        <div ref={heroParallaxIllustrationRef} className="home-hero-parallax-bg home-hero-parallax-bg--illustration home-hero-decor-layer" aria-hidden="true">
           <div className="home-hero-parallax-bg-inner">
             <HomeHeroIllustration variant="homeHero" />
           </div>
