@@ -2,13 +2,17 @@
  * Listing AI calls a server-side endpoint (e.g. Supabase Edge Function).
  * Do not put Anthropic or other LLM API keys in VITE_* — they ship in the browser bundle.
  *
- * Set VITE_LISTING_AI_URL to the function URL, e.g.
+ * Set NEXT_PUBLIC_LISTING_AI_URL (Next.js) or VITE_LISTING_AI_URL (Vite) to the function URL, e.g.
  * https://<project>.supabase.co/functions/v1/listing-ai
  */
 
 const listingAiBaseUrl = () => {
   try {
-    const u = String(import.meta.env?.VITE_LISTING_AI_URL || "").trim();
+    const u = String(
+      (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_LISTING_AI_URL) ||
+        (typeof import.meta !== "undefined" && import.meta.env?.VITE_LISTING_AI_URL) ||
+        ""
+    ).trim();
     return u ? u.replace(/\/$/, "") : "";
   } catch {
     return "";
@@ -19,7 +23,11 @@ export const listingAiConfigured = () => Boolean(listingAiBaseUrl());
 
 const anonKey = () => {
   try {
-    return String(import.meta.env?.VITE_SUPABASE_ANON_KEY || "").trim();
+    return String(
+      (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+        (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+        ""
+    ).trim();
   } catch {
     return "";
   }
@@ -66,7 +74,7 @@ const defaultScores = () => ({
   clarity: 5,
   reason: listingAiConfigured()
     ? "Could not score"
-    : "Set VITE_LISTING_AI_URL and deploy listing-ai edge function",
+    : "Set NEXT_PUBLIC_LISTING_AI_URL and deploy listing-ai edge function",
 });
 
 export async function scorePhotoWithListingAi(supabase, base64, mediaType) {
