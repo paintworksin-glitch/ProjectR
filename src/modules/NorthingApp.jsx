@@ -1037,7 +1037,7 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             </div>
           )}
 
-          {/* ── Location map: Static API if VITE_GOOGLE_MAPS_API_KEY (best for PDF capture); else free Google Maps embed (no API key) ── */}
+          {/* ── Location map: Static API if NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (best for PDF capture); else free Google Maps embed (no API key) ── */}
           <div style={{marginBottom:24}}>
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
             {listing.location?(
@@ -1346,7 +1346,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         setAiStatus("idle");
         setAiPick(null);
         setCoverIdx(0);
-        showToast("Photos uploaded ✓ (set VITE_LISTING_AI_URL + listing-ai function for AI cover pick)","success");
+        showToast("Photos uploaded ✓ (set NEXT_PUBLIC_LISTING_AI_URL + listing-ai function for AI cover pick)","success");
         return;
       }
       // 2. Silently score all unscored photos
@@ -1454,7 +1454,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 10px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ AI property summary</h3>
-        <p style={{margin:"0 0 14px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Shown on the public property page. New listings get a draft automatically when <code style={{fontSize:12,background:"var(--cream)",padding:"2px 6px",borderRadius:4}}>VITE_LISTING_AI_URL</code> points at your deployed listing-ai edge function.</p>
+        <p style={{margin:"0 0 14px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Shown on the public property page. New listings get a draft automatically when <code style={{fontSize:12,background:"var(--cream)",padding:"2px 6px",borderRadius:4}}>NEXT_PUBLIC_LISTING_AI_URL</code> points at your deployed listing-ai edge function.</p>
         {form.aiDescription ? (
           <textarea value={form.aiDescription} onChange={(e) => set("aiDescription", e.target.value)} className="inp" rows={5} style={{resize:"vertical",marginBottom:12,fontSize:14,lineHeight:1.55}} placeholder="AI-generated summary…" />
         ) : (
@@ -1467,7 +1467,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
             style={{padding:"10px 18px",borderRadius:10,fontSize:13,opacity:listingAiConfigured()?1:0.55}}
             disabled={aiDescBusy || !listingAiConfigured()}
             onClick={async () => {
-              if (!listingAiConfigured()) { showToast("Set VITE_LISTING_AI_URL and deploy the listing-ai Supabase function", "error"); return; }
+              if (!listingAiConfigured()) { showToast("Set NEXT_PUBLIC_LISTING_AI_URL and deploy the listing-ai Supabase function", "error"); return; }
               setAiDescBusy(true);
               try {
                 const t = await generateListingAiDescription(supabase, form);

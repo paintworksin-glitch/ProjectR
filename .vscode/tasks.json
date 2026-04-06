@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "npm: dev (Vite)",
+      "label": "npm: dev (Next.js)",
       "type": "npm",
       "script": "dev",
       "problemMatcher": [],
