@@ -15,8 +15,8 @@ const rootSuspenseFallback = (
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Suspense fallback={rootSuspenseFallback}>
           <NorthingProviders>{children}</NorthingProviders>
         </Suspense>

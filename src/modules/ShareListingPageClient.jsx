@@ -132,6 +132,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
             color: "var(--primary)",
             marginBottom: 20,
           }}
+          suppressHydrationWarning
         >
           {fmtP(listing.price)}
           {listing.listingType === "Rent" && (

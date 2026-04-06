@@ -107,7 +107,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       <div className="property-detail-main">
         <h1 className="property-detail-title">{listing.title}</h1>
         <p className="property-detail-loc">📍 {listing.location}</p>
-        <p className="property-detail-price">
+        <p className="property-detail-price" suppressHydrationWarning>
           {fmtP(listing.price)}
           {listing.listingType === "Rent" ? <span className="property-detail-price-unit">/month</span> : null}
         </p>
@@ -163,7 +163,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             Broker
           </h2>
           <div className="property-detail-broker-row">
-            <div className="property-detail-broker-photo">
+            <div className="property-detail-broker-photo" suppressHydrationWarning>
               {agentBrand?.logoUrl ? <img src={agentBrand.logoUrl} alt="" /> : brokerInitial}
             </div>
             <div>
