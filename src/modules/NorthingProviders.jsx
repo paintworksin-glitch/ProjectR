@@ -221,7 +221,14 @@ export default function NorthingProviders({ children }) {
     <NorthingContext.Provider value={value}>
       <div style={{ minHeight: "100vh", background: "var(--cream)", color: "var(--text)", width: "100%", maxWidth: "100%" }}>
         <style>{G}</style>
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <div
+              style={{ minHeight: "60vh", width: "100%", background: "var(--cream)" }}
+              aria-hidden
+            />
+          }
+        >
           <AppChrome>{children}</AppChrome>
         </Suspense>
         {adminModal && (

@@ -17,7 +17,14 @@ function HomeOrAgent() {
 
 export default function HomePageClient() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div
+          style={{ minHeight: "48vh", width: "100%", background: "#ffffff" }}
+          aria-hidden
+        />
+      }
+    >
       <HomeOrAgent />
     </Suspense>
   );
