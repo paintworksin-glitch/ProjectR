@@ -1,0 +1,11 @@
+import { createSupabaseServerClient } from "./supabaseServer";
+import { mapListing } from "./mapListing";
+
+/** Server-only: load listing for /property/[id] (SSR + metadata). Uses Supabase SSR client + cookies. */
+export async function fetchListingByIdServer(id) {
+  if (!id) return null;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("listings").select("*").eq("id", id).single();
+  if (error || !data) return null;
+  return mapListing(data);
+}
