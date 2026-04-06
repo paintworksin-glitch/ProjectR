@@ -1,5 +1,21 @@
-import { ShareListingPage } from "@/modules/NorthingApp";
+import { cache } from "react";
+import { notFound } from "next/navigation";
+import { fetchListingByIdServer } from "@/lib/fetchListingServer";
+import { buildListingPageMetadata, getSiteBaseUrl } from "@/lib/listingMetadata";
+import ShareListingPageClient from "@/modules/ShareListingPageClient";
 
-export default function ShareRoutePage({ params }) {
-  return <ShareListingPage id={params.id} />;
+const getListing = cache(async (id) => fetchListingByIdServer(id));
+
+export async function generateMetadata({ params }) {
+  const listing = await getListing(params.id);
+  if (!listing) notFound();
+  return buildListingPageMetadata(listing);
+}
+
+export default async function ShareRoutePage({ params }) {
+  const listing = await getListing(params.id);
+  if (!listing) notFound();
+  const site = getSiteBaseUrl();
+  const fullListingUrl = site ? `${site}/property/${params.id}` : `/property/${params.id}`;
+  return <ShareListingPageClient initialListing={listing} fullListingUrl={fullListingUrl} />;
 }

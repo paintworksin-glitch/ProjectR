@@ -68,37 +68,14 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
     if (listing) window.scrollTo(0, 0);
   }, [listing?.id]);
 
+  if (!listing) return null;
+
   const contactBroker = () => {
     if (!listing?.agentPhone) return;
     const digits = String(listing.agentPhone).replace(/\D/g, "");
     if (digits.length >= 10) window.open(`https://wa.me/${digits}`, "_blank", "noopener,noreferrer");
     else window.location.href = `tel:${listing.agentPhone}`;
   };
-
-  if (!listing) {
-    return (
-      <div
-        className="property-detail-page"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "'Inter',sans-serif",
-        }}
-      >
-        <style>{G}</style>
-        <div style={{ textAlign: "center", color: "#64748b", padding: 24 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: "#1a1a1a", marginBottom: 16 }}>
-            Property not found
-          </div>
-          <button type="button" onClick={goBack} className="property-detail-back">
-            ← Go back
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const desc = (listing.description || "").trim();
   const descLong = desc.length > 280;
