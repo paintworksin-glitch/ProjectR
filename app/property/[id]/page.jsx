@@ -9,7 +9,14 @@ const getListing = cache(async (id) => fetchListingByIdServer(id));
 export async function generateMetadata({ params }) {
   const listing = await getListing(params.id);
   if (!listing) notFound();
-  return buildListingPageMetadata(listing);
+  const meta = buildListingPageMetadata(listing);
+  return {
+    ...meta,
+    openGraph: {
+      ...meta.openGraph,
+      siteName: "Northing",
+    },
+  };
 }
 
 export default async function PropertyPage({ params }) {
