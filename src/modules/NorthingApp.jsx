@@ -3,7 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useReducer, Component } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import LoginParticles from "../LoginParticles.jsx";
+import AuthLeftPanel from "./AuthLeftPanel.jsx";
 import PrivacyPolicyPage from "../PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "../TermsOfServicePage.jsx";
 import AboutPage from "../AboutPage.jsx";
@@ -1086,189 +1086,419 @@ export const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-export const LoginPage = ({onLogin,showToast,onNavigate}) => {
-  const [mode,setMode]=useState("login");const [role,setRole]=useState("user");
-  const [form,setForm]=useState({name:"",email:"",password:"",phone:"",agencyName:""});const [loading,setLoading]=useState(false);
-  const [loginChannel,setLoginChannel]=useState("phone");
-  const [phoneLogin,setPhoneLogin]=useState("");
-  const [otpCode,setOtpCode]=useState("");
-  const [otpStep,setOtpStep]=useState("phone");
-  const [otpCooldown,setOtpCooldown]=useState(0);
-  const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
+export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login" }) => {
+  const [mode, setMode] = useState(initialMode === "register" ? "register" : "login");
+  const [role, setRole] = useState("user");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const sessionHandledRef = useRef(false);
+  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const finishSession=async(userId)=>{
-    const {data:profile,error:pe}=await supabase.from("profiles").select("*").eq("id",userId).single();
-    if(pe||!profile) throw new Error("Could not load your profile.");
-    const savedRes=await supabase.from("saved_listings").select("listing_id").eq("user_id",userId);
-    const savedIds=(savedRes.data||[]).map(r=>r.listing_id);
-    showToast(`Welcome back, ${profile.name}!`,"success");
-    onLogin({id:profile.id,name:profile.name,email:profile.email,role:profile.role,phone:profile.phone,agencyName:profile.agency_name,logoUrl:profile.logo_url||null,agentAddress:profile.address||null,agentWebsite:profile.website||null,savedListings:savedIds});
+  useEffect(() => {
+    setMode(initialMode === "register" ? "register" : "login");
+  }, [initialMode]);
+
+  const finishSession = async (userId) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id === userId) {
+      const { data: existing } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
+      if (!existing) {
+        const md = user.user_metadata || {};
+        const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
+        const r = ["user", "seller", "agent"].includes(md.role) ? md.role : "user";
+        await supabase.from("profiles").insert({
+          id: userId,
+          name: md.full_name || md.name || user.email?.split("@")[0] || "User",
+          email: user.email ?? null,
+          role: r,
+          phone: phoneNational,
+          agency_name: null,
+        });
+      }
+    }
+    const { data: profile, error: pe } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (pe || !profile) throw new Error("Could not load your profile.");
+    const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", userId);
+    const savedIds = (savedRes.data || []).map((r) => r.listing_id);
+    showToast(`Welcome back, ${profile.name}!`, "success");
+    onLogin({
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      phone: profile.phone,
+      agencyName: profile.agency_name,
+      logoUrl: profile.logo_url || null,
+      agentAddress: profile.address || null,
+      agentWebsite: profile.website || null,
+      savedListings: savedIds,
+    });
   };
 
-  const sendPhoneOtp=async()=>{
-    const e164=toE164Phone(phoneLogin);
-    if(!e164){showToast("Enter a valid 10-digit mobile number","error");return;}
-    if(mode==="register"){
-      if(!form.name?.trim()){showToast("Enter your name","error");return;}
+  const submitLogin = async () => {
+    if (!form.email?.trim() || !form.password) {
+      showToast("Email and password required", "error");
+      return;
     }
     setLoading(true);
-    try{
-      const {error}=await supabase.auth.signInWithOtp({phone:e164});
-      if(error) throw error;
-      showToast("OTP sent! Check your SMS.","success");
-      setOtpStep("otp");
-      setOtpCooldown(45);
-      let left=45;
-      const id=setInterval(()=>{left-=1;setOtpCooldown(left);if(left<=0)clearInterval(id);},1000);
-    }catch(err){showToast(err.message||"Could not send OTP (enable Phone provider + SMS in Supabase)","error");}
-    setLoading(false);
-  };
-
-  const verifyPhoneOtp=async()=>{
-    const e164=toE164Phone(phoneLogin);
-    if(!e164||!otpCode.replace(/\s/g,"")){showToast("Enter the 6-digit code","error");return;}
-    setLoading(true);
-    try{
-      const {data,error}=await supabase.auth.verifyOtp({phone:e164,token:otpCode.replace(/\s/g,""),type:"sms"});
-      if(error) throw error;
-      const uid=data?.session?.user?.id||data?.user?.id;
-      if(!uid) throw new Error("Login incomplete — try again");
-      const national=nationalDigitsFromE164(e164);
-      const {data:existing}=await supabase.from("profiles").select("id").eq("id",uid).maybeSingle();
-      if(!existing){
-        if(mode==="register"){
-          const emailTrim=form.email?.trim()||null;
-          const {error:insErr}=await supabase.from("profiles").insert({
-            id:uid,
-            name:form.name.trim(),
-            email:emailTrim,
-            role,
-            phone:national,
-            agency_name:form.agencyName?.trim()||null,
-          });
-          if(insErr) throw insErr;
-        }else{
-          const last4=national||"0000";
-          const {error:insErr}=await supabase.from("profiles").insert({
-            id:uid,
-            name:`User ${last4}`,
-            email:null,
-            role:"user",
-            phone:national,
-            agency_name:null,
-          });
-          if(insErr) throw insErr;
-        }
-      }
-      await finishSession(uid);
-    }catch(err){showToast(err.message||"Invalid or expired code","error");}
-    setLoading(false);
-  };
-
-  const submit=async()=>{
-    if(!form.email||!form.password){showToast("Email and password required","error");return;}
-    setLoading(true);
-    try{
-      const {data,error}=await supabase.auth.signInWithPassword({email:form.email,password:form.password});
-      if(error) throw error;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      if (error) throw error;
       await finishSession(data.user.id);
-    }catch(err){showToast(err.message||"Something went wrong","error");}
+    } catch (err) {
+      showToast(err.message || "Something went wrong", "error");
+    }
     setLoading(false);
   };
-  const roles=[
-    {id:"user",icon:"🔍",label:"Buyer",desc:"Browse & save properties"},
-    {id:"seller",icon:"🏠",label:"Individual Seller",desc:"List up to 2 properties"},
-    {id:"agent",icon:"🏢",label:"Agent / Firm",desc:"Unlimited listings + white-label"},
+
+  const submitRegister = async () => {
+    if (!form.name?.trim() || !form.email?.trim()) {
+      showToast("Full name and email are required", "error");
+      return;
+    }
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10) {
+      showToast("Enter a valid 10-digit Indian mobile number", "error");
+      return;
+    }
+    if (form.password.length < 6) {
+      showToast("Password must be at least 6 characters", "error");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      showToast("Passwords do not match", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.name.trim(),
+            role,
+            phone: phoneDigits,
+          },
+          emailRedirectTo: `${origin}/login`,
+        },
+      });
+      if (error) throw error;
+      if (data.session && data.user) {
+        const { error: insErr } = await supabase.from("profiles").insert({
+          id: data.user.id,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          role,
+          phone: phoneDigits,
+          agency_name: null,
+        });
+        if (insErr) throw insErr;
+        await finishSession(data.user.id);
+      } else {
+        showToast("Check your email to confirm your account, then sign in.", "success");
+      }
+    } catch (err) {
+      showToast(err.message || "Sign up failed", "error");
+    }
+    setLoading(false);
+  };
+
+  const googleLogin = async () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${origin}/login` },
+    });
+    if (error) showToast(error.message, "error");
+  };
+
+  const sendForgotPassword = async () => {
+    if (!form.email?.trim()) {
+      showToast("Enter your email in the field above", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
+        redirectTo: `${origin}/login`,
+      });
+      if (error) throw error;
+      showToast("Check your email for a password reset link.", "success");
+      setShowForgot(false);
+    } catch (err) {
+      showToast(err.message || "Could not send reset email", "error");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (sessionHandledRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled || !session?.user) return;
+      sessionHandledRef.current = true;
+      try {
+        await finishSession(session.user.id);
+      } catch {
+        sessionHandledRef.current = false;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for OAuth redirect completion
+  }, []);
+
+  const roles = [
+    { id: "user", icon: "🔍", label: "Buyer", desc: "Browse & save properties" },
+    { id: "seller", icon: "🏠", label: "Seller", desc: "List up to 2 properties" },
+    { id: "agent", icon: "🏢", label: "Agent", desc: "Unlimited listings + white-label" },
   ];
+
+  const orDivider = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>or</span>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+    </div>
+  );
+
   return (
-    <div className="login-page" style={{minHeight:"100vh",background:"var(--cream)",display:"flex",flexWrap:"nowrap"}}>
-      <div className="login-hero-col" style={{width:"45%",minHeight:"100vh",alignSelf:"stretch",background:"var(--navy)",padding:"60px 48px",display:"flex",flexDirection:"column",justifyContent:"space-between",position:"relative",overflow:"hidden",flexShrink:0}}>
-        <SkylineHeroBackdrop tone="standard" />
-        <div style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none"}}><LoginParticles /></div>
-        <div style={{position:"relative",zIndex:3}}><div className="login-heading-serif" style={{fontWeight:700,fontSize:28,color:"#fff",marginBottom:4}}>Northing</div><div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"1.5px",textTransform:"uppercase"}}>Professional Property Marketing</div></div>
-        <div style={{position:"relative",zIndex:3}}>
-          <h2 className="login-heading-serif" style={{fontSize:34,fontWeight:600,color:"#fff",lineHeight:1.25,marginBottom:16}}>Buy, Sell, or Rent — all in one place.</h2>
-          <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Instant brochures, WhatsApp cards, and verified listings — built for Indian real estate.</p>
-          <div style={{marginTop:36,display:"flex",flexDirection:"column",gap:12}}>
-            {[["🔍","Buyers","Browse verified listings and download reports"],["🏠","Sellers","List your property and reach thousands"],["🏢","Agents","White-label brochures and full firm profile"]].map(([icon,title,desc])=>(
-              <div key={title} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                <span style={{fontSize:20}}>{icon}</span>
-                <div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>{title}</div><div style={{fontSize:12,color:"rgba(255,255,255,0.4)"}}>{desc}</div></div>
-              </div>
-            ))}
+    <div className="login-page" style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexWrap: "nowrap" }}>
+      <AuthLeftPanel variant={mode === "register" ? "signup" : "login"} />
+      <div className="login-form-col" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, overflowY: "auto", minWidth: 0 }}>
+        <div style={{ maxWidth: 440, width: "100%" }}>
+          <div style={{ marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate("home")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--muted)",
+                fontSize: 13,
+                cursor: "pointer",
+                padding: "4px 0",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: "inherit",
+                fontWeight: 600,
+              }}
+            >
+              ← Back to Home
+            </button>
           </div>
-        </div>
-      </div>
-      <div className="login-form-col" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32,overflowY:"auto",minWidth:0}}>
-        <div style={{maxWidth:440,width:"100%"}}>
-          <div style={{marginBottom:16}}>
-            <button onClick={()=>onNavigate&&onNavigate("home")} style={{background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",fontWeight:600}}>← Back to Home</button>
-          </div>
-          <div style={{marginBottom:28}}>
-            <div className="login-heading-serif" style={{fontWeight:700,fontSize:22,color:"var(--navy)",marginBottom:2}}>Northing</div>
-            <h2 className="login-heading-serif" style={{fontSize:28,fontWeight:600,color:"var(--navy)",marginBottom:6}}><ShinyText text={mode==="login"?"Welcome back.":"Create account."} color="#0f172a" shineColor="#333333" speed={3} spread={140}/></h2>
-            <p style={{fontSize:14,color:"var(--muted)"}}>{mode==="login"?"Sign in with your mobile number":"Create your account — mobile is required, email optional"}</p>
-          </div>
-          {mode==="login"&&(
-            <div style={{display:"flex",gap:8,marginBottom:18,padding:5,background:"var(--gray)",borderRadius:12,border:"1px solid var(--border)"}}>
-              {[{id:"phone",label:"Mobile OTP"},{id:"email",label:"Email & password"}].map(({id,label})=>(
-                <button key={id} type="button" onClick={()=>{setLoginChannel(id);setOtpStep("phone");setOtpCode("");}} style={{flex:1,padding:"10px 10px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,fontFamily:"inherit",background:loginChannel===id?"var(--white)":"transparent",color:loginChannel===id?"var(--primary)":"var(--muted)",boxShadow:loginChannel===id?"0 2px 10px rgba(15,23,42,0.08)":"none",transition:"all 0.2s"}}>{label}</button>
-              ))}
+          <div style={{ marginBottom: 24 }}>
+            <div className="login-heading-serif" style={{ fontWeight: 700, fontSize: 22, color: "var(--navy)", marginBottom: 2 }}>
+              Northing
             </div>
-          )}
-          {mode==="register"&&(
-            <div style={{marginBottom:18}}>
-              <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>I am a…</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {roles.map(r=>(
-                  <button key={r.id} onClick={()=>setRole(r.id)} style={{padding:"12px 14px",borderRadius:12,border:`2px solid ${role===r.id?"var(--primary)":"var(--border)"}`,background:role===r.id?"var(--primary-light)":"var(--white)",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",transition:"all 0.2s"}}>
-                    <span style={{fontSize:22}}>{r.icon}</span>
-                    <div><div style={{fontWeight:700,fontSize:14,color:role===r.id?"var(--primary)":"var(--navy)"}}>{r.label}</div><div style={{fontSize:11,color:"var(--muted)"}}>{r.desc}</div></div>
+            <h2 className="login-heading-serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--navy)", marginBottom: 6 }}>
+              <ShinyText text={mode === "login" ? "Welcome back." : "Create your account."} color="#0f172a" shineColor="#333333" speed={3} spread={140} />
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--muted)" }}>
+              {mode === "login" ? "Sign in with email and password." : "Tell us who you are and how to reach you."}
+            </p>
+          </div>
+
+          {mode === "login" && (
+            <>
+              <button
+                type="button"
+                onClick={googleLogin}
+                disabled={loading}
+                className="btn-outline"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 11,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                  border: "1px solid var(--border)",
+                  background: "var(--white)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Continue with Google
+              </button>
+              {orDivider}
+              <div style={{ marginBottom: 12 }}>
+                <input className="inp" type="email" autoComplete="email" placeholder="Email address" value={form.email} onChange={(e) => setF("email", e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <input
+                  className="inp"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={(e) => setF("password", e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitLogin()}
+                />
+              </div>
+              <div style={{ marginBottom: 16, textAlign: "right" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForgot((v) => !v)}
+                  style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              {showForgot && (
+                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, background: "var(--gray)", border: "1px solid var(--border)" }}>
+                  <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>We’ll email you a link to reset your password.</p>
+                  <button type="button" onClick={sendForgotPassword} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "10px", borderRadius: 9, fontSize: 14 }}>
+                    {loading ? "Sending…" : "Send reset link"}
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {mode==="register"&&(
-            <>
-              <div style={{marginBottom:12}}><input className="inp" placeholder="Full name *" value={form.name} onChange={e=>setF("name",e.target.value)} /></div>
-              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email (optional)" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-              {(role==="agent"||role==="seller")&&<div style={{marginBottom:12}}><input className="inp" placeholder={role==="agent"?"Agency / Firm name (optional)":"Your name or firm (optional)"} value={form.agencyName} onChange={e=>setF("agencyName",e.target.value)} /></div>}
-            </>
-          )}
-          {(mode==="login"&&loginChannel==="phone")||mode==="register"?(
-            <>
-              {mode==="login"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>We’ll text you a one-time code.</p>}
-              {mode==="register"&&<p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>We’ll send a code to verify your number.</p>}
-              {otpStep==="phone"?(
-                <>
-                  <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits, India +91)" value={phoneLogin} onChange={e=>setPhoneLogin(e.target.value)} /></div>
-                  <button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send OTP →"}</button>
-                </>
-              ):(
-                <>
-                  <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter 6-digit OTP" value={otpCode} onChange={e=>setOtpCode(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyPhoneOtp()} /></div>
-                  <button type="button" onClick={verifyPhoneOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:mode==="register"?"Verify & create account →":"Verify & Sign In →"}</button>
-                  <button type="button" onClick={()=>{setOtpStep("phone");setOtpCode("");}} className="btn-ghost" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:10}}>← Use different number</button>
-                  {otpCooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginBottom:8}}>Resend OTP in {otpCooldown}s</p>:<button type="button" onClick={sendPhoneOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13,marginBottom:12}}>Resend OTP</button>}
-                </>
+                </div>
               )}
-            </>
-          ):null}
-          {mode==="login"&&loginChannel==="email"&&(
-            <>
-              <p style={{fontSize:12,color:"var(--muted)",marginBottom:14,lineHeight:1.45}}>Sign in with email and password.</p>
-              <div style={{marginBottom:12}}><input className="inp" type="email" placeholder="Email address" value={form.email} onChange={e=>setF("email",e.target.value)} /></div>
-              <div style={{marginBottom:20}}><input className="inp" type="password" placeholder="Password" value={form.password} onChange={e=>setF("password",e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} /></div>
-              <button onClick={submit} disabled={loading} className="btn-primary" style={{width:"100%",padding:"13px",borderRadius:11,fontSize:15,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Please wait…</>:"Sign In →"}</button>
+              <button onClick={submitLogin} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "13px", borderRadius: 11, fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {loading ? (
+                  <>
+                    <span className="spin" />
+                    Please wait…
+                  </>
+                ) : (
+                  "Sign In →"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate("signup")}
+                style={{ width: "100%", background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: 6 }}
+              >
+                Don&apos;t have an account? Register →
+              </button>
             </>
           )}
-          <button onClick={()=>{setMode(m=>m==="login"?"register":"login");setLoginChannel("phone");setOtpStep("phone");setOtpCode("");}} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:13,cursor:"pointer",padding:6}}>{mode==="login"?"Don't have an account? Register →":"Already registered? Sign in →"}</button>
+
+          {mode === "register" && (
+            <>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                  I am a… <span style={{ color: "#DC2626" }}>*</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {roles.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRole(r.id)}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        border: `2px solid ${role === r.id ? "var(--primary)" : "var(--border)"}`,
+                        background: role === r.id ? "var(--primary-light)" : "var(--white)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        textAlign: "left",
+                        transition: "all 0.2s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      <span style={{ fontSize: 22 }}>{r.icon}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: role === r.id ? "var(--primary)" : "var(--navy)" }}>{r.label}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{r.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <input className="inp" placeholder="Full name *" autoComplete="name" value={form.name} onChange={(e) => setF("name", e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <input className="inp" type="email" placeholder="Email *" autoComplete="email" value={form.email} onChange={(e) => setF("email", e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  className="inp"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="Mobile (+91) — 10 digits *"
+                  value={form.phone}
+                  onChange={(e) => setF("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                />
+                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>We store India (+91) numbers only — no OTP on signup.</p>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <input className="inp" type="password" autoComplete="new-password" placeholder="Password *" value={form.password} onChange={(e) => setF("password", e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  className="inp"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm password *"
+                  value={form.confirmPassword}
+                  onChange={(e) => setF("confirmPassword", e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitRegister()}
+                />
+              </div>
+              <button onClick={submitRegister} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "13px", borderRadius: 11, fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {loading ? (
+                  <>
+                    <span className="spin" />
+                    Please wait…
+                  </>
+                ) : (
+                  "Create Account →"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate("login")}
+                style={{ width: "100%", background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: 6 }}
+              >
+                Already have an account? Sign in →
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+/*
+  --- Legacy Mobile OTP login (signInWithOtp / verifyOtp) — kept for reference; not used in UI. ---
+  const sendPhoneOtp = async () => { ... toE164Phone(phoneLogin); supabase.auth.signInWithOtp({ phone: e164 }); ... };
+  const verifyPhoneOtp = async () => { ... supabase.auth.verifyOtp({ phone: e164, token: otpCode, type: "sms" }); ... };
+*/
 
 const FI=({label,k,form,set,type="text",placeholder="",err,span})=>(<div style={{marginBottom:13,gridColumn:span?"1/-1":"auto"}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<input type={type} placeholder={placeholder} value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp" style={{borderColor:err?"#FCA5A5":"var(--border)"}} />{err&&<div style={{fontSize:11,color:"#DC2626",marginTop:3}}>{err}</div>}</div>);
 const FS=({label,k,form,set,opts,fmtLabel})=>(<div style={{marginBottom:13}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<select value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp"><option value="">Select…</option>{opts.map(o=><option key={o} value={o}>{fmtLabel?fmtLabel(o):o}</option>)}</select></div>);

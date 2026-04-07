@@ -27,6 +27,7 @@ function AppChrome({ children, agent }) {
 
   if (
     pathname === "/login" ||
+    pathname === "/signup" ||
     pathname.startsWith("/share/") ||
     pathname.startsWith("/property/") ||
     pathname.startsWith("/broker/")
@@ -125,6 +126,7 @@ export default function NorthingProviders({ children }) {
         p === "home" ||
         p === "feed" ||
         p === "login" ||
+        p === "signup" ||
         p === "dashboard" ||
         p === "privacy" ||
         p === "terms" ||
