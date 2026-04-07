@@ -1,28 +1,18 @@
 "use client";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Home, AgentPage } from "@/modules/NorthingApp";
-import { useNorthing } from "@/modules/NorthingContext";
+import { useEffect, useState } from "react";
+import HomePageClientContent from "./HomePageClientContent";
 
-function HomePageClientInner() {
-  const searchParams = useSearchParams();
-  const { user, nav, openPropertyPage } = useNorthing();
-  const agentId = searchParams.get("agent");
-
-  if (agentId) {
-    return <AgentPage agentId={agentId} onNavigate={nav} currentUser={user} />;
-  }
-
-  return (
-    <Home currentUser={user} onNavigate={nav} onOpenProperty={openPropertyPage} />
-  );
-}
-
+// HomePageClientContent uses useSearchParams. By gating it behind a mount
+// check, useSearchParams is never called during SSR/static generation,
+// which eliminates BAILOUT_TO_CLIENT_SIDE_RENDERING from the page HTML.
 export default function HomePageClient() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
-      <HomePageClientInner />
-    </Suspense>
-  );
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <div style={{ minHeight: "100vh" }} />;
+  return <HomePageClientContent />;
 }

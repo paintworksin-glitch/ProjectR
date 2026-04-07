@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import SearchParamsHandler from "./SearchParamsHandler";
 import { supabase } from "@/lib/supabaseClient";
 import { G } from "./globalStyles.js";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
@@ -226,17 +227,9 @@ export default function NorthingProviders({ children }) {
     <NorthingContext.Provider value={value}>
       <div style={{ minHeight: "100vh", background: "var(--cream)", color: "var(--text)", width: "100%", maxWidth: "100%" }}>
         <style>{G}</style>
-        <Suspense
-          fallback={
-            <div
-              style={{ minHeight: "60vh", width: "100%", background: "var(--cream)" }}
-              aria-hidden
-            />
-          }
-        >
-          <DashboardAuthRedirect authLoading={authLoading} user={user} pathname={pathname} agent={agentParam} />
-          <AppChrome agent={agentParam}>{children}</AppChrome>
-        </Suspense>
+        <SearchParamsHandler />
+        <DashboardAuthRedirect authLoading={authLoading} user={user} pathname={pathname} agent={agentParam} />
+        <AppChrome agent={agentParam}>{children}</AppChrome>
         {adminModal && (
           <SecretAdminModal onLogin={login} onClose={() => setAdminModal(false)} showToast={showToast} />
         )}
