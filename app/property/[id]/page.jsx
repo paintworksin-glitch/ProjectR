@@ -4,6 +4,8 @@ import { fetchListingByIdServer } from "@/lib/fetchListingServer";
 import { buildListingPageMetadata } from "@/lib/listingMetadata";
 import PropertyPublicPageClient from "@/modules/PropertyPublicPageClient";
 
+export const runtime = 'nodejs';
+
 const getListing = cache(async (id) => fetchListingByIdServer(id));
 
 export async function generateMetadata({ params }) {
