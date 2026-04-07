@@ -1453,7 +1453,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
                   value={form.phone}
                   onChange={(e) => setF("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
                 />
-                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>We store India (+91) numbers only — no OTP on signup.</p>
               </div>
               <div style={{ marginBottom: 12 }}>
                 <input className="inp" type="password" autoComplete="new-password" placeholder="Password *" value={form.password} onChange={(e) => setF("password", e.target.value)} />
