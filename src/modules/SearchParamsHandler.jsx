@@ -2,14 +2,16 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useNorthing } from "./NorthingContext.jsx";
 
-export default function SearchParamsHandler({ onAgentChange }) {
+export default function SearchParamsHandler() {
   const searchParams = useSearchParams();
+  const { setAgentParam } = useNorthing();
 
   useEffect(() => {
     const agent = searchParams.get("agent");
-    onAgentChange?.(agent);
-  }, [searchParams, onAgentChange]);
+    setAgentParam?.(agent);
+  }, [searchParams, setAgentParam]);
 
   return null;
 }

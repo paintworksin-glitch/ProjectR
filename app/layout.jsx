@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import NorthingProviders from "@/modules/NorthingProviders";
+import SearchParamsHandler from "@/modules/SearchParamsHandler";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,12 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Suspense fallback={rootSuspenseFallback}>
-          <NorthingProviders>{children}</NorthingProviders>
+          <NorthingProviders>
+            <Suspense fallback={null}>
+              <SearchParamsHandler />
+            </Suspense>
+            {children}
+          </NorthingProviders>
         </Suspense>
       </body>
     </html>

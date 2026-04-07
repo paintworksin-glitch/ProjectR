@@ -7,7 +7,6 @@ import { G } from "./globalStyles.js";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { shellPathForPage, resolveNavPage } from "./northingNavUtils.js";
 import { NorthingContext } from "./NorthingContext.jsx";
-import SearchParamsHandler from "./SearchParamsHandler";
 import {
   Nav,
   Toast,
@@ -203,6 +202,8 @@ export default function NorthingProviders({ children }) {
   );
 
   const value = {
+    agentParam,
+    setAgentParam,
     user,
     setUser,
     authLoading,
@@ -225,9 +226,6 @@ export default function NorthingProviders({ children }) {
     <NorthingContext.Provider value={value}>
       <div style={{ minHeight: "100vh", background: "var(--cream)", color: "var(--text)", width: "100%", maxWidth: "100%" }}>
         <style>{G}</style>
-        <Suspense fallback={null}>
-          <SearchParamsHandler onAgentChange={setAgentParam} />
-        </Suspense>
         <Suspense
           fallback={
             <div
