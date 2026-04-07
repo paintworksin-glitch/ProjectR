@@ -51,10 +51,25 @@ function AppChrome({ children }) {
   );
 }
 
+function DashboardAuthRedirect({ authLoading, user, pathname }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    const agent = searchParams.get("agent");
+    if (agent) return;
+    if (pathname === "/dashboard" && !user) {
+      router.replace("/login");
+    }
+  }, [authLoading, user, pathname, router, searchParams]);
+
+  return null;
+}
+
 export default function NorthingProviders({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -94,15 +109,6 @@ export default function NorthingProviders({ children }) {
     _h.openPDF = (l) => setPdfListing(l);
     _h.openKit = (l) => setKitListing(l);
   }, []);
-
-  useLayoutEffect(() => {
-    if (authLoading) return;
-    const agent = searchParams.get("agent");
-    if (agent) return;
-    if (pathname === "/dashboard" && !user) {
-      router.replace("/login");
-    }
-  }, [authLoading, user, pathname, router, searchParams]);
 
   const showToast = useCallback((msg, type = "info") => {
     setToast({ msg, type });
@@ -229,6 +235,7 @@ export default function NorthingProviders({ children }) {
             />
           }
         >
+          <DashboardAuthRedirect authLoading={authLoading} user={user} pathname={pathname} />
           <AppChrome>{children}</AppChrome>
         </Suspense>
         {adminModal && (
