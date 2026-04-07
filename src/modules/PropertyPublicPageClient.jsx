@@ -251,7 +251,8 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             📄 Download PDF
           </button>
           <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-            {user ? "Contact Broker" : "🔒 Login to view contact"}
+            <span className="northing-show-desktop">{user ? "Contact Broker" : "🔒 Login to view contact"}</span>
+            <span className="northing-show-mobile">{user ? "📞 View Contact" : "🔒 Login to view contact"}</span>
           </button>
         </div>
 
@@ -321,7 +322,8 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
       <div className="property-detail-bottom-cta">
         <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-          {user ? "Contact Broker" : "🔒 Login to view contact"}
+          <span className="northing-show-desktop">{user ? "Contact Broker" : "🔒 Login to view contact"}</span>
+          <span className="northing-show-mobile">{user ? "📞 View Contact" : "🔒 Login to view contact"}</span>
         </button>
       </div>
 
