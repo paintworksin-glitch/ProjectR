@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import HomePageClientContent from "./HomePageClientContent";
+import { Home, AgentPage } from "@/modules/NorthingApp";
+import { useNorthing } from "@/modules/NorthingContext";
 
-// HomePageClientContent uses useSearchParams. By gating it behind a mount
-// check, useSearchParams is never called during SSR/static generation,
-// which eliminates BAILOUT_TO_CLIENT_SIDE_RENDERING from the page HTML.
+// SSR renders <Home> so crawlers and AI see real content.
+// After hydration we check window.location.search for ?agent= client-only —
+// no useSearchParams call during SSR means zero BAILOUT_TO_CLIENT_SIDE_RENDERING.
 export default function HomePageClient() {
-  const [mounted, setMounted] = useState(false);
+  const { user, nav, openPropertyPage } = useNorthing();
+  const [agentId, setAgentId] = useState(null);
 
   useEffect(() => {
-    setMounted(true);
+    const agent = new URLSearchParams(window.location.search).get("agent");
+    setAgentId(agent || null);
   }, []);
 
-  if (!mounted) return <div style={{ minHeight: "100vh" }} />;
-  return <HomePageClientContent />;
+  if (agentId) {
+    return <AgentPage agentId={agentId} onNavigate={nav} currentUser={user} />;
+  }
+
+  return (
+    <Home currentUser={user} onNavigate={nav} onOpenProperty={openPropertyPage} />
+  );
 }

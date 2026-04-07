@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import HomePageClient from "./HomePageClient";
 
 export const runtime = "nodejs";
@@ -10,9 +9,5 @@ export const metadata = {
 };
 
 export default function Page() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
-      <HomePageClient />
-    </Suspense>
-  );
+  return <HomePageClient />;
 }
