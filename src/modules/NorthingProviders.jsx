@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useState, Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { G } from "./globalStyles.js";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { shellPathForPage, resolveNavPage } from "./northingNavUtils.js";
 import { NorthingContext } from "./NorthingContext.jsx";
+import SearchParamsHandler from "./SearchParamsHandler";
 import {
   Nav,
   Toast,
@@ -20,9 +21,8 @@ import {
 } from "./NorthingApp.jsx";
 import { useNorthing } from "./NorthingContext.jsx";
 
-function AppChrome({ children }) {
+function AppChrome({ children, agent }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { user, nav, logout, secretTrigger } = useNorthing();
 
   if (
@@ -34,7 +34,6 @@ function AppChrome({ children }) {
     return <>{children}</>;
   }
 
-  const agent = searchParams.get("agent");
   const { page } = resolveNavPage(pathname, agent);
 
   return (
@@ -51,18 +50,16 @@ function AppChrome({ children }) {
   );
 }
 
-function DashboardAuthRedirect({ authLoading, user, pathname }) {
+function DashboardAuthRedirect({ authLoading, user, pathname, agent }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useLayoutEffect(() => {
     if (authLoading) return;
-    const agent = searchParams.get("agent");
     if (agent) return;
     if (pathname === "/dashboard" && !user) {
       router.replace("/login");
     }
-  }, [authLoading, user, pathname, router, searchParams]);
+  }, [authLoading, user, pathname, router, agent]);
 
   return null;
 }
@@ -71,6 +68,7 @@ export default function NorthingProviders({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const [agentParam, setAgentParam] = useState(null);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [toast, setToast] = useState(null);
@@ -227,6 +225,9 @@ export default function NorthingProviders({ children }) {
     <NorthingContext.Provider value={value}>
       <div style={{ minHeight: "100vh", background: "var(--cream)", color: "var(--text)", width: "100%", maxWidth: "100%" }}>
         <style>{G}</style>
+        <Suspense fallback={null}>
+          <SearchParamsHandler onAgentChange={setAgentParam} />
+        </Suspense>
         <Suspense
           fallback={
             <div
@@ -235,8 +236,8 @@ export default function NorthingProviders({ children }) {
             />
           }
         >
-          <DashboardAuthRedirect authLoading={authLoading} user={user} pathname={pathname} />
-          <AppChrome>{children}</AppChrome>
+          <DashboardAuthRedirect authLoading={authLoading} user={user} pathname={pathname} agent={agentParam} />
+          <AppChrome agent={agentParam}>{children}</AppChrome>
         </Suspense>
         {adminModal && (
           <SecretAdminModal onLogin={login} onClose={() => setAdminModal(false)} showToast={showToast} />
