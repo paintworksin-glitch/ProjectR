@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import NorthingProviders from "@/modules/NorthingProviders";
 
+export const runtime = "nodejs";
+
 export const metadata = {
   title: "Northing",
   description: "Northing App",

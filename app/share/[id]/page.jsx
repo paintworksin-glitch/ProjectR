@@ -4,12 +4,21 @@ import { fetchListingByIdServer } from "@/lib/fetchListingServer";
 import { buildListingPageMetadata, getSiteBaseUrl } from "@/lib/listingMetadata";
 import ShareListingPageClient from "@/modules/ShareListingPageClient";
 
+export const runtime = "nodejs";
+
 const getListing = cache(async (id) => fetchListingByIdServer(id));
 
 export async function generateMetadata({ params }) {
   const listing = await getListing(params.id);
   if (!listing) notFound();
-  return buildListingPageMetadata(listing);
+  const meta = buildListingPageMetadata(listing);
+  return {
+    ...meta,
+    openGraph: {
+      ...meta.openGraph,
+      siteName: "Northing",
+    },
+  };
 }
 
 export default async function ShareRoutePage({ params }) {
