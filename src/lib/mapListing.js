@@ -45,5 +45,6 @@ export function mapListing(l) {
     viewCount: l.view_count || 0,
     waCount: l.wa_count || 0,
     pdfCount: l.pdf_count || 0,
+    ownerAgentVerified: l._ownerAgentVerified === true,
   };
 }

@@ -3,6 +3,7 @@ export function shellPathForPage(page, agentId) {
   if (page === "feed") return "/feed";
   if (page === "login") return "/login";
   if (page === "signup") return "/signup";
+  if (page === "profile") return "/profile";
   if (page === "dashboard") return "/dashboard";
   if (page === "privacy") return "/privacy";
   if (page === "terms") return "/terms";
@@ -17,6 +18,7 @@ export function resolveNavPage(pathname, agentFromSearch) {
   if (path === "/feed") return { page: "feed", agentId: null };
   if (path === "/login") return { page: "login", agentId: null };
   if (path === "/signup") return { page: "signup", agentId: null };
+  if (path === "/profile") return { page: "profile", agentId: null };
   if (path === "/dashboard") return { page: "dashboard", agentId: null };
   if (path === "/privacy") return { page: "privacy", agentId: null };
   if (path === "/terms") return { page: "terms", agentId: null };

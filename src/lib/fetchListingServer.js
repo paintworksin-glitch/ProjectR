@@ -7,5 +7,10 @@ export async function fetchListingByIdServer(id) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("listings").select("*").eq("id", id).single();
   if (error || !data) return null;
-  return mapListing(data);
+  let verified = false;
+  if (data.agent_id) {
+    const { data: op } = await supabase.from("profiles").select("agent_verified").eq("id", data.agent_id).maybeSingle();
+    verified = op?.agent_verified === true;
+  }
+  return mapListing({ ...data, _ownerAgentVerified: verified });
 }

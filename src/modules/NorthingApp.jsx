@@ -17,6 +17,7 @@ import { G } from "./globalStyles.js";
 import { supabase } from "@/lib/supabaseClient";
 import { fmtP } from "@/lib/formatPrice";
 import { mapListing } from "@/lib/mapListing";
+import { canCreateListing } from "@/lib/listingEligibility";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 
 export { PROPERTY_BACK_STORAGE_KEY };
@@ -637,10 +638,11 @@ const DupModal = ({dups,onProceed,onCancel}) => (
   </div>
 );
 
-const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
+const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) => {
   const agentBrand = useListingAgentBrand(listing, currentUser);
   const wlLogo = agentBrand?.logoUrl || null;
   const isSaved = savedIds?.includes(listing.id);
+  const verifiedBadge = listing.ownerAgentVerified === true;
   const statusColor = listing.status==="Active"?"#059669":listing.status==="Rented"?"#D97706":"#7C3AED";
   const statusBg = listing.status==="Active"?"#ECFDF5":listing.status==="Rented"?"#FFFBEB":"#F5F3FF";
   return (
@@ -657,14 +659,29 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView}) => {
         <div style={{position:"absolute",top:12,right:12}}>
           <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
         </div>
-        {currentUser?.role==="user"&&(
-          <button onClick={e=>{e.stopPropagation();onSave(listing.id)}} style={{position:"absolute",bottom:12,right:12,background:"rgba(255,255,255,0.92)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",fontSize:16,boxShadow:"0 2px 8px rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}>{isSaved?"❤️":"🤍"}</button>
-        )}
+        <button
+          type="button"
+          onClick={e=>{
+            e.stopPropagation();
+            if(!currentUser){onLoginRedirect&&onLoginRedirect();return;}
+            if(currentUser.role!=="user"){return;}
+            onSave(listing.id);
+          }}
+          title={!currentUser?"Sign in to save":undefined}
+          style={{position:"absolute",bottom:12,right:12,background:"rgba(255,255,255,0.92)",border:"none",borderRadius:"50%",width:34,height:34,cursor:"pointer",fontSize:16,boxShadow:"0 2px 8px rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center"}}
+        >
+          {!currentUser?"🤍":currentUser.role==="user"?(isSaved?"❤️":"🤍"):"🤍"}
+        </button>
         <div style={{position:"absolute",bottom:12,left:12,fontSize:20,fontWeight:800,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>{fmtP(listing.price)}{listing.listingType==="Rent"&&<span style={{fontSize:12,fontWeight:500}}>/mo</span>}</div>
       </div>
       <div style={{padding:"16px 18px"}}>
         <h3 style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4,lineHeight:1.3}}>{listing.title}</h3>
-        <div style={{fontSize:13,color:"var(--muted)",marginBottom:12}}>📍 {listing.location}</div>
+              <div style={{fontSize:13,color:"var(--muted)",marginBottom:8}}>📍 {listing.location}</div>
+        {verifiedBadge&&(
+          <div style={{marginBottom:10}}>
+            <span style={{fontSize:10,fontWeight:800,background:"#059669",color:"#fff",padding:"3px 8px",borderRadius:999,letterSpacing:0.02}}>✅ Verified Agent</span>
+          </div>
+        )}
         <div style={{display:"flex",gap:16,fontSize:12,color:"var(--muted)",marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
           {listing.bedrooms>0&&<span>🛏 {listing.bedrooms} Beds</span>}
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
@@ -1086,7 +1103,7 @@ export const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login" }) => {
+export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login", redirectTo = "/dashboard" }) => {
   const [mode, setMode] = useState(initialMode === "register" ? "register" : "login");
   const [role, setRole] = useState("user");
   const [form, setForm] = useState({
@@ -1097,7 +1114,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     phone: "",
   });
   const [loading, setLoading] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
   const sessionHandledRef = useRef(false);
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -1121,6 +1137,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           email: user.email ?? null,
           role: r,
           phone: phoneNational,
+          mobile_number: phoneNational,
           agency_name: null,
         });
       }
@@ -1130,18 +1147,27 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", userId);
     const savedIds = (savedRes.data || []).map((r) => r.listing_id);
     showToast(`Welcome back, ${profile.name}!`, "success");
-    onLogin({
-      id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      role: profile.role,
-      phone: profile.phone,
-      agencyName: profile.agency_name,
-      logoUrl: profile.logo_url || null,
-      agentAddress: profile.address || null,
-      agentWebsite: profile.website || null,
-      savedListings: savedIds,
-    });
+    onLogin(
+      {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+        phone: profile.phone ?? profile.mobile_number,
+        mobileNumber: profile.mobile_number ?? profile.phone,
+        agencyName: profile.agency_name,
+        logoUrl: profile.logo_url || null,
+        agentAddress: profile.address || null,
+        agentWebsite: profile.website || null,
+        agentVerified: profile.agent_verified === true,
+        plan: profile.plan || "free",
+        reraNumber: profile.rera_number || null,
+        city: profile.city || null,
+        avatarUrl: profile.avatar_url || null,
+        savedListings: savedIds,
+      },
+      redirectTo
+    );
   };
 
   const submitLogin = async () => {
@@ -1204,6 +1230,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           email: form.email.trim(),
           role,
           phone: phoneDigits,
+          mobile_number: phoneDigits,
           agency_name: null,
         });
         if (insErr) throw insErr;
@@ -1239,7 +1266,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       });
       if (error) throw error;
       showToast("Check your email for a password reset link.", "success");
-      setShowForgot(false);
     } catch (err) {
       showToast(err.message || "Could not send reset email", "error");
     }
@@ -1283,7 +1309,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
 
   return (
     <div className="login-page" style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", flexWrap: "nowrap" }}>
-      <AuthLeftPanel variant={mode === "register" ? "signup" : "login"} />
+      <AuthLeftPanel />
       <div className="login-form-col" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, overflowY: "auto", minWidth: 0 }}>
         <div style={{ maxWidth: 440, width: "100%" }}>
           <div style={{ marginBottom: 16 }}>
@@ -1368,20 +1394,13 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
               <div style={{ marginBottom: 16, textAlign: "right" }}>
                 <button
                   type="button"
-                  onClick={() => setShowForgot((v) => !v)}
+                  onClick={sendForgotPassword}
+                  disabled={loading}
                   style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, fontFamily: "inherit" }}
                 >
                   Forgot password?
                 </button>
               </div>
-              {showForgot && (
-                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, background: "var(--gray)", border: "1px solid var(--border)" }}>
-                  <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>We’ll email you a link to reset your password.</p>
-                  <button type="button" onClick={sendForgotPassword} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "10px", borderRadius: 9, fontSize: 14 }}>
-                    {loading ? "Sending…" : "Send reset link"}
-                  </button>
-                </div>
-              )}
               <button onClick={submitLogin} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "13px", borderRadius: 11, fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 {loading ? (
                   <>
@@ -1444,12 +1463,15 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
                 <input className="inp" type="email" placeholder="Email *" autoComplete="email" value={form.email} onChange={(e) => setF("email", e.target.value)} />
               </div>
               <div style={{ marginBottom: 12 }}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Mobile Number (10 digits, India +91) <span style={{ color: "#DC2626" }}>*</span>
+                </label>
                 <input
                   className="inp"
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
-                  placeholder="Mobile (+91) — 10 digits *"
+                  placeholder="10-digit mobile number"
                   value={form.phone}
                   onChange={(e) => setF("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
                 />
@@ -1494,7 +1516,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
 };
 
 /*
-  --- Legacy Mobile OTP login (signInWithOtp / verifyOtp) — kept for reference; not used in UI. ---
+  --- Legacy Mobile OTP login (signInWithOtp / verifyOtp) — kept for reference; hidden from UI per product spec. ---
   const sendPhoneOtp = async () => { ... toE164Phone(phoneLogin); supabase.auth.signInWithOtp({ phone: e164 }); ... };
   const verifyPhoneOtp = async () => { ... supabase.auth.verifyOtp({ phone: e164, token: otpCode, type: "sms" }); ... };
 */
@@ -1605,6 +1627,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const handleSave=async()=>{
     if(!validate()){showToast("Please fill required fields","error");return;}
     if(!isEdit){
+      const gate=await canCreateListing(supabase,currentUser.id);
+      if(!gate.ok){showToast(gate.message,"error");return;}
       const dups=findDups(form,allListings.map(mapListing),null);
       if(dups.length>0){setDupModal(dups);return;}
     }
@@ -1810,8 +1834,10 @@ const LinkPhoneForOtpSection = ({showToast,onLinked,currentUserId}) => {
 
 export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
   const isSeller=currentUser.role==="seller";
-  const maxListings=isSeller?2:9999;
+  const isAgent=currentUser.role==="agent";
+  const [profRow,setProfRow]=useState(null);
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
+  const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
@@ -1823,6 +1849,29 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
+  useEffect(()=>{supabase.from("profiles").select("agent_verified").eq("id",currentUser.id).single().then(({data})=>setProfRow(data));},[currentUser.id]);
+  useEffect(()=>{
+    if(tab!=="enquiries") return;
+    (async()=>{
+      setEnquiriesLoading(true);
+      const {data}=await supabase.from("enquiries").select("id,listing_id,buyer_id,message,status,created_at").eq("seller_id",currentUser.id).order("created_at",{ascending:false});
+      const rows=data||[];
+      const bids=[...new Set(rows.map(r=>r.buyer_id).filter(Boolean))];
+      const lids=[...new Set(rows.map(r=>r.listing_id).filter(Boolean))];
+      let bmap={};
+      let lmap={};
+      if(bids.length){
+        const {data:bp}=await supabase.from("profiles").select("id,name,phone,mobile_number").in("id",bids);
+        bmap=Object.fromEntries((bp||[]).map(p=>[p.id,p]));
+      }
+      if(lids.length){
+        const {data:ls}=await supabase.from("listings").select("id,title").in("id",lids);
+        lmap=Object.fromEntries((ls||[]).map(l=>[l.id,l.title]));
+      }
+      setEnquiries(rows.map(r=>({...r,buyer:bmap[r.buyer_id],listingTitle:lmap[r.listing_id]})));
+      setEnquiriesLoading(false);
+    })();
+  },[tab,currentUser.id]);
   const quickStatus=async(id,newStatus)=>{
     setStatusChanging(id);
     const {error}=await supabase.from("listings").update({status:newStatus}).eq("id",id);
@@ -1856,7 +1905,10 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
   if(editId!==undefined&&editId!==null) return <ListingForm currentUser={enrichedUser} listingId={editId} allListings={listings} showToast={showToast} onBack={()=>setEditId(null)} onSaved={()=>{setEditId(null);load();}}/>;
   if(view==="create") return <ListingForm currentUser={enrichedUser} listingId={null} allListings={listings} showToast={showToast} onBack={()=>setView("grid")} onSaved={()=>{setView("grid");load();}}/>;
   const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Rented",listings.filter(l=>l.status==="Rented").length,"🏠"],["Sold",listings.filter(l=>l.status==="Sold").length,"🏆"]];
-  const canAddMore=listings.length<maxListings;
+  const unverifiedAgent=isAgent&&profRow&&!profRow.agent_verified;
+  const activeCount=listings.filter(l=>l.status==="Active").length;
+  const maxListings=isSeller?2:9999;
+  const canAddMore=unverifiedAgent?false:isSeller?activeCount<maxListings:true;
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"32px 20px"}}>
       {deleteTarget&&<ConfirmModal message={`Delete "${deleteTarget.title}"?`} onConfirm={()=>delL(deleteTarget.id)} onCancel={()=>setDeleteTarget(null)}/>}
@@ -1865,16 +1917,35 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>{isSeller?"My Properties":"My Listings"}</h1>
           <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>{isSeller?`Individual seller · ${listings.length}/${maxListings} properties used`:"Manage and market your properties"}</p>
         </div>
-        {canAddMore
+        {unverifiedAgent
+          ?<div style={{background:"#F3F4F6",border:"1px solid var(--border)",borderRadius:10,padding:"10px 16px",fontSize:13,color:"var(--muted)",fontWeight:600}}>Your agent account is pending activation.</div>
+          :canAddMore
           ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
-          :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Limit reached ({maxListings}/{maxListings})</div>
+          :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Listing limit reached</div>
         }
       </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
-        {[["listings","🏠 Listings"],...(!isSeller?[["profile","🏢 Profile"]]:[]),...(isSeller?[["signin","📱 Mobile login"]]:[])].map(([t,l])=>(
+        {[["listings","🏠 Listings"],["enquiries","✉️ Enquiries"],...(!isSeller?[["profile","🏢 Profile"]]:[]),...(isSeller?[["signin","📱 Mobile login"]]:[])].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none"}}>{l}</button>
         ))}
       </div>
+      {tab==="enquiries"&&(
+        <div className="card" style={{padding:24}}>
+          {enquiriesLoading?<p style={{color:"var(--muted)"}}>Loading…</p>:enquiries.length===0?<p style={{color:"var(--muted)"}}>No enquiries yet.</p>:(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              {enquiries.map((e)=>(
+                <div key={e.id} style={{borderBottom:"1px solid var(--border)",paddingBottom:16}}>
+                  <div style={{fontWeight:800,color:"var(--navy)"}}>{e.listingTitle||"Listing"}</div>
+                  <div style={{fontSize:13,color:"var(--muted)",marginTop:4}}>{e.buyer?.name||"Buyer"} · {e.buyer?.mobile_number||e.buyer?.phone||"—"}</div>
+                  <p style={{fontSize:14,margin:"10px 0",lineHeight:1.5}}>{e.message}</p>
+                  <div style={{fontSize:12,color:"var(--muted)"}}>{new Date(e.created_at).toLocaleString()}</div>
+                  <span className="badge tag" style={{marginTop:8,display:"inline-block"}}>{e.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {tab==="listings"&&<>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}} className="gr">
           {stats.map(([label,val,icon])=>(
@@ -2017,7 +2088,7 @@ export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
         {[["saved","❤️ Saved"],["profile","👤 Profile"]].map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",boxShadow:tab===t?"0 1px 4px rgba(27,58,45,0.08)":"none"}}>{l}</button>)}
       </div>
       {tab==="saved"&&(
-        loading?<div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading…</div>:saved.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💔</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No saved listings</h3><p style={{color:"var(--muted)",fontSize:14}}>Browse properties and tap ❤️ to save them here.</p></div>:(
+        loading?<div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading…</div>:saved.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💔</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No saved listings</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>You haven&apos;t saved any properties yet.</p><button type="button" className="btn-primary" onClick={()=>window.location.assign("/feed")}>Browse listings →</button></div>:(
           <div className="gr gr-listings">
             {saved.map(l=>(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
@@ -2156,12 +2227,20 @@ export const MasterDash = ({showToast}) => {
 };
 
 export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
+  const router=useRouter();
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [open,setOpen]=useState(false);
   const requireAuth=(fn)=>(...args)=>{if(!currentUser){showToast("Please sign in to access this feature","error");onNavigate&&onNavigate("login");return;}fn(...args);};
   useEffect(()=>{
     (async()=>{
       const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false});
-      setListings((data||[]).map(mapListing));setLoading(false);
+      const rows=data||[];
+      const agentIds=[...new Set(rows.map(r=>r.agent_id).filter(Boolean))];
+      let vmap={};
+      if(agentIds.length){
+        const {data:profs}=await supabase.from("profiles").select("id, agent_verified").in("id",agentIds);
+        vmap=Object.fromEntries((profs||[]).map(p=>[p.id,p.agent_verified===true]));
+      }
+      setListings(rows.map(r=>mapListing({...r,_ownerAgentVerified:vmap[r.agent_id]})));setLoading(false);
     })();
   },[]);
   const setF=(k,v)=>setFilters(f=>({...f,[k]:v}));
@@ -2170,8 +2249,8 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
   const cities=[...new Set(listings.map(l=>l.location?.split(",")[1]?.trim()).filter(Boolean))];
   const filtered=listings.filter(l=>{const f=filters;if(f.search&&!l.title?.toLowerCase().includes(f.search.toLowerCase())&&!l.location?.toLowerCase().includes(f.search.toLowerCase())) return false;if(f.propertyType&&l.propertyType!==f.propertyType) return false;if(f.listingType&&l.listingType!==f.listingType) return false;if(f.city&&!l.location?.includes(f.city)) return false;if(f.minPrice&&l.price<Number(f.minPrice)) return false;if(f.maxPrice&&l.price>Number(f.maxPrice)) return false;if(f.bedrooms&&Number(l.bedrooms)<Number(f.bedrooms)) return false;if(f.furnishing&&l.furnishingStatus!==f.furnishing) return false;return true;}).sort((a,b)=>sort==="price_asc"?a.price-b.price:sort==="price_desc"?b.price-a.price:new Date(b.createdAt)-new Date(a.createdAt));
   const handleSave=async(id)=>{
-    if(!currentUser){showToast("Sign in to save listings","error");return;}
-    if(currentUser.role!=="user"){showToast("Only seekers can save listings","error");return;}
+    if(!currentUser){router.push(`/login?next=${encodeURIComponent("/feed")}`);return;}
+    if(currentUser.role!=="user"){showToast("Only buyers can save listings","error");return;}
     const isSaved=savedIds.includes(id);
     if(isSaved){await supabase.from("saved_listings").delete().eq("user_id",currentUser.id).eq("listing_id",id);setSavedIds(s=>s.filter(x=>x!==id));showToast("Removed from saved","success");}
     else{await supabase.from("saved_listings").insert({user_id:currentUser.id,listing_id:id});setSavedIds(s=>[...s,id]);showToast("Saved! ❤️","success");}
@@ -2223,7 +2302,7 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
         )}
         {loading?<div style={{textAlign:"center",padding:80,color:"var(--muted)"}}>Loading listings…</div>:filtered.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🔍</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>Try adjusting your filters.</p><button onClick={clear} className="btn-outline" style={{padding:"10px 24px",borderRadius:10,fontSize:13}}>Clear Filters</button></div>:(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:24}} className="gr">
-            {filtered.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={handleSave} onView={onOpenProperty}/>)}
+            {filtered.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={handleSave} onView={onOpenProperty} onLoginRedirect={()=>router.push(`/login?next=${encodeURIComponent("/feed")}`)}/>)}
           </div>
         )}
       </div>
@@ -3051,6 +3130,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"prop-grid"))}>Featured</button>
           <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"home-sample-outputs"))}>Samples</button>
           <button type="button" className={page==="about"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("about"))}>About</button>
+          {currentUser&&<button type="button" className={page==="profile"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("profile"))}>Profile</button>}
           {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
         </div>
         <div className="nav-drawer-foot">
@@ -3078,6 +3158,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
         <button type="button" onClick={()=>onNavigate("home",undefined,"home-sample-outputs")} style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>Samples</button>
         <button type="button" onClick={()=>onNavigate("about")} style={{...deskBtn,background:page==="about"?"var(--primary-light)":"transparent",color:page==="about"?"var(--primary)":"var(--muted)"}}>About</button>
         {currentUser?<>
+          <button onClick={()=>onNavigate("profile")} className="hm" style={{...deskBtn,background:page==="profile"?"var(--primary-light)":"transparent",color:page==="profile"?"var(--primary)":"var(--muted)"}}>Profile</button>
           <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
           <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--gray)",borderRadius:24,padding:"5px 12px 5px 5px",border:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>onNavigate("dashboard")}>
             <div style={{width:28,height:28,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:800}}>{currentUser.name?.charAt(0)}</div>

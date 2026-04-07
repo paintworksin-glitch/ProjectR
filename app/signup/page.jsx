@@ -1,9 +1,12 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { LoginPage } from "@/modules/NorthingApp";
 import { useNorthing } from "@/modules/NorthingContext";
 
 export default function SignupRoutePage() {
   const { login, showToast, nav } = useNorthing();
-  return <LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="register" />;
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
+  return <LoginPage onLogin={login} showToast={showToast} onNavigate={nav} initialMode="register" redirectTo={next} />;
 }

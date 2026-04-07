@@ -28,6 +28,7 @@ function AppChrome({ children, agent }) {
   if (
     pathname === "/login" ||
     pathname === "/signup" ||
+    pathname === "/profile" ||
     pathname.startsWith("/share/") ||
     pathname.startsWith("/property/") ||
     pathname.startsWith("/broker/")
@@ -92,11 +93,17 @@ export default function NorthingProviders({ children }) {
               name: profile.name,
               email: profile.email,
               role: profile.role,
-              phone: profile.phone,
+              phone: profile.phone ?? profile.mobile_number,
+              mobileNumber: profile.mobile_number ?? profile.phone,
               agencyName: profile.agency_name,
               logoUrl: profile.logo_url || null,
               agentAddress: profile.address || null,
               agentWebsite: profile.website || null,
+              agentVerified: profile.agent_verified === true,
+              plan: profile.plan || "free",
+              reraNumber: profile.rera_number || null,
+              city: profile.city || null,
+              avatarUrl: profile.avatar_url || null,
               savedListings: savedIds,
             });
           }
@@ -130,7 +137,8 @@ export default function NorthingProviders({ children }) {
         p === "dashboard" ||
         p === "privacy" ||
         p === "terms" ||
-        p === "about"
+        p === "about" ||
+        p === "profile"
       ) {
         router.push(shellPathForPage(p, null));
       }
@@ -144,11 +152,16 @@ export default function NorthingProviders({ children }) {
   );
 
   const login = useCallback(
-    (u) => {
+    (u, nextPath) => {
       setUser(u);
-      nav("dashboard", u);
+      if (typeof nextPath === "string" && nextPath.startsWith("/")) {
+        router.push(nextPath);
+      } else {
+        nav("dashboard", u);
+      }
+      window.scrollTo(0, 0);
     },
-    [nav]
+    [nav, router]
   );
 
   const refreshSessionUser = useCallback(async () => {
@@ -165,11 +178,17 @@ export default function NorthingProviders({ children }) {
       name: profile.name,
       email: profile.email,
       role: profile.role,
-      phone: profile.phone,
+      phone: profile.phone ?? profile.mobile_number,
+      mobileNumber: profile.mobile_number ?? profile.phone,
       agencyName: profile.agency_name,
       logoUrl: profile.logo_url || null,
       agentAddress: profile.address || null,
       agentWebsite: profile.website || null,
+      agentVerified: profile.agent_verified === true,
+      plan: profile.plan || "free",
+      reraNumber: profile.rera_number || null,
+      city: profile.city || null,
+      avatarUrl: profile.avatar_url || null,
       savedListings: savedIds,
     });
   }, []);

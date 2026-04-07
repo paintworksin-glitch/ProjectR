@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
+import { supabase } from "@/lib/supabaseClient";
+import { useNorthing } from "./NorthingContext.jsx";
 import {
   _h,
   PDFModal,
@@ -17,10 +19,11 @@ import {
 } from "./NorthingApp.jsx";
 
 /**
- * Public property detail — data from server (SSR + OG); this file is UI + client analytics only.
+ * Public property detail — data from server (SSR + OG); client UI, auth gates, enquiry, save.
  */
 export default function PropertyPublicPageClient({ id, initialListing }) {
   const router = useRouter();
+  const { user, showToast, refreshSessionUser } = useNorthing();
   const listing = initialListing;
 
   const goHome = () => {
@@ -44,8 +47,20 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   const [waListing, setWaListing] = useState(null);
   const [pdfListing, setPdfListing] = useState(null);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [enquiryMsg, setEnquiryMsg] = useState("Hi, I am interested in this property");
+  const [enquiryBusy, setEnquiryBusy] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [savedLocal, setSavedLocal] = useState(null);
+
   const viewerBrand = useViewerBrandProfile();
   const agentBrand = useListingAgentBrand(listing, null);
+
+  const isSaved =
+    savedLocal !== null ? savedLocal : !!(user?.savedListings && user.savedListings.includes(listing?.id));
+
+  useEffect(() => {
+    setSavedLocal(null);
+  }, [listing?.id, user?.id]);
 
   useEffect(() => {
     _h.openWA = (l) => setWaListing(l);
@@ -70,11 +85,73 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   if (!listing) return null;
 
+  const loginNext = `/login?next=${encodeURIComponent(`/property/${listing.id}`)}`;
+
   const contactBroker = () => {
+    if (!user) {
+      router.push(loginNext);
+      return;
+    }
     if (!listing?.agentPhone) return;
     const digits = String(listing.agentPhone).replace(/\D/g, "");
     if (digits.length >= 10) window.open(`https://wa.me/${digits}`, "_blank", "noopener,noreferrer");
     else window.location.href = `tel:${listing.agentPhone}`;
+  };
+
+  const toggleSave = async () => {
+    if (!user) {
+      router.push(loginNext);
+      return;
+    }
+    if (user.role !== "user") {
+      showToast("Only buyers can save listings", "error");
+      return;
+    }
+    setSaveBusy(true);
+    try {
+      const sid = listing.id;
+      if (isSaved) {
+        await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", sid);
+        setSavedLocal(false);
+        await refreshSessionUser?.();
+        showToast("Removed from saved", "success");
+      } else {
+        await supabase.from("saved_listings").insert({ user_id: user.id, listing_id: sid });
+        setSavedLocal(true);
+        await refreshSessionUser?.();
+        showToast("Saved", "success");
+      }
+    } catch (e) {
+      showToast(e.message || "Could not update", "error");
+    }
+    setSaveBusy(false);
+  };
+
+  const sendEnquiry = async () => {
+    if (!user) {
+      router.push(loginNext);
+      return;
+    }
+    const msg = enquiryMsg.trim();
+    if (!msg) {
+      showToast("Enter a message", "error");
+      return;
+    }
+    setEnquiryBusy(true);
+    try {
+      const res = await fetch("/api/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listing_id: listing.id, message: msg }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Failed to send");
+      showToast("Your enquiry has been sent. The agent will contact you shortly.", "success");
+      setEnquiryMsg("Hi, I am interested in this property");
+    } catch (e) {
+      showToast(e.message || "Enquiry failed", "error");
+    }
+    setEnquiryBusy(false);
   };
 
   const desc = (listing.description || "").trim();
@@ -91,6 +168,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   if (listing.vastuDirection) chips.push({ icon: "🧭", label: `Facing ${listing.vastuDirection}` });
 
   const brokerInitial = (listing.agentName || "?").charAt(0).toUpperCase();
+  const verifiedBadge = listing.ownerAgentVerified === true;
 
   return (
     <div className="property-detail-page" style={{ fontFamily: "'Inter',sans-serif" }}>
@@ -100,6 +178,25 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           ← Back
         </button>
         <img className="property-detail-logo" src="/northing-logo.svg" alt="Northing" onClick={goHome} />
+        <button
+          type="button"
+          onClick={toggleSave}
+          disabled={saveBusy}
+          style={{
+            marginLeft: "auto",
+            background: "rgba(255,255,255,0.95)",
+            border: "1px solid var(--border)",
+            borderRadius: 999,
+            width: 40,
+            height: 40,
+            cursor: "pointer",
+            fontSize: 18,
+          }}
+          title={!user ? "Sign in to save" : "Save listing"}
+          aria-label="Save listing"
+        >
+          {!user ? "🤍" : user.role === "user" ? (isSaved ? "❤️" : "🤍") : "🤍"}
+        </button>
       </header>
 
       <PropertyDetailCarousel photos={listing.photos} title={listing.title} />
@@ -154,9 +251,39 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             📄 Download PDF
           </button>
           <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-            Contact Broker
+            {user ? "Contact Broker" : "🔒 Login to view contact"}
           </button>
         </div>
+
+        <section style={{ marginTop: 28, padding: 20, borderRadius: 12, border: "1px solid var(--border)", background: "var(--white)" }} aria-labelledby="enquiry-heading">
+          <h2 id="enquiry-heading" className="section-label" style={{ marginBottom: 12 }}>
+            Enquiry
+          </h2>
+          {!user ? (
+            <button type="button" className="btn-primary" onClick={() => router.push(loginNext)} style={{ width: "100%", padding: 12 }}>
+              Login to send enquiry
+            </button>
+          ) : (
+            <>
+              <textarea
+                className="inp"
+                rows={4}
+                value={enquiryMsg}
+                onChange={(e) => setEnquiryMsg(e.target.value)}
+                style={{ width: "100%", marginBottom: 12, resize: "vertical" }}
+              />
+              <button type="button" className="btn-primary" onClick={sendEnquiry} disabled={enquiryBusy} style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {enquiryBusy ? (
+                  <>
+                    <span className="spin" /> Sending…
+                  </>
+                ) : (
+                  "Send Enquiry →"
+                )}
+              </button>
+            </>
+          )}
+        </section>
 
         <section className="property-detail-broker" aria-labelledby="property-broker-heading">
           <h2 id="property-broker-heading" className="section-label" style={{ marginBottom: 14 }}>
@@ -167,14 +294,23 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
               {agentBrand?.logoUrl ? <img src={agentBrand.logoUrl} alt="" /> : brokerInitial}
             </div>
             <div>
-              <p className="property-detail-broker-name">{listing.agentName || "Agent"}</p>
+              <p className="property-detail-broker-name" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {listing.agentName || "Agent"}
+                {verifiedBadge ? (
+                  <span style={{ fontSize: 10, fontWeight: 800, background: "#059669", color: "#fff", padding: "3px 8px", borderRadius: 999 }}>✅ Verified Agent</span>
+                ) : null}
+              </p>
               <p className="property-detail-broker-meta">{listing.agencyName || "—"}</p>
             </div>
           </div>
-          {listing.agentPhone ? (
+          {user && listing.agentPhone ? (
             <p className="property-detail-broker-phone">
               📞 <a href={`tel:${listing.agentPhone.replace(/\s/g, "")}`}>{listing.agentPhone}</a>
             </p>
+          ) : listing.agentPhone ? (
+            <button type="button" className="btn-primary" onClick={() => router.push(loginNext)} style={{ marginTop: 12, width: "100%" }}>
+              🔒 Login to view contact
+            </button>
           ) : (
             <p className="property-detail-broker-meta" style={{ marginTop: 12 }}>
               Phone on request
@@ -185,7 +321,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
       <div className="property-detail-bottom-cta">
         <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-          Contact Broker
+          {user ? "Contact Broker" : "🔒 Login to view contact"}
         </button>
       </div>
 
