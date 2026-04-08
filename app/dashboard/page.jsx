@@ -1,18 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AgentDash, UserDash, MasterDash } from "@/modules/NorthingApp";
 import { useNorthing } from "@/modules/NorthingContext";
 import { supabase } from "@/lib/supabaseClient";
 
-function ProfileTypeChooser({ user, onSaved, showToast }) {
-  const [role, setRole] = useState("user");
+function normalizeDashboardRole(r) {
+  if (r === "user" || r === "seller" || r === "agent") return r;
+  return "user";
+}
+
+function ProfileTypeChooser({ user, onSaved, showToast, variant = "first", onCancel }) {
+  const [role, setRole] = useState(() => normalizeDashboardRole(user?.role));
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setRole(normalizeDashboardRole(user?.role));
+  }, [user?.id, user?.role]);
+
   const options = [
     { id: "user", label: "Buyer", desc: "Browse and save properties" },
     { id: "seller", label: "Seller", desc: "List properties with seller limits" },
-    { id: "agent", label: "Agent", desc: "Requires admin approval before listing" },
+    { id: "agent", label: "Agent", desc: "Listings subject to admin approval" },
   ];
 
   const submit = async () => {
@@ -22,7 +32,7 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
       if (error) throw error;
       await supabase.auth.updateUser({ data: { role_selected: true } });
       await onSaved?.();
-      showToast("Profile selected successfully", "success");
+      showToast(variant === "change" ? "Account type updated" : "Welcome to Northing", "success");
     } catch (err) {
       showToast(err?.message || "Could not save profile", "error");
     } finally {
@@ -30,11 +40,19 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
     }
   };
 
+  const isChange = variant === "change";
+
   return (
     <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div className="card" style={{ maxWidth: 520, width: "100%", padding: 24 }}>
-        <h2 style={{ fontFamily: "'Fraunces',serif", fontSize: 26, color: "var(--navy)", marginBottom: 8 }}>Choose your profile</h2>
-        <p style={{ color: "var(--muted)", marginBottom: 14 }}>You can continue as Buyer, Seller, or Agent.</p>
+        <h2 style={{ fontFamily: "'Fraunces',serif", fontSize: 26, color: "var(--navy)", marginBottom: 8 }}>
+          {isChange ? "Change account type" : "Choose your profile"}
+        </h2>
+        <p style={{ color: "var(--muted)", marginBottom: 14 }}>
+          {isChange
+            ? "Switch between Buyer, Seller, or Agent. Your dashboard updates right away."
+            : "Select how you will use Northing. You can change this later under Profile."}
+        </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {options.map((o) => (
             <button
@@ -62,8 +80,19 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
           onClick={submit}
           style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 10 }}
         >
-          {saving ? "Saving..." : "Continue to dashboard →"}
+          {saving ? "Saving…" : isChange ? "Save changes" : "Continue →"}
         </button>
+        {isChange && onCancel && (
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={saving}
+            onClick={onCancel}
+            style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 10, fontSize: 14 }}
+          >
+            Cancel
+          </button>
+        )}
       </div>
     </div>
   );
@@ -72,6 +101,8 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
 export default function DashboardRoutePage() {
   const { user, authLoading, showToast, refreshSessionUser } = useNorthing();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const changeRole = searchParams.get("changeRole") === "1";
   const [roleSelectionChecked, setRoleSelectionChecked] = useState(false);
   const [mustChooseRole, setMustChooseRole] = useState(false);
 
@@ -113,8 +144,21 @@ export default function DashboardRoutePage() {
     );
   }
 
-  if (mustChooseRole) {
-    return <ProfileTypeChooser user={user} onSaved={refreshSessionUser} showToast={showToast} />;
+  const showRoleChooser = mustChooseRole || (changeRole && user.role !== "master");
+
+  if (showRoleChooser) {
+    return (
+      <ProfileTypeChooser
+        user={user}
+        variant={changeRole && !mustChooseRole ? "change" : "first"}
+        onSaved={async () => {
+          await refreshSessionUser();
+          router.replace("/dashboard");
+        }}
+        onCancel={changeRole ? () => router.replace("/dashboard") : undefined}
+        showToast={showToast}
+      />
+    );
   }
 
   if (user.role === "master") {

@@ -1848,6 +1848,11 @@ export const AgentDash = ({currentUser,showToast}) => {
         <div>
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>{isSeller?"My Properties":"My Listings"}</h1>
           <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>{isSeller?`Individual seller · ${listings.length}/${maxListings} properties used`:"Manage and market your properties"}</p>
+          <p style={{marginTop:10}}>
+            <button type="button" className="btn-outline" onClick={()=>{window.location.assign("/dashboard?changeRole=1");}} style={{padding:"8px 14px",borderRadius:10,fontSize:13,fontWeight:600}}>
+              Change account type
+            </button>
+          </p>
         </div>
         {unverifiedAgent
           ?<div style={{background:"#F3F4F6",border:"1px solid var(--border)",borderRadius:10,padding:"10px 16px",fontSize:13,color:"var(--muted)",fontWeight:600}}>Your agent account is pending activation.</div>
@@ -1862,7 +1867,7 @@ export const AgentDash = ({currentUser,showToast}) => {
         }
       </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
-        {[["listings","🏠 Listings"],["enquiries","✉️ Enquiries"],...(!isSeller?[["profile","🏢 Profile"]]:[]),...(isSeller?[["signin","📱 Mobile login"]]:[])].map(([t,l])=>(
+        {[["listings","🏠 Listings"],["enquiries","✉️ Enquiries"],...(!isSeller?[["profile","🏢 Profile"]]:[])].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none"}}>{l}</button>
         ))}
       </div>
@@ -2001,13 +2006,6 @@ export const AgentDash = ({currentUser,showToast}) => {
           </div>
         </div>
       )}
-      {tab==="signin"&&isSeller&&(
-        <div style={{maxWidth:620}}>
-          <div className="card-flat" style={{padding:20,border:"1px solid var(--border)"}}>
-            <p style={{fontSize:13,color:"var(--muted)"}}>Mobile OTP is disabled for now. We only collect email and mobile number during signup.</p>
-          </div>
-        </div>
-      )}
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
     </div>
   );
@@ -2043,7 +2041,20 @@ export const UserDash = ({currentUser,showToast}) => {
   },[tab,currentUser.id]);
   return (
     <div className="dashboard-page-shell" style={{maxWidth:1100,margin:"0 auto",padding:"32px 20px"}}>
-      <div style={{marginBottom:28}}><h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>My Account</h1><p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Welcome back, {currentUser.name}</p></div>
+      <div style={{marginBottom:28}}>
+        <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>My Account</h1>
+        <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Welcome back, {currentUser.name}</p>
+        <p style={{fontSize:13,marginTop:10}}>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={()=>{window.location.assign("/dashboard?changeRole=1");}}
+            style={{padding:"8px 14px",borderRadius:10,fontSize:13,fontWeight:600}}
+          >
+            Change account type
+          </button>
+        </p>
+      </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
         {[["saved","❤️ Saved"],["enquiries","✉️ Enquiries"],["profile","👤 Profile"]].map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",boxShadow:tab===t?"0 1px 4px rgba(27,58,45,0.08)":"none"}}>{l}</button>)}
       </div>

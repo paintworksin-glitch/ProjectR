@@ -121,8 +121,29 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
           style={{ marginBottom: 14 }}
         />
 
-        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>ROLE</label>
-        <input className="inp" value={roleLabel(currentUser.role)} readOnly disabled style={{ marginBottom: 18, opacity: 0.85 }} />
+        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>ACCOUNT TYPE</label>
+        <input className="inp" value={roleLabel(currentUser.role)} readOnly disabled style={{ marginBottom: 10, opacity: 0.85 }} />
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5 }}>
+          Need Buyer, Seller, or Agent instead?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard?changeRole=1")}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "var(--primary)",
+              fontWeight: 700,
+              cursor: "pointer",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              fontSize: "inherit",
+              fontFamily: "inherit",
+            }}
+          >
+            Change account type
+          </button>
+        </p>
 
         {currentUser.role === "agent" && (
           <>
