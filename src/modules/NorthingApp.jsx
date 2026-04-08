@@ -2150,13 +2150,20 @@ export const MasterDash = ({showToast}) => {
     setDeleteTarget(null);showToast("Listing deleted","success");
   };
   const delU=async(id)=>{
-    await supabase.from("profiles").update({role:"disabled"}).eq("id",id);
+    const { error } = await supabase.from("profiles").update({ role: "disabled" }).eq("id", id);
+    if (error) {
+      showToast(error.message || "Remove failed", "error");
+      return;
+    }
     setAgents(a=>a.filter(x=>x.id!==id));setUsers(u=>u.filter(x=>x.id!==id));
     showToast("User removed","success");
   };
   const approveAgent=async(id)=>{
-    const {error}=await supabase.from("profiles").update({agent_verified:true}).eq("id",id);
-    if(error){showToast("Approval failed","error");return;}
+    const { error } = await supabase.from("profiles").update({ agent_verified: true }).eq("id", id);
+    if (error) {
+      showToast(error.message || "Approval failed", "error");
+      return;
+    }
     setAgents(a=>a.map(x=>x.id===id?{...x,agent_verified:true}:x));
     showToast("Agent approved","success");
   };
