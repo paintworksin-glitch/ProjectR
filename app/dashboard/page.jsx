@@ -18,8 +18,9 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
   const submit = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("profiles").update({ role, agent_verified: role === "agent" ? false : false }).eq("id", user.id);
+      const { error } = await supabase.from("profiles").update({ role, agent_verified: false }).eq("id", user.id);
       if (error) throw error;
+      await supabase.auth.updateUser({ data: { role_selected: true } });
       await onSaved?.();
       showToast("Profile selected successfully", "success");
     } catch (err) {
@@ -71,6 +72,8 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
 export default function DashboardRoutePage() {
   const { user, authLoading, showToast, refreshSessionUser } = useNorthing();
   const router = useRouter();
+  const [roleSelectionChecked, setRoleSelectionChecked] = useState(false);
+  const [mustChooseRole, setMustChooseRole] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -78,7 +81,23 @@ export default function DashboardRoutePage() {
     }
   }, [authLoading, user, router]);
 
-  if (authLoading || !user) {
+  useEffect(() => {
+    let cancelled = false;
+    if (authLoading || !user) return;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const roleSelected = data?.user?.user_metadata?.role_selected === true;
+      const shouldSelect = !roleSelected && (!user.role || user.role === "user");
+      setMustChooseRole(shouldSelect);
+      setRoleSelectionChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
+
+  if (authLoading || !user || !roleSelectionChecked) {
     return (
       <div
         style={{
@@ -94,7 +113,7 @@ export default function DashboardRoutePage() {
     );
   }
 
-  if (!user.role) {
+  if (mustChooseRole) {
     return <ProfileTypeChooser user={user} onSaved={refreshSessionUser} showToast={showToast} />;
   }
 
@@ -107,7 +126,6 @@ export default function DashboardRoutePage() {
       <UserDash
         currentUser={user}
         showToast={showToast}
-        onPhoneLinked={refreshSessionUser}
       />
     );
   }
@@ -117,7 +135,6 @@ export default function DashboardRoutePage() {
       <AgentDash
         currentUser={user}
         showToast={showToast}
-        onPhoneLinked={refreshSessionUser}
       />
     );
   }
@@ -126,7 +143,6 @@ export default function DashboardRoutePage() {
     <UserDash
       currentUser={user}
       showToast={showToast}
-      onPhoneLinked={refreshSessionUser}
     />
   );
 }

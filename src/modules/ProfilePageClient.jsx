@@ -18,7 +18,6 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
     rera_number: "",
     agency_name: "",
     city: "",
-    avatar_url: "",
   });
 
   useEffect(() => {
@@ -27,7 +26,11 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
       return;
     }
     (async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,name,email,mobile_number,phone,rera_number,agency_name,city")
+        .eq("id", currentUser.id)
+        .single();
       if (error || !data) {
         showToast("Could not load profile", "error");
         setLoading(false);
@@ -40,7 +43,6 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
         rera_number: data.rera_number || "",
         agency_name: data.agency_name || "",
         city: data.city || "",
-        avatar_url: data.avatar_url || "",
       });
       setLoading(false);
     })();
@@ -66,7 +68,6 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
           rera_number: currentUser.role === "agent" ? form.rera_number?.trim() || null : null,
           agency_name: currentUser.role === "agent" ? form.agency_name?.trim() || null : null,
           city: currentUser.role === "agent" ? form.city?.trim() || null : null,
-          avatar_url: form.avatar_url?.trim() || null,
         })
         .eq("id", currentUser.id);
       if (error) throw error;
@@ -76,24 +77,6 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
       showToast(e.message || "Save failed", "error");
     }
     setSaving(false);
-  };
-
-  const onAvatar = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showToast("Image must be under 2MB", "error");
-      return;
-    }
-    const path = `${currentUser.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (upErr) {
-      showToast(upErr.message || "Upload failed — ensure bucket `avatars` exists", "error");
-      return;
-    }
-    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-    setF("avatar_url", pub.publicUrl);
-    showToast("Photo uploaded — press Save to apply", "success");
   };
 
   if (!currentUser || loading) {
@@ -123,29 +106,6 @@ export default function ProfilePageClient({ currentUser, showToast, onRefresh })
       )}
 
       <div className="card" style={{ padding: 24 }}>
-        <div style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 16 }}>
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              overflow: "hidden",
-              background: "var(--gray)",
-              border: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 28,
-            }}
-          >
-            {form.avatar_url ? <img src={form.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
-          </div>
-          <label className="btn-outline" style={{ padding: "8px 14px", borderRadius: 9, cursor: "pointer", fontSize: 13 }}>
-            Upload photo
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={onAvatar} />
-          </label>
-        </div>
-
         <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4 }}>FULL NAME</label>
         <input className="inp" value={form.name} onChange={(e) => setF("name", e.target.value)} style={{ marginBottom: 14 }} />
 

@@ -1242,6 +1242,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           data: {
             full_name: form.name.trim(),
             phone: phoneDigits,
+            role_selected: false,
           },
           emailRedirectTo: `${origin}/login`,
         },
@@ -1732,80 +1733,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   );
 };
 
-/** After email sign-in, link E.164 phone via Supabase Auth so Mobile OTP uses the same user id as profiles. */
-const LinkPhoneForOtpSection = ({showToast,onLinked,currentUserId}) => {
-  const [authPhone,setAuthPhone]=useState(null);
-  const [phone,setPhone]=useState("");
-  const [otp,setOtp]=useState("");
-  const [linkStep,setLinkStep]=useState("phone");
-  const [changeMode,setChangeMode]=useState(false);
-  const [loading,setLoading]=useState(false);
-  const [cooldown,setCooldown]=useState(0);
-  const refreshAuth=async()=>{const {data:{user}}=await supabase.auth.getUser();setAuthPhone(user?.phone??null);};
-  useEffect(()=>{refreshAuth();},[]);
-  const startCooldown=()=>{setCooldown(45);let left=45;const id=setInterval(()=>{left-=1;setCooldown(left);if(left<=0)clearInterval(id);},1000);};
-  const sendLinkOtp=async()=>{
-    const e164=toE164Phone(phone);
-    if(!e164){showToast("Enter a valid 10-digit mobile number","error");return;}
-    setLoading(true);
-    try{
-      const {error}=await supabase.auth.updateUser({phone:e164});
-      if(error) throw error;
-      showToast("Verification code sent — check SMS","success");
-      setLinkStep("otp");
-      startCooldown();
-    }catch(err){showToast(err.message||"Could not send code (number may already be on another account)","error");}
-    setLoading(false);
-  };
-  const verifyLinkOtp=async()=>{
-    const e164=toE164Phone(phone);
-    const token=otp.replace(/\s/g,"");
-    if(!e164||!token){showToast("Enter the 6-digit code","error");return;}
-    setLoading(true);
-    try{
-      const {data,error}=await supabase.auth.verifyOtp({phone:e164,token,type:"phone_change"});
-      if(error) throw error;
-      const uid=data?.user?.id;
-      if(!uid||uid!==currentUserId) throw new Error("Verification incomplete — try again");
-      const national=e164.replace(/\D/g,"").slice(-10);
-      const {error:updErr}=await supabase.from("profiles").update({phone:national}).eq("id",uid);
-      if(updErr) throw updErr;
-      showToast("Mobile linked — you can use Mobile OTP on the sign-in page","success");
-      setPhone("");setOtp("");setLinkStep("phone");setChangeMode(false);
-      await refreshAuth();
-      onLinked?.();
-    }catch(err){showToast(err.message||"Invalid or expired code","error");}
-    setLoading(false);
-  };
-  const showStatusOnly=authPhone&&!changeMode&&linkStep==="phone";
-  return (
-    <div className="card-flat" style={{padding:22,marginBottom:16,border:"1px solid var(--border)"}}>
-      <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:800,color:"var(--navy)",marginBottom:8}}>📱 Mobile OTP sign-in</h3>
-      <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.55,marginBottom:14}}>Link your mobile to <strong>this account</strong> so <strong>Mobile OTP</strong> on the login page opens the same profile as email. Use a 10-digit India number.</p>
-      {showStatusOnly?(
-        <div>
-          <div style={{fontSize:14,fontWeight:700,color:"#059669",marginBottom:10}}>✓ Linked for OTP: {authPhone}</div>
-          <button type="button" className="btn-ghost" style={{padding:"9px 16px",borderRadius:9,fontSize:13}} onClick={()=>{setChangeMode(true);setPhone("");setOtp("");setLinkStep("phone");}}>Change number…</button>
-        </div>
-      ):linkStep==="phone"?(
-        <>
-          <div style={{marginBottom:12}}><input className="inp" type="tel" placeholder="Mobile (10 digits)" value={phone} onChange={e=>setPhone(e.target.value)} /></div>
-          <button type="button" onClick={sendLinkOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Sending…</>:"Send verification code →"}</button>
-          {(authPhone&&changeMode)&&<button type="button" className="btn-ghost" style={{width:"100%",padding:"8px",fontSize:12}} onClick={()=>{setChangeMode(false);setLinkStep("phone");setOtp("");}}>Cancel</button>}
-        </>
-      ):(
-        <>
-          <div style={{marginBottom:12}}><input className="inp" inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" value={otp} onChange={e=>setOtp(e.target.value)} maxLength={10} onKeyDown={e=>e.key==="Enter"&&verifyLinkOtp()} /></div>
-          <button type="button" onClick={verifyLinkOtp} disabled={loading} className="btn-primary" style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{loading?<><span className="spin"/>Verifying…</>:"Verify & link →"}</button>
-          <button type="button" className="btn-ghost" style={{width:"100%",padding:"8px",fontSize:13,marginBottom:6}} onClick={()=>{setLinkStep("phone");setOtp("");}}>← Different number</button>
-          {cooldown>0?<p style={{fontSize:12,color:"var(--muted)",textAlign:"center"}}>Resend in {cooldown}s</p>:<button type="button" onClick={sendLinkOtp} disabled={loading} className="btn-outline" style={{width:"100%",padding:"10px",borderRadius:9,fontSize:13}}>Resend code</button>}
-        </>
-      )}
-    </div>
-  );
-};
-
-export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
+export const AgentDash = ({currentUser,showToast}) => {
   const isSeller=currentUser.role==="seller";
   const isAgent=currentUser.role==="agent";
   const [profRow,setProfRow]=useState(null);
@@ -2018,7 +1946,6 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
       </>}
       {tab==="profile"&&!isSeller&&(
         <div style={{maxWidth:620}}>
-          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
           <div className="card" style={{padding:28,marginBottom:16}}>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:20}}>🏢 Agency / Firm Profile</h2>
             <p style={{fontSize:13,color:"var(--muted)",marginBottom:12,background:"var(--primary-light)",padding:"10px 14px",borderRadius:10,border:"1px solid var(--primary-mid)"}}>⭐ Your logo and details will appear as the <strong>header of every PDF brochure</strong> you generate.</p>
@@ -2076,7 +2003,9 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
       )}
       {tab==="signin"&&isSeller&&(
         <div style={{maxWidth:620}}>
-          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
+          <div className="card-flat" style={{padding:20,border:"1px solid var(--border)"}}>
+            <p style={{fontSize:13,color:"var(--muted)"}}>Mobile OTP is disabled for now. We only collect email and mobile number during signup.</p>
+          </div>
         </div>
       )}
       {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
@@ -2084,7 +2013,7 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
   );
 };
 
-export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
+export const UserDash = ({currentUser,showToast}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   useEffect(()=>{
@@ -2167,7 +2096,6 @@ export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
       )}
       {tab==="profile"&&(
         <div style={{maxWidth:520}}>
-          <LinkPhoneForOtpSection showToast={showToast} onLinked={onPhoneLinked} currentUserId={currentUser.id} />
           <div className="card" style={{maxWidth:480,padding:28}}>
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:20}}>Profile Info</h2>
           {[["Name",currentUser.name],["Email",currentUser.email],["Phone",currentUser.phone||"—"],["Role",currentUser.role]].map(([k,v])=>(
