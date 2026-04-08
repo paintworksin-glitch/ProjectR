@@ -2830,7 +2830,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
     {name:"Deepika Joshi",agency:"REO Properties",text:"RERA fields, Vastu, BHK — everything an Indian agent needs."},
   ];
   return (
-    <div style={{background:"#ffffff",width:"100%",maxWidth:"100%",boxSizing:"border-box"}} className="home-page-shell">
+    <div style={{width:"100%",maxWidth:"100%",boxSizing:"border-box"}} className="home-page-shell">
       <section ref={heroSectionRef} className="h1big-hero home-hero-section home-hero-section--light" style={{position:"relative",width:"100%",maxWidth:"100%",overflow:"hidden"}}>
         <div ref={heroParallaxIllustrationRef} className="home-hero-parallax-bg home-hero-parallax-bg--illustration home-hero-decor-layer" aria-hidden="true">
           <div className="home-hero-parallax-bg-inner">
@@ -3087,15 +3087,18 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           </div>
         </div>
       </section>
-      <footer className="glass-footer" style={{padding:"clamp(28px,4vw,44px) 0",position:"relative",overflow:"hidden"}}>
+      <footer className="glass-footer home-footer home-animate-on-scroll">
         <SkylineRibbon variant="footer" />
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.92) 100%)",pointerEvents:"none",zIndex:1}} />
-        <div className="home-footer-inner" style={{flexDirection:"column",alignItems:"stretch",gap:20,position:"relative",zIndex:2}}>
-          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:20,width:"100%"}}>
-            <button type="button" onClick={()=>onNavigate("home")} style={{display:"flex",alignItems:"center",background:"none",border:"none",padding:0,cursor:"pointer"}} aria-label="Northing home">
-              <img src="/northing-logo-light.svg" alt="Northing" style={{height:48,width:"auto",maxWidth:260,objectFit:"contain",display:"block"}} />
-            </button>
-            <nav aria-label="Quick links" style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",justifyContent:"flex-end"}}>
+        <div className="home-footer-scrim" aria-hidden="true" />
+        <div className="home-footer-inner">
+          <div className="home-footer-top">
+            <div className="home-footer-brand">
+              <button type="button" className="home-footer-logo-btn" onClick={()=>onNavigate("home")} aria-label="Northing home">
+                <img src="/northing-logo-light.svg" alt="" width={200} height={48} className="home-footer-logo" />
+              </button>
+              <p className="home-footer-tagline">Listings, brochures &amp; WhatsApp cards — built for Indian brokers.</p>
+            </div>
+            <nav className="home-footer-nav" aria-label="Quick links">
               {[
                 ["Home","home"],
                 ["Browse","feed"],
@@ -3105,16 +3108,16 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
                 ["Pricing","pricing"],
                 ["Contact","contact"],
               ].map(([label,pg,anchor])=>(
-                <button key={label} type="button" onClick={()=>anchor?onNavigate(pg,undefined,anchor):onNavigate(pg)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(248,250,252,0.14)",borderRadius:10,padding:"8px 14px",cursor:"pointer",color:"rgba(248,250,252,0.88)",font:"inherit",fontSize:12,fontWeight:600,transition:"background 0.2s, color 0.2s, border-color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.1)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.color="rgba(248,250,252,0.88)";}}>{label}</button>
+                <button key={label} type="button" className="home-footer-link" onClick={()=>anchor?onNavigate(pg,undefined,anchor):onNavigate(pg)}>{label}</button>
               ))}
             </nav>
           </div>
-          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:16,width:"100%"}}>
-            <p style={{fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,margin:0}}>© 2026 Northing · Professional Property Marketing · Made in India</p>
-            <div style={{display:"flex",gap:18,fontSize:12,color:"rgba(248,250,252,0.55)",fontWeight:500,alignItems:"center"}}>
-              <button type="button" onClick={()=>onNavigate("privacy")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Privacy</button>
-              <span style={{opacity:0.5}}>·</span>
-              <button type="button" onClick={()=>onNavigate("terms")} style={{background:"none",border:"none",padding:0,cursor:"pointer",color:"inherit",font:"inherit",fontWeight:500,transition:"color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(248,250,252,0.95)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(248,250,252,0.55)";}}>Terms</button>
+          <div className="home-footer-divider" aria-hidden="true" />
+          <div className="home-footer-bottom">
+            <p className="home-footer-copy">© 2026 Northing · Professional Property Marketing · Made in India</p>
+            <div className="home-footer-legal">
+              <button type="button" className="home-footer-legal-link" onClick={()=>onNavigate("privacy")}>Privacy</button>
+              <button type="button" className="home-footer-legal-link" onClick={()=>onNavigate("terms")}>Terms</button>
             </div>
           </div>
         </div>
