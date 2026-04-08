@@ -1120,6 +1120,20 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     setMode(initialMode === "register" ? "register" : "login");
   }, [initialMode]);
 
+  const insertProfileSafely = async (row) => {
+    const { error } = await supabase.from("profiles").insert(row);
+    if (!error) return;
+    const msg = String(error.message || "").toLowerCase();
+    if (msg.includes("mobile_number")) {
+      const fallbackRow = { ...row };
+      delete fallbackRow.mobile_number;
+      const { error: fallbackError } = await supabase.from("profiles").insert(fallbackRow);
+      if (fallbackError) throw fallbackError;
+      return;
+    }
+    throw error;
+  };
+
   const finishSession = async (userId) => {
     const {
       data: { user },
@@ -1130,7 +1144,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         const md = user.user_metadata || {};
         const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
         const r = ["user", "seller", "agent"].includes(md.role) ? md.role : null;
-        await supabase.from("profiles").insert({
+        await insertProfileSafely({
           id: userId,
           name: md.full_name || md.name || user.email?.split("@")[0] || "User",
           email: user.email ?? null,
@@ -1220,9 +1234,20 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           emailRedirectTo: `${origin}/login`,
         },
       });
-      if (error) throw error;
+      if (error) {
+        const em = String(error.message || "").toLowerCase();
+        if (em.includes("already registered") || em.includes("already been registered")) {
+          showToast("Account already exists. Please sign in.", "error");
+          setMode("login");
+          setF("password", "");
+          setF("confirmPassword", "");
+          setLoading(false);
+          return;
+        }
+        throw error;
+      }
       if (data.session && data.user) {
-        const { error: insErr } = await supabase.from("profiles").insert({
+        await insertProfileSafely({
           id: data.user.id,
           name: form.name.trim(),
           email: form.email.trim(),
@@ -1231,7 +1256,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           mobile_number: phoneDigits,
           agency_name: null,
         });
-        if (insErr) throw insErr;
         await finishSession(data.user.id);
       } else {
         showToast("Check your email to confirm your account, then sign in.", "success");

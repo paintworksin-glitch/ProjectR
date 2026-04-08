@@ -82,6 +82,24 @@ export default function NorthingProviders({ children }) {
   const [pdfListing, setPdfListing] = useState(null);
   const [kitListing, setKitListing] = useState(null);
 
+  const insertProfileSafely = useCallback(async (row) => {
+    const { data, error } = await supabase.from("profiles").insert(row).select("*").single();
+    if (!error) return data;
+    const msg = String(error.message || "").toLowerCase();
+    if (msg.includes("mobile_number")) {
+      const fallbackRow = { ...row };
+      delete fallbackRow.mobile_number;
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("profiles")
+        .insert(fallbackRow)
+        .select("*")
+        .single();
+      if (fallbackError) throw fallbackError;
+      return fallbackData;
+    }
+    throw error;
+  }, []);
+
   const hydrateUserFromProfile = useCallback(async (profile) => {
     if (!profile) return;
     const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", profile.id);
@@ -115,19 +133,15 @@ export default function NorthingProviders({ children }) {
           if (!profile) {
             const md = session.user.user_metadata || {};
             const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
-            const { data: inserted } = await supabase
-              .from("profiles")
-              .insert({
-                id: session.user.id,
-                name: md.full_name || md.name || session.user.email?.split("@")[0] || "User",
-                email: session.user.email ?? null,
-                role: null,
-                phone: phoneNational,
-                mobile_number: phoneNational,
-                agency_name: null,
-              })
-              .select("*")
-              .single();
+            const inserted = await insertProfileSafely({
+              id: session.user.id,
+              name: md.full_name || md.name || session.user.email?.split("@")[0] || "User",
+              email: session.user.email ?? null,
+              role: null,
+              phone: phoneNational,
+              mobile_number: phoneNational,
+              agency_name: null,
+            });
             profile = inserted || null;
           }
           if (profile) {
@@ -140,7 +154,7 @@ export default function NorthingProviders({ children }) {
     _h.openWA = (l) => setWaListing(l);
     _h.openPDF = (l) => setPdfListing(l);
     _h.openKit = (l) => setKitListing(l);
-  }, [hydrateUserFromProfile]);
+  }, [hydrateUserFromProfile, insertProfileSafely]);
 
   const showToast = useCallback((msg, type = "info") => {
     setToast({ msg, type });
