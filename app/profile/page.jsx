@@ -1,9 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import ProfilePageClient from "@/modules/ProfilePageClient";
-import { useNorthing } from "@/modules/NorthingContext";
-
-export default function ProfileRoutePage() {
-  const { user, showToast, refreshSessionUser } = useNorthing();
-  return <ProfilePageClient currentUser={user} showToast={showToast} onRefresh={refreshSessionUser} />;
+/** Account settings live on the dashboard; /profile was redundant with the header link removed. */
+export default function ProfileRedirectPage() {
+  redirect("/dashboard");
 }

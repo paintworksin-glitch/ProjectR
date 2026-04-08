@@ -30,7 +30,6 @@ function AppChrome({ children, agent }) {
     pathname === "/signup" ||
     pathname === "/reset-password" ||
     pathname === "/onboarding" ||
-    pathname === "/profile" ||
     pathname.startsWith("/share/") ||
     pathname.startsWith("/property/") ||
     pathname.startsWith("/agent/") ||
@@ -190,8 +189,7 @@ export default function NorthingProviders({ children }) {
         p === "terms" ||
         p === "about" ||
         p === "pricing" ||
-        p === "contact" ||
-        p === "profile"
+        p === "contact"
       ) {
         router.push(shellPathForPage(p, null));
       }

@@ -1577,6 +1577,10 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const doSave=async()=>{
     setSaving(true);
     try{
+      if(!isEdit){
+        const gate=await canCreateListing(supabase,currentUser.id);
+        if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
+      }
       if(isEdit){
         const {error}=await supabase.from("listings").update(formToDb(form,currentUser.id)).eq("id",listingId);
         if(error) throw error;
@@ -1601,8 +1605,6 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const handleSave=async()=>{
     if(!validate()){showToast("Please fill required fields","error");return;}
     if(!isEdit){
-      const gate=await canCreateListing(supabase,currentUser.id);
-      if(!gate.ok){showToast(gate.message,"error");return;}
       const dups=findDups(form,allListings.map(mapListing),null);
       if(dups.length>0){setDupModal(dups);return;}
     }
@@ -1907,7 +1909,7 @@ export const AgentDash = ({currentUser,showToast}) => {
           ))}
         </div>
         {loading?<div style={{textAlign:"center",padding:48,color:"var(--muted)"}}>Loading…</div>:listings.length===0
-          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>Create your first listing and start marketing it instantly.</p><button onClick={()=>setView("create")} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button></div>
+          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>{unverifiedAgent?"Your agent account must be approved before you can add listings.":"Create your first listing and start marketing it instantly."}</p>{unverifiedAgent?null:<button onClick={()=>setView("create")} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button>}</div>
           :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:20}} className="gr">
             {listings.map(raw=>{const l=mapListing(raw);return(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
@@ -3243,7 +3245,6 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button type="button" className={page==="about"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("about"))}>About</button>
           <button type="button" className={page==="pricing"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("pricing"))}>Pricing</button>
           <button type="button" className={page==="contact"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("contact"))}>Contact</button>
-          {currentUser&&<button type="button" className={page==="profile"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("profile"))}>Profile</button>}
           {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
         </div>
         <div className="nav-drawer-foot">
@@ -3273,7 +3274,6 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
         <button type="button" onClick={()=>onNavigate("pricing")} style={{...deskBtn,background:page==="pricing"?"var(--primary-light)":"transparent",color:page==="pricing"?"var(--primary)":"var(--muted)"}}>Pricing</button>
         <button type="button" onClick={()=>onNavigate("contact")} style={{...deskBtn,background:page==="contact"?"var(--primary-light)":"transparent",color:page==="contact"?"var(--primary)":"var(--muted)"}}>Contact</button>
         {currentUser?<>
-          <button onClick={()=>onNavigate("profile")} className="hm" style={{...deskBtn,background:page==="profile"?"var(--primary-light)":"transparent",color:page==="profile"?"var(--primary)":"var(--muted)"}}>Profile</button>
           <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
           <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--gray)",borderRadius:24,padding:"5px 12px 5px 5px",border:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>onNavigate("dashboard")}>
             <div style={{width:28,height:28,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:800}}>{currentUser.name?.charAt(0)}</div>

@@ -12,10 +12,11 @@ export async function canCreateListing(supabase, userId) {
     };
   }
 
-  if (p.role === "agent" && !p.agent_verified) {
+  // Treat missing column / null as unverified (must be explicitly true).
+  if (p.role === "agent" && p.agent_verified !== true) {
     return {
       ok: false,
-      message: "Your agent account is pending activation. We'll notify you once verified.",
+      message: "Your agent account must be approved by Northing before you can create listings.",
     };
   }
 

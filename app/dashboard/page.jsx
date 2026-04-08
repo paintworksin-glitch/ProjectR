@@ -28,7 +28,13 @@ function ProfileTypeChooser({ user, onSaved, showToast, variant = "first", onCan
   const submit = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("profiles").update({ role }).eq("id", user.id);
+      const prevRole = normalizeDashboardRole(user?.role);
+      const payload = { role };
+      // Becoming an agent always requires admin approval before listing creation.
+      if (role === "agent" && prevRole !== "agent") {
+        payload.agent_verified = false;
+      }
+      const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
       if (error) throw error;
       await supabase.auth.updateUser({ data: { role_selected: true } });
       await onSaved?.();
@@ -51,7 +57,7 @@ function ProfileTypeChooser({ user, onSaved, showToast, variant = "first", onCan
         <p style={{ color: "var(--muted)", marginBottom: 14 }}>
           {isChange
             ? "Switch between Buyer, Seller, or Agent. Your dashboard updates right away."
-            : "Select how you will use Northing. You can change this later under Profile."}
+            : "Select how you will use Northing. You can change this later from the dashboard."}
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {options.map((o) => (

@@ -57,7 +57,11 @@ export default function OnboardingPage() {
         router.replace("/login");
         return;
       }
-      const { error } = await supabase.from("profiles").update({ role: selectedRole }).eq("id", session.user.id);
+      const payload = { role: selectedRole };
+      if (selectedRole === "agent") {
+        payload.agent_verified = false;
+      }
+      const { error } = await supabase.from("profiles").update(payload).eq("id", session.user.id);
       if (error) throw error;
       router.replace("/dashboard");
     } catch (err) {
