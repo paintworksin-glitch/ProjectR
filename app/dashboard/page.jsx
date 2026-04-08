@@ -147,6 +147,20 @@ export default function DashboardRoutePage() {
     };
   }, [authLoading, user]);
 
+  // Must run every render (before any return) — same rules as other hooks.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const lockedVerifiedAgent = user.role === "agent" && user.agentVerified === true;
+    if (!changeRole || !lockedVerifiedAgent || mustChooseRole) return;
+    if (lockedAgentToastShown.current) return;
+    lockedAgentToastShown.current = true;
+    showToast(
+      "Verified agents cannot change their account type. Contact Northing admin if you need a change.",
+      "error"
+    );
+    router.replace("/dashboard");
+  }, [authLoading, user, changeRole, mustChooseRole, router, showToast]);
+
   if (authLoading || !user || !roleSelectionChecked) {
     return (
       <div
@@ -183,17 +197,6 @@ export default function DashboardRoutePage() {
   const showRoleChooser =
     (mustChooseRole || (changeRole && user.role !== "master")) &&
     !(changeRole && lockedVerifiedAgent);
-
-  useEffect(() => {
-    if (!changeRole || !lockedVerifiedAgent || mustChooseRole) return;
-    if (lockedAgentToastShown.current) return;
-    lockedAgentToastShown.current = true;
-    showToast(
-      "Verified agents cannot change their account type. Contact Northing admin if you need a change.",
-      "error"
-    );
-    router.replace("/dashboard");
-  }, [changeRole, lockedVerifiedAgent, mustChooseRole, router, showToast]);
 
   if (showRoleChooser) {
     return (
