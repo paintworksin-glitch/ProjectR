@@ -82,33 +82,56 @@ export default function NorthingProviders({ children }) {
   const [pdfListing, setPdfListing] = useState(null);
   const [kitListing, setKitListing] = useState(null);
 
+  const hydrateUserFromProfile = useCallback(async (profile) => {
+    if (!profile) return;
+    const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", profile.id);
+    const savedIds = (savedRes.data || []).map((r) => r.listing_id);
+    setUser({
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      phone: profile.phone ?? profile.mobile_number,
+      mobileNumber: profile.mobile_number ?? profile.phone,
+      agencyName: profile.agency_name,
+      logoUrl: profile.logo_url || null,
+      agentAddress: profile.address || null,
+      agentWebsite: profile.website || null,
+      agentVerified: profile.agent_verified === true,
+      plan: profile.plan || "free",
+      reraNumber: profile.rera_number || null,
+      city: profile.city || null,
+      avatarUrl: profile.avatar_url || null,
+      savedListings: savedIds,
+    });
+  }, []);
+
   useEffect(() => {
     supabase.auth
       .getSession()
       .then(async ({ data: { session } }) => {
         if (session) {
-          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+          let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+          if (!profile) {
+            const md = session.user.user_metadata || {};
+            const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
+            const { data: inserted } = await supabase
+              .from("profiles")
+              .insert({
+                id: session.user.id,
+                name: md.full_name || md.name || session.user.email?.split("@")[0] || "User",
+                email: session.user.email ?? null,
+                role: null,
+                phone: phoneNational,
+                mobile_number: phoneNational,
+                agency_name: null,
+              })
+              .select("*")
+              .single();
+            profile = inserted || null;
+          }
           if (profile) {
-            const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", profile.id);
-            const savedIds = (savedRes.data || []).map((r) => r.listing_id);
-            setUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role,
-              phone: profile.phone ?? profile.mobile_number,
-              mobileNumber: profile.mobile_number ?? profile.phone,
-              agencyName: profile.agency_name,
-              logoUrl: profile.logo_url || null,
-              agentAddress: profile.address || null,
-              agentWebsite: profile.website || null,
-              agentVerified: profile.agent_verified === true,
-              plan: profile.plan || "free",
-              reraNumber: profile.rera_number || null,
-              city: profile.city || null,
-              avatarUrl: profile.avatar_url || null,
-              savedListings: savedIds,
-            });
+            await hydrateUserFromProfile(profile);
           }
         }
         setAuthLoading(false);
@@ -117,7 +140,7 @@ export default function NorthingProviders({ children }) {
     _h.openWA = (l) => setWaListing(l);
     _h.openPDF = (l) => setPdfListing(l);
     _h.openKit = (l) => setKitListing(l);
-  }, []);
+  }, [hydrateUserFromProfile]);
 
   const showToast = useCallback((msg, type = "info") => {
     setToast({ msg, type });
@@ -176,27 +199,8 @@ export default function NorthingProviders({ children }) {
     if (!session?.user) return;
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     if (!profile) return;
-    const savedRes = await supabase.from("saved_listings").select("listing_id").eq("user_id", profile.id);
-    const savedIds = (savedRes.data || []).map((r) => r.listing_id);
-    setUser({
-      id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      role: profile.role,
-      phone: profile.phone ?? profile.mobile_number,
-      mobileNumber: profile.mobile_number ?? profile.phone,
-      agencyName: profile.agency_name,
-      logoUrl: profile.logo_url || null,
-      agentAddress: profile.address || null,
-      agentWebsite: profile.website || null,
-      agentVerified: profile.agent_verified === true,
-      plan: profile.plan || "free",
-      reraNumber: profile.rera_number || null,
-      city: profile.city || null,
-      avatarUrl: profile.avatar_url || null,
-      savedListings: savedIds,
-    });
-  }, []);
+    await hydrateUserFromProfile(profile);
+  }, [hydrateUserFromProfile]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
