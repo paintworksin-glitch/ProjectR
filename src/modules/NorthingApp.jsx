@@ -1305,7 +1305,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       const browserOrigin = typeof window !== "undefined" ? window.location.origin : "";
       const callbackBase = configuredSiteUrl || browserOrigin;
       const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-        redirectTo: `${callbackBase}/reset-password`,
+        redirectTo: `${callbackBase}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
       });
       if (error) throw error;
       showToast("Check your email for a password reset link.", "success");

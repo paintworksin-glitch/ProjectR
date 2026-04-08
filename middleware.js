@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request) {
-  const response = NextResponse.next();
   const pathname = request.nextUrl.pathname;
+  const recoveryCode = request.nextUrl.searchParams.get("code");
+  if (pathname === "/reset-password" && recoveryCode) {
+    const confirmUrl = new URL("/auth/confirm", request.url);
+    confirmUrl.searchParams.set("code", recoveryCode);
+    confirmUrl.searchParams.set("next", "/reset-password");
+    return NextResponse.redirect(confirmUrl);
+  }
+
+  const response = NextResponse.next();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -56,5 +64,13 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/profile/:path*", "/onboarding", "/login", "/signup"],
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/profile/:path*",
+    "/onboarding",
+    "/login",
+    "/signup",
+    "/reset-password",
+  ],
 };
