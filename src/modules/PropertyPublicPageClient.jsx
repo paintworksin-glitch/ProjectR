@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
@@ -177,7 +178,15 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
         <button type="button" className="property-detail-back" onClick={goBack} aria-label="Back">
           ← Back
         </button>
-        <img className="property-detail-logo" src="/northing-logo.svg" alt="Northing" onClick={goHome} />
+        <Image
+          className="property-detail-logo"
+          src="/northing-logo.svg"
+          alt="Northing"
+          onClick={goHome}
+          width={160}
+          height={36}
+          priority
+        />
         <button
           type="button"
           onClick={toggleSave}
@@ -292,7 +301,11 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </h2>
           <div className="property-detail-broker-row">
             <div className="property-detail-broker-photo" suppressHydrationWarning>
-              {agentBrand?.logoUrl ? <img src={agentBrand.logoUrl} alt="" /> : brokerInitial}
+              {agentBrand?.logoUrl ? (
+                <Image src={agentBrand.logoUrl} alt="" width={56} height={56} style={{ width: "100%", height: "100%", objectFit: "contain", boxSizing: "border-box", padding: 2 }} />
+              ) : (
+                brokerInitial
+              )}
             </div>
             <div>
               <p className="property-detail-broker-name" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

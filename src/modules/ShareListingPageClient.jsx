@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
 import {
@@ -80,11 +81,14 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
           gap: 12,
         }}
       >
-        <img
+        <Image
           src="/northing-logo.svg"
           alt="Northing"
           onClick={() => navigate("/")}
+          width={220}
+          height={48}
           style={{ height: 48, maxWidth: 260, width: "auto", objectFit: "contain", cursor: "pointer" }}
+          priority
         />
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <a href={fullListingUrl} style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
@@ -124,7 +128,13 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
         </p>
         {listing.photos?.[0] && (
           <div style={{ borderRadius: 16, overflow: "hidden", marginBottom: 24, boxShadow: "var(--shadow-lg)" }}>
-            <img src={listing.photos[0]} alt="" style={{ width: "100%", height: 320, objectFit: "cover", display: "block" }} />
+            <Image
+              src={listing.photos[0]}
+              alt={listing.title || "Property photo"}
+              width={1200}
+              height={640}
+              style={{ width: "100%", height: 320, objectFit: "cover", display: "block" }}
+            />
           </div>
         )}
         <h1
