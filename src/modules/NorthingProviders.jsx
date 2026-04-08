@@ -83,21 +83,28 @@ export default function NorthingProviders({ children }) {
   const [kitListing, setKitListing] = useState(null);
 
   const insertProfileSafely = useCallback(async (row) => {
-    const { data, error } = await supabase.from("profiles").insert(row).select("*").single();
-    if (!error) return data;
-    const msg = String(error.message || "").toLowerCase();
-    if (msg.includes("mobile_number")) {
-      const fallbackRow = { ...row };
-      delete fallbackRow.mobile_number;
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from("profiles")
-        .insert(fallbackRow)
-        .select("*")
-        .single();
-      if (fallbackError) throw fallbackError;
-      return fallbackData;
+    let candidate = { ...row };
+    for (let i = 0; i < 4; i += 1) {
+      const { data, error } = await supabase.from("profiles").insert(candidate).select("*").single();
+      if (!error) return data;
+      const msg = String(error.message || "").toLowerCase();
+      if (msg.includes("mobile_number")) {
+        const next = { ...candidate };
+        delete next.mobile_number;
+        candidate = next;
+        continue;
+      }
+      if (msg.includes("role") && msg.includes("null")) {
+        candidate = { ...candidate, role: "user" };
+        continue;
+      }
+      if (msg.includes("agent_verified") && msg.includes("null")) {
+        candidate = { ...candidate, agent_verified: false };
+        continue;
+      }
+      throw error;
     }
-    throw error;
+    return null;
   }, []);
 
   const hydrateUserFromProfile = useCallback(async (profile) => {
@@ -137,7 +144,7 @@ export default function NorthingProviders({ children }) {
               id: session.user.id,
               name: md.full_name || md.name || session.user.email?.split("@")[0] || "User",
               email: session.user.email ?? null,
-              role: null,
+              role: "user",
               phone: phoneNational,
               mobile_number: phoneNational,
               agency_name: null,

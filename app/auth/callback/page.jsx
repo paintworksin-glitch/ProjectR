@@ -32,12 +32,20 @@ export default async function AuthCallbackPage({ searchParams }) {
       user.user_metadata?.name ||
       user.email?.split("@")[0] ||
       "User";
-    const { error: insertError } = await supabase.from("profiles").insert({
-      id: user.id,
-      name: fullName,
-      email: user.email ?? null,
-      role: null,
-    });
+    let insertError = null;
+    const candidates = [
+      { id: user.id, name: fullName, email: user.email ?? null, role: "user" },
+      { id: user.id, name: fullName, email: user.email ?? null, role: "user" },
+      { id: user.id, name: fullName, email: user.email ?? null, role: "user", agent_verified: false },
+    ];
+    for (const row of candidates) {
+      const { error } = await supabase.from("profiles").insert(row);
+      if (!error) {
+        insertError = null;
+        break;
+      }
+      insertError = error;
+    }
     if (insertError) {
       redirect("/login");
     }

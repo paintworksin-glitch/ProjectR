@@ -18,7 +18,7 @@ function ProfileTypeChooser({ user, onSaved, showToast }) {
   const submit = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("profiles").update({ role, agent_verified: role === "agent" ? false : null }).eq("id", user.id);
+      const { error } = await supabase.from("profiles").update({ role, agent_verified: role === "agent" ? false : false }).eq("id", user.id);
       if (error) throw error;
       await onSaved?.();
       showToast("Profile selected successfully", "success");

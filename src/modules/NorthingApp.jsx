@@ -1121,17 +1121,27 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   }, [initialMode]);
 
   const insertProfileSafely = async (row) => {
-    const { error } = await supabase.from("profiles").insert(row);
-    if (!error) return;
-    const msg = String(error.message || "").toLowerCase();
-    if (msg.includes("mobile_number")) {
-      const fallbackRow = { ...row };
-      delete fallbackRow.mobile_number;
-      const { error: fallbackError } = await supabase.from("profiles").insert(fallbackRow);
-      if (fallbackError) throw fallbackError;
-      return;
+    let candidate = { ...row };
+    for (let i = 0; i < 4; i += 1) {
+      const { error } = await supabase.from("profiles").insert(candidate);
+      if (!error) return;
+      const msg = String(error.message || "").toLowerCase();
+      if (msg.includes("mobile_number")) {
+        const next = { ...candidate };
+        delete next.mobile_number;
+        candidate = next;
+        continue;
+      }
+      if (msg.includes("role") && msg.includes("null")) {
+        candidate = { ...candidate, role: "user" };
+        continue;
+      }
+      if (msg.includes("agent_verified") && msg.includes("null")) {
+        candidate = { ...candidate, agent_verified: false };
+        continue;
+      }
+      throw error;
     }
-    throw error;
   };
 
   const finishSession = async (userId) => {
@@ -1143,7 +1153,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       if (!existing) {
         const md = user.user_metadata || {};
         const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
-        const r = ["user", "seller", "agent"].includes(md.role) ? md.role : null;
+        const r = ["user", "seller", "agent"].includes(md.role) ? md.role : "user";
         await insertProfileSafely({
           id: userId,
           name: md.full_name || md.name || user.email?.split("@")[0] || "User",
@@ -1251,7 +1261,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           id: data.user.id,
           name: form.name.trim(),
           email: form.email.trim(),
-          role: null,
+          role: "user",
           phone: phoneDigits,
           mobile_number: phoneDigits,
           agency_name: null,
