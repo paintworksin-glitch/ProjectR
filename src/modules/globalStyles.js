@@ -207,7 +207,6 @@ export const G = `
   .home-footer-link:hover { background: linear-gradient(165deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.07) 100%); border-color: rgba(255,255,255,0.28); color: #fff; transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 10px 28px rgba(0,0,0,0.18); }
   .home-footer-link:active { transform: translateY(0); }
   .home-footer-social-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; width: 100%; margin-top: 6px; }
-  .home-footer-social-hint { margin: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(248,250,252,0.35); width: 100%; text-align: center; line-height: 1.3; }
   .home-footer-social-list { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
   .home-footer-social-li { margin: 0; padding: 0; display: flex; }
   .home-footer-social-a {
@@ -672,7 +671,6 @@ export const G = `
     .home-footer-tagline{margin-left:auto!important;margin-right:auto!important}
     .home-footer-nav{grid-template-columns:repeat(2, minmax(0, 1fr))!important;gap:8px!important}
     .home-footer-social-row{margin-top:4px!important;gap:6px 10px!important}
-    .home-footer-social-hint{font-size:9px!important;letter-spacing:0.08em!important}
     .home-footer-social-a{width:36px!important;height:36px!important;border-radius:11px!important}
     .home-footer-bottom{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:8px!important}
     .home-footer-copy{text-align:center!important;font-size:11px!important}

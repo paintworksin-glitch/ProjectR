@@ -3137,7 +3137,6 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
             </nav>
           </div>
           <div className="home-footer-social-row">
-            {!FOOTER_SOCIAL_ENABLED && <span className="home-footer-social-hint">Social links coming soon</span>}
             <ul className="home-footer-social-list" role="list">
               {[
                 { id: "facebook", label: "Facebook" },
@@ -3153,7 +3152,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
                         <FooterSocialIcon id={id} />
                       </a>
                     ) : (
-                      <span className="home-footer-social-a home-footer-social-a--disabled" aria-label={`${label} (coming soon)`}>
+                      <span className="home-footer-social-a home-footer-social-a--disabled" aria-label={label}>
                         <FooterSocialIcon id={id} />
                       </span>
                     )}

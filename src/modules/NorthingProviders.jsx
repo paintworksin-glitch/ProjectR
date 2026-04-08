@@ -205,8 +205,11 @@ export default function NorthingProviders({ children }) {
   const login = useCallback(
     (u, nextPath) => {
       setUser(u);
-      if (typeof nextPath === "string" && nextPath.startsWith("/")) {
-        router.push(nextPath);
+      const raw = typeof nextPath === "string" ? nextPath : "";
+      const safe =
+        raw.startsWith("/") && !raw.startsWith("//") ? raw : "";
+      if (safe) {
+        router.push(safe);
       } else {
         nav("dashboard", u);
       }
