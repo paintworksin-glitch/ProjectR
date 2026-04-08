@@ -1859,6 +1859,8 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
   const [profRow,setProfRow]=useState(null);
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
+  const [enquiryStatusUpdating,setEnquiryStatusUpdating]=useState(null);
+  const [upgradeRequesting,setUpgradeRequesting]=useState(false);
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
@@ -1905,6 +1907,35 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
     if(error){showToast("Delete failed: "+error.message,"error");return;}
     setListings(l=>l.filter(x=>x.id!==id));showToast("Listing deleted","success");setDeleteTarget(null);
   };
+  const requestUpgrade=async()=>{
+    setUpgradeRequesting(true);
+    try{
+      const res=await fetch("/api/upgrade-request",{method:"POST"});
+      const json=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(json?.error||"Could not submit request");
+      showToast("Upgrade request sent. Our team will contact you.","success");
+    }catch(err){
+      showToast(err.message||"Upgrade request failed","error");
+    }
+    setUpgradeRequesting(false);
+  };
+  const updateEnquiryStatus=async(enquiryId,status)=>{
+    setEnquiryStatusUpdating(enquiryId);
+    try{
+      const res=await fetch("/api/enquiry-status",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({enquiry_id:enquiryId,status}),
+      });
+      const json=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(json?.error||"Could not update enquiry");
+      setEnquiries(es=>es.map(e=>e.id===enquiryId?{...e,status}:e));
+      showToast(`Enquiry marked as ${status}`,"success");
+    }catch(err){
+      showToast(err.message||"Update failed","error");
+    }
+    setEnquiryStatusUpdating(null);
+  };
   const handleLogoUpload=async(e)=>{
     const file=e.target.files?.[0]; if(!file) return;
     if(file.size>2*1024*1024){showToast("Logo must be under 2MB","error");return;}
@@ -1942,7 +1973,12 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
           ?<div style={{background:"#F3F4F6",border:"1px solid var(--border)",borderRadius:10,padding:"10px 16px",fontSize:13,color:"var(--muted)",fontWeight:600}}>Your agent account is pending activation.</div>
           :canAddMore
           ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
-          :<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Listing limit reached</div>
+          :<div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Listing limit reached</div>
+            <button type="button" className="btn-outline" disabled={upgradeRequesting} onClick={requestUpgrade} style={{padding:"9px 14px",borderRadius:10,fontSize:12}}>
+              {upgradeRequesting?"Sending...":"Request upgrade"}
+            </button>
+          </div>
         }
       </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
@@ -1960,7 +1996,15 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
                   <div style={{fontSize:13,color:"var(--muted)",marginTop:4}}>{e.buyer?.name||"Buyer"} · {e.buyer?.mobile_number||e.buyer?.phone||"—"}</div>
                   <p style={{fontSize:14,margin:"10px 0",lineHeight:1.5}}>{e.message}</p>
                   <div style={{fontSize:12,color:"var(--muted)"}}>{new Date(e.created_at).toLocaleString()}</div>
-                  <span className="badge tag" style={{marginTop:8,display:"inline-block"}}>{e.status}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,flexWrap:"wrap"}}>
+                    <span className="badge tag" style={{display:"inline-block"}}>{e.status}</span>
+                    <button type="button" disabled={enquiryStatusUpdating===e.id||e.status==="replied"} onClick={()=>updateEnquiryStatus(e.id,"replied")} className="btn-outline" style={{padding:"5px 10px",fontSize:11,borderRadius:8}}>
+                      Mark replied
+                    </button>
+                    <button type="button" disabled={enquiryStatusUpdating===e.id||e.status==="closed"} onClick={()=>updateEnquiryStatus(e.id,"closed")} className="btn-outline" style={{padding:"5px 10px",fontSize:11,borderRadius:8}}>
+                      Mark closed
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
