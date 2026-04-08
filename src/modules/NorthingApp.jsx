@@ -1105,7 +1105,6 @@ export const SecretAdminModal = ({onLogin,onClose,showToast}) => {
 
 export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login", redirectTo = "/dashboard" }) => {
   const [mode, setMode] = useState(initialMode === "register" ? "register" : "login");
-  const [role, setRole] = useState("user");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -1130,7 +1129,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       if (!existing) {
         const md = user.user_metadata || {};
         const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
-        const r = ["user", "seller", "agent"].includes(md.role) ? md.role : "user";
+        const r = ["user", "seller", "agent"].includes(md.role) ? md.role : null;
         await supabase.from("profiles").insert({
           id: userId,
           name: md.full_name || md.name || user.email?.split("@")[0] || "User",
@@ -1216,7 +1215,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         options: {
           data: {
             full_name: form.name.trim(),
-            role,
             phone: phoneDigits,
           },
           emailRedirectTo: `${origin}/login`,
@@ -1228,7 +1226,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           id: data.user.id,
           name: form.name.trim(),
           email: form.email.trim(),
-          role,
+          role: null,
           phone: phoneDigits,
           mobile_number: phoneDigits,
           agency_name: null,
@@ -1300,12 +1298,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for OAuth redirect completion
   }, []);
-
-  const roles = [
-    { id: "user", icon: "🔍", label: "Buyer", desc: "Browse & save properties" },
-    { id: "seller", icon: "🏠", label: "Seller", desc: "List up to 2 properties" },
-    { id: "agent", icon: "🏢", label: "Agent", desc: "Unlimited listings + white-label" },
-  ];
 
   const orDivider = (
     <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
@@ -1444,39 +1436,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
 
           {mode === "register" && (
             <>
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
-                  I am a… <span style={{ color: "#DC2626" }}>*</span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {roles.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setRole(r.id)}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: 12,
-                        border: `2px solid ${role === r.id ? "var(--primary)" : "var(--border)"}`,
-                        background: role === r.id ? "var(--primary-light)" : "var(--white)",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        textAlign: "left",
-                        transition: "all 0.2s",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      <span style={{ fontSize: 22 }}>{r.icon}</span>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: role === r.id ? "var(--primary)" : "var(--navy)" }}>{r.label}</div>
-                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{r.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div style={{ marginBottom: 12 }}>
                 <input className="inp" placeholder="Full name *" autoComplete="name" value={form.name} onChange={(e) => setF("name", e.target.value)} />
               </div>
@@ -2263,6 +2222,12 @@ export const MasterDash = ({showToast}) => {
     setAgents(a=>a.filter(x=>x.id!==id));setUsers(u=>u.filter(x=>x.id!==id));
     showToast("User removed","success");
   };
+  const approveAgent=async(id)=>{
+    const {error}=await supabase.from("profiles").update({agent_verified:true}).eq("id",id);
+    if(error){showToast("Approval failed","error");return;}
+    setAgents(a=>a.map(x=>x.id===id?{...x,agent_verified:true}:x));
+    showToast("Agent approved","success");
+  };
   const filtered=listings.filter(l=>!search||(mapListing(l).title||"").toLowerCase().includes(search.toLowerCase())||(l.location||"").toLowerCase().includes(search.toLowerCase()));
   const tabs=[["overview","📊 Overview"],["analytics","🔥 Analytics"],["listings","🏠 Listings"],["agents","🏢 Agents"],["users","👥 Users"]];
   return (
@@ -2358,14 +2323,22 @@ export const MasterDash = ({showToast}) => {
                   <div style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{a.name}</div>
                   <div style={{fontSize:13,color:"var(--muted)",marginBottom:4,wordBreak:"break-word"}}>{a.email}</div>
                   <div style={{fontSize:13,color:"var(--muted)",marginBottom:10}}>{a.agency_name||"—"}</div>
-                  <span className="badge tag" style={{marginBottom:12,display:"inline-block"}}>{listings.filter(l=>l.agent_id===a.id).length} listings</span>
-                  <button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{width:"100%",padding:"12px",borderRadius:8,fontSize:14,minHeight:44}}>Remove</button>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
+                    <span className="badge tag">{listings.filter(l=>l.agent_id===a.id).length} listings</span>
+                    <span className="badge tag-navy">{a.agent_verified?"verified":"pending"}</span>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <button type="button" onClick={()=>approveAgent(a.id)} disabled={a.agent_verified===true} className="btn-outline" style={{padding:"12px",borderRadius:8,fontSize:13,minHeight:44}}>
+                      {a.agent_verified?"Approved":"Approve"}
+                    </button>
+                    <button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{padding:"12px",borderRadius:8,fontSize:14,minHeight:44}}>Remove</button>
+                  </div>
                 </div>
               ))}
               {agents.length===0&&<div className="card" style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No agents yet</div>}
             </div>
           ):(
-            <div className="card" style={{overflow:"hidden"}}><div className="master-dash-table-wrap" style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{background:"var(--navy)"}}>{["Name","Email","Agency","Listings","Action"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{agents.map((a,i)=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{a.name}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.email}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.agency_name||"—"}</td><td style={{padding:"12px 14px"}}><span className="badge tag">{listings.filter(l=>l.agent_id===a.id).length} listings</span></td><td style={{padding:"12px 14px"}}><button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{padding:"5px 12px",borderRadius:7,fontSize:11}}>Remove</button></td></tr>)}</tbody></table></div>{agents.length===0&&<div style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No agents yet</div>}</div>
+            <div className="card" style={{overflow:"hidden"}}><div className="master-dash-table-wrap" style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{background:"var(--navy)"}}>{["Name","Email","Agency","Listings","Verification","Action"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{agents.map((a,i)=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{a.name}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.email}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.agency_name||"—"}</td><td style={{padding:"12px 14px"}}><span className="badge tag">{listings.filter(l=>l.agent_id===a.id).length} listings</span></td><td style={{padding:"12px 14px"}}><span className="badge tag-navy">{a.agent_verified?"verified":"pending"}</span></td><td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><button type="button" onClick={()=>approveAgent(a.id)} disabled={a.agent_verified===true} className="btn-outline" style={{padding:"5px 10px",borderRadius:7,fontSize:11}}>{a.agent_verified?"Approved":"Approve"}</button><button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{padding:"5px 12px",borderRadius:7,fontSize:11}}>Remove</button></div></td></tr>)}</tbody></table></div>{agents.length===0&&<div style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No agents yet</div>}</div>
           ))}
           {tab==="users"&&(dashNarrow?(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>

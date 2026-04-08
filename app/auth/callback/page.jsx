@@ -41,11 +41,11 @@ export default async function AuthCallbackPage({ searchParams }) {
     if (insertError) {
       redirect("/login");
     }
-    redirect("/onboarding");
+    redirect("/dashboard");
   }
 
   if (!existingProfile.role) {
-    redirect("/onboarding");
+    redirect("/dashboard");
   }
 
   redirect("/dashboard");
