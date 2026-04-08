@@ -2090,6 +2090,7 @@ export const AgentDash = ({currentUser,showToast,onPhoneLinked}) => {
 
 export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
+  const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   useEffect(()=>{
     (async()=>{
       const {data,error}=await supabase.from("saved_listings").select("listings(*)").eq("user_id",currentUser.id);
@@ -2102,11 +2103,24 @@ export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
     setSaved(s=>s.filter(l=>l.id!==id));
     showToast("Removed from saved","success");
   };
+  useEffect(()=>{
+    if(tab!=="enquiries") return;
+    setEnquiriesLoading(true);
+    (async()=>{
+      const {data}=await supabase
+        .from("enquiries")
+        .select("id,message,status,created_at,listings(title,location)")
+        .eq("buyer_id",currentUser.id)
+        .order("created_at",{ascending:false});
+      setEnquiries(data||[]);
+      setEnquiriesLoading(false);
+    })();
+  },[tab,currentUser.id]);
   return (
     <div className="dashboard-page-shell" style={{maxWidth:1100,margin:"0 auto",padding:"32px 20px"}}>
       <div style={{marginBottom:28}}><h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>My Account</h1><p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Welcome back, {currentUser.name}</p></div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
-        {[["saved","❤️ Saved"],["profile","👤 Profile"]].map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",boxShadow:tab===t?"0 1px 4px rgba(27,58,45,0.08)":"none"}}>{l}</button>)}
+        {[["saved","❤️ Saved"],["enquiries","✉️ Enquiries"],["profile","👤 Profile"]].map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",boxShadow:tab===t?"0 1px 4px rgba(27,58,45,0.08)":"none"}}>{l}</button>)}
       </div>
       {tab==="saved"&&(
         loading?<div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading…</div>:saved.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>💔</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No saved listings</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>You haven&apos;t saved any properties yet.</p><button type="button" className="btn-primary" onClick={()=>window.location.assign("/feed")}>Browse listings →</button></div>:(
@@ -2131,6 +2145,29 @@ export const UserDash = ({currentUser,showToast,onPhoneLinked}) => {
             ))}
           </div>
         )
+      )}
+      {tab==="enquiries"&&(
+        <div className="card" style={{padding:20}}>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:12}}>My Enquiries</h2>
+          {enquiriesLoading ? (
+            <p style={{color:"var(--muted)"}}>Loading…</p>
+          ) : enquiries.length===0 ? (
+            <p style={{color:"var(--muted)"}}>No enquiries sent yet.</p>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {enquiries.map((e)=>(
+                <div key={e.id} style={{padding:12,borderRadius:12,border:"1px solid var(--border)",background:"#fff"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:4}}>
+                    <div style={{fontWeight:700,color:"var(--navy)",fontSize:14}}>{e.listings?.title||"Listing enquiry"}</div>
+                    <span className="badge tag">{e.status||"new"}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"var(--muted)",marginBottom:6}}>{e.listings?.location||"—"} · {new Date(e.created_at).toLocaleString()}</div>
+                  <div style={{fontSize:13,color:"var(--text-body)"}}>{e.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {tab==="profile"&&(
         <div style={{maxWidth:520}}>
@@ -2311,7 +2348,8 @@ export const MasterDash = ({showToast}) => {
 
 export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
   const router=useRouter();
-  const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [open,setOpen]=useState(false);const [feedMobile,setFeedMobile]=useState(false);
+  const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [open,setOpen]=useState(false);const [feedMobile,setFeedMobile]=useState(false);const [page,setPage]=useState(1);const [totalCount,setTotalCount]=useState(0);
+  const pageSize=18;
   useEffect(()=>{
     if(typeof window==="undefined")return;
     const mq=window.matchMedia("(max-width: 768px)");
@@ -2327,24 +2365,31 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
     return()=>{document.body.style.overflow=p;};
   },[open,feedMobile]);
   const requireAuth=(fn)=>(...args)=>{if(!currentUser){showToast("Please sign in to access this feature","error");onNavigate&&onNavigate("login");return;}fn(...args);};
+  useEffect(()=>{setPage(1);},[filters,sort]);
   useEffect(()=>{
+    let cancelled=false;
     (async()=>{
-      const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false});
-      const rows=data||[];
-      const agentIds=[...new Set(rows.map(r=>r.agent_id).filter(Boolean))];
-      let vmap={};
-      if(agentIds.length){
-        const {data:profs}=await supabase.from("profiles").select("id, agent_verified").in("id",agentIds);
-        vmap=Object.fromEntries((profs||[]).map(p=>[p.id,p.agent_verified===true]));
-      }
-      setListings(rows.map(r=>mapListing({...r,_ownerAgentVerified:vmap[r.agent_id]})));setLoading(false);
+      setLoading(true);
+      const qs=new URLSearchParams();
+      qs.set("page",String(page));
+      qs.set("pageSize",String(pageSize));
+      qs.set("sort",sort);
+      Object.entries(filters).forEach(([k,v])=>{if(v)qs.set(k,String(v));});
+      const res=await fetch(`/api/listings?${qs.toString()}`,{cache:"no-store"});
+      const json=await res.json().catch(()=>({}));
+      if(cancelled)return;
+      if(!res.ok){showToast(json?.error||"Could not load listings","error");setListings([]);setTotalCount(0);setLoading(false);return;}
+      setListings((json.items||[]).map(mapListing).filter(Boolean));
+      setTotalCount(Number(json.totalCount||0));
+      setLoading(false);
     })();
-  },[]);
+    return()=>{cancelled=true;};
+  },[filters,sort,page,showToast]);
   const setF=(k,v)=>setFilters(f=>({...f,[k]:v}));
-  const clear=()=>setFilters({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});
+  const clear=()=>{setFilters({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});setPage(1);};
   const af=Object.values(filters).filter(v=>v).length;
   const cities=[...new Set(listings.map(l=>l.location?.split(",")[1]?.trim()).filter(Boolean))];
-  const filtered=listings.filter(l=>{const f=filters;if(f.search&&!l.title?.toLowerCase().includes(f.search.toLowerCase())&&!l.location?.toLowerCase().includes(f.search.toLowerCase())) return false;if(f.propertyType&&l.propertyType!==f.propertyType) return false;if(f.listingType&&l.listingType!==f.listingType) return false;if(f.city&&!l.location?.includes(f.city)) return false;if(f.minPrice&&l.price<Number(f.minPrice)) return false;if(f.maxPrice&&l.price>Number(f.maxPrice)) return false;if(f.bedrooms&&Number(l.bedrooms)<Number(f.bedrooms)) return false;if(f.furnishing&&l.furnishingStatus!==f.furnishing) return false;return true;}).sort((a,b)=>sort==="price_asc"?a.price-b.price:sort==="price_desc"?b.price-a.price:new Date(b.createdAt)-new Date(a.createdAt));
+  const totalPages=Math.max(1,Math.ceil(totalCount/pageSize));
   const handleSave=async(id)=>{
     if(!currentUser){router.push(`/login?next=${encodeURIComponent("/feed")}`);return;}
     if(currentUser.role!=="user"){showToast("Only buyers can save listings","error");return;}
@@ -2382,7 +2427,7 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
               <span className="feed-filter-label-short">Filter{af>0?` (${af})`:""}</span>
             </button>
             {af>0&&<button onClick={clear} style={{fontSize:12,color:"var(--muted)",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>Clear all</button>}
-            <span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{loading?"Loading…":`${filtered.length} ${filtered.length===1?"property":"properties"} found`}</span>
+            <span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{loading?"Loading…":`${totalCount} ${totalCount===1?"property":"properties"} found`}</span>
           </div>
           <select value={sort} onChange={e=>setSort(e.target.value)} className="inp feed-sort-select" style={{width:"auto",fontSize:13}}>
             <option value="newest">Newest First</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option>
@@ -2399,9 +2444,16 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
             <FS label="Furnishing" k="furnishing" form={filters} set={setF} opts={["Furnished","Semi-Furnished","Unfurnished"]}/>
           </div>
         )}
-        {loading?<div style={{textAlign:"center",padding:80,color:"var(--muted)"}}>Loading listings…</div>:filtered.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🔍</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>Try adjusting your filters.</p><button onClick={clear} className="btn-outline" style={{padding:"10px 24px",borderRadius:10,fontSize:13}}>Clear Filters</button></div>:(
+        {loading?<div style={{textAlign:"center",padding:80,color:"var(--muted)"}}>Loading listings…</div>:listings.length===0?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🔍</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No properties found</h3><p style={{color:"var(--muted)",fontSize:14,marginBottom:16}}>Try adjusting your filters.</p><button onClick={clear} className="btn-outline" style={{padding:"10px 24px",borderRadius:10,fontSize:13}}>Clear Filters</button></div>:(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:24}} className="gr">
-            {filtered.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={handleSave} onView={onOpenProperty} onLoginRedirect={()=>router.push(`/login?next=${encodeURIComponent("/feed")}`)}/>)}
+            {listings.map(l=><PropCard key={l.id} listing={l} currentUser={currentUser} savedIds={savedIds} onSave={handleSave} onView={onOpenProperty} onLoginRedirect={()=>router.push(`/login?next=${encodeURIComponent("/feed")}`)}/>)}
+          </div>
+        )}
+        {!loading&&totalCount>0&&(
+          <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:10,marginTop:20}}>
+            <button type="button" className="btn-outline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} style={{padding:"8px 14px",borderRadius:9,fontSize:13,opacity:page<=1?0.6:1}}>← Prev</button>
+            <span style={{fontSize:13,color:"var(--muted)",fontWeight:700}}>Page {page} of {totalPages}</span>
+            <button type="button" className="btn-outline" disabled={page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} style={{padding:"8px 14px",borderRadius:9,fontSize:13,opacity:page>=totalPages?0.6:1}}>Next →</button>
           </div>
         )}
       </div>
