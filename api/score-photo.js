@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   const { checkRateLimit } = await import("../src/lib/rateLimit.js");
   const ip = (req.headers["x-forwarded-for"] || "unknown").split(",")[0].trim();
-  const rate = checkRateLimit(`score-photo:${ip}`, 60_000, 12);
+  const rate = await checkRateLimit(`score-photo:${ip}`, 60_000, 12);
   if (!rate.ok) return res.status(429).json({ error: "Too many requests" });
 
   const authHeader = req.headers.authorization || "";

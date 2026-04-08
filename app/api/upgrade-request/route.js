@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { escapeHtml, safeEmailSubject } from "@/lib/escapeHtml";
 
 export async function POST(request) {
   const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
-  const rate = checkRateLimit(`upgrade-request:${ip}`, 60_000, 10);
+  const rate = await checkRateLimit(`upgrade-request:${ip}`, 60_000, 10);
   if (!rate.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createSupabaseServerClient();
@@ -39,15 +40,15 @@ export async function POST(request) {
     body: JSON.stringify({
       from: process.env.RESEND_FROM || "Northing <onboarding@resend.dev>",
       to: [toEmail],
-      subject: `Upgrade request from ${profile.name || "Northing user"}`,
+      subject: safeEmailSubject(`Upgrade request from ${profile.name || "Northing user"}`),
       html: `<p>A plan upgrade was requested.</p>
-<p><strong>Name:</strong> ${profile.name || "—"}<br/>
-<strong>Email:</strong> ${profile.email || "—"}<br/>
-<strong>Role:</strong> ${profile.role}<br/>
-<strong>Current plan:</strong> ${profile.plan || "free"}<br/>
-<strong>Agency:</strong> ${profile.agency_name || "—"}<br/>
-<strong>Phone:</strong> ${profile.mobile_number || profile.phone || "—"}<br/>
-<strong>User ID:</strong> ${profile.id}</p>`,
+<p><strong>Name:</strong> ${escapeHtml(profile.name || "—")}<br/>
+<strong>Email:</strong> ${escapeHtml(profile.email || "—")}<br/>
+<strong>Role:</strong> ${escapeHtml(profile.role)}<br/>
+<strong>Current plan:</strong> ${escapeHtml(profile.plan || "free")}<br/>
+<strong>Agency:</strong> ${escapeHtml(profile.agency_name || "—")}<br/>
+<strong>Phone:</strong> ${escapeHtml(profile.mobile_number || profile.phone || "—")}<br/>
+<strong>User ID:</strong> ${escapeHtml(profile.id)}</p>`,
     }),
   });
 

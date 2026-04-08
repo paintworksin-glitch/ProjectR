@@ -26,7 +26,7 @@ function applyListingFilters(query, filters) {
 
 export async function GET(request) {
   const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
-  const rate = checkRateLimit(`listings:${ip}`, 60_000, 90);
+  const rate = await checkRateLimit(`listings:${ip}`, 60_000, 90);
   if (!rate.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createSupabaseServerClient();

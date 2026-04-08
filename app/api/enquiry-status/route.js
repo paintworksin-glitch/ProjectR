@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { escapeHtml, safeEmailSubject } from "@/lib/escapeHtml";
 
 const ALLOWED_STATUSES = new Set(["new", "replied", "closed"]);
 
 export async function POST(request) {
   const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
-  const rate = checkRateLimit(`enquiry-status:${ip}`, 60_000, 40);
+  const rate = await checkRateLimit(`enquiry-status:${ip}`, 60_000, 40);
   if (!rate.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -58,10 +59,10 @@ export async function POST(request) {
           body: JSON.stringify({
             from: process.env.RESEND_FROM || "Northing <onboarding@resend.dev>",
             to: [buyer.email],
-            subject: `Enquiry update: ${listing?.title || "your property enquiry"}`,
-            html: `<p>Hi ${buyer.name || "there"},</p>
-<p>Your enquiry status has been updated to <strong>${status}</strong>.</p>
-<p>Listing: <strong>${listing?.title || "Property"}</strong></p>
+            subject: safeEmailSubject(`Enquiry update: ${listing?.title || "your property enquiry"}`),
+            html: `<p>Hi ${escapeHtml(buyer.name || "there")},</p>
+<p>Your enquiry status has been updated to <strong>${escapeHtml(status)}</strong>.</p>
+<p>Listing: <strong>${escapeHtml(listing?.title || "Property")}</strong></p>
 <p>You can sign in to Northing to view details.</p>`,
           }),
         });

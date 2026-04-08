@@ -4,12 +4,13 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginPage } from "@/modules/NorthingApp";
 import { useNorthing } from "@/modules/NorthingContext";
+import { safeNextPath } from "@/lib/safeNextPath";
 
 export default function LoginRoutePage() {
   const { login, showToast, nav } = useNorthing();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
+  const next = safeNextPath(searchParams.get("next"), "/dashboard");
   const resetLinkToastShown = useRef(false);
 
   useEffect(() => {

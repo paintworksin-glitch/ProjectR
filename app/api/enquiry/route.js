@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { escapeHtml, safeEmailSubject } from "@/lib/escapeHtml";
+import { getCanonicalOrigin } from "@/lib/siteUrl";
 
 /**
  * POST: create enquiry (authenticated buyer) + optional owner email via Resend.
  */
 export async function POST(request) {
   const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
-  const rate = checkRateLimit(`enquiry:${ip}`, 60_000, 20);
+  const rate = await checkRateLimit(`enquiry:${ip}`, 60_000, 20);
   if (!rate.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -52,11 +54,14 @@ export async function POST(request) {
 
   if (insErr) return NextResponse.json({ error: insErr.message }, { status: 400 });
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || (request.headers.get("origin") || "").replace(/\/$/, "") || "";
+  const origin = getCanonicalOrigin(request);
   const listingUrl = origin ? `${origin}/property/${listingId}` : `/property/${listingId}`;
 
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey && sellerProfile?.email) {
+    const title = listing.title || "your listing";
+    const buyerName = buyerProfile?.name || "Buyer";
+    const mobile = buyerProfile?.mobile_number || buyerProfile?.phone || "—";
     try {
       await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -67,12 +72,12 @@ export async function POST(request) {
         body: JSON.stringify({
           from: process.env.RESEND_FROM || "Northing <onboarding@resend.dev>",
           to: [sellerProfile.email],
-          subject: `New enquiry on ${listing.title || "your Northing listing"}`,
-          html: `<p>You have a new enquiry on <strong>${listing.title || "your listing"}</strong>.</p>
-<p><strong>From:</strong> ${buyerProfile?.name || "Buyer"}<br/>
-<strong>Mobile:</strong> ${buyerProfile?.mobile_number || buyerProfile?.phone || "—"}<br/>
-<strong>Message:</strong></p><p>${message.replace(/</g, "&lt;")}</p>
-<p><a href="${listingUrl}">View listing</a></p>`,
+          subject: safeEmailSubject(`New enquiry on ${title}`),
+          html: `<p>You have a new enquiry on <strong>${escapeHtml(title)}</strong>.</p>
+<p><strong>From:</strong> ${escapeHtml(buyerName)}<br/>
+<strong>Mobile:</strong> ${escapeHtml(mobile)}<br/>
+<strong>Message:</strong></p><p>${escapeHtml(message)}</p>
+<p><a href="${escapeHtml(listingUrl)}">View listing</a></p>`,
         }),
       });
     } catch {
