@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AgentDash, UserDash } from "@/modules/NorthingApp";
 import { useNorthing } from "@/modules/NorthingContext";
@@ -29,6 +29,12 @@ function ProfileTypeChooser({ user, onSaved, showToast, variant = "first", onCan
     setSaving(true);
     try {
       const prevRole = normalizeDashboardRole(user?.role);
+      const verifiedAgent = prevRole === "agent" && user?.agentVerified === true;
+      if (verifiedAgent && role !== "agent") {
+        showToast("Verified agents cannot change account type. Contact Northing admin.", "error");
+        setSaving(false);
+        return;
+      }
       const payload = { role };
       // Becoming an agent always requires admin approval before listing creation.
       if (role === "agent" && prevRole !== "agent") {
@@ -111,6 +117,7 @@ export default function DashboardRoutePage() {
   const changeRole = searchParams.get("changeRole") === "1";
   const [roleSelectionChecked, setRoleSelectionChecked] = useState(false);
   const [mustChooseRole, setMustChooseRole] = useState(false);
+  const lockedAgentToastShown = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -172,7 +179,21 @@ export default function DashboardRoutePage() {
     );
   }
 
-  const showRoleChooser = mustChooseRole || (changeRole && user.role !== "master");
+  const lockedVerifiedAgent = user.role === "agent" && user.agentVerified === true;
+  const showRoleChooser =
+    (mustChooseRole || (changeRole && user.role !== "master")) &&
+    !(changeRole && lockedVerifiedAgent);
+
+  useEffect(() => {
+    if (!changeRole || !lockedVerifiedAgent || mustChooseRole) return;
+    if (lockedAgentToastShown.current) return;
+    lockedAgentToastShown.current = true;
+    showToast(
+      "Verified agents cannot change their account type. Contact Northing admin if you need a change.",
+      "error"
+    );
+    router.replace("/dashboard");
+  }, [changeRole, lockedVerifiedAgent, mustChooseRole, router, showToast]);
 
   if (showRoleChooser) {
     return (

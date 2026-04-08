@@ -1840,6 +1840,7 @@ export const AgentDash = ({currentUser,showToast}) => {
   if(view==="create") return <ListingForm currentUser={enrichedUser} listingId={null} allListings={listings} showToast={showToast} onBack={()=>setView("grid")} onSaved={()=>{setView("grid");load();}}/>;
   const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Rented",listings.filter(l=>l.status==="Rented").length,"🏠"],["Sold",listings.filter(l=>l.status==="Sold").length,"🏆"]];
   const unverifiedAgent=isAgent&&profRow&&!profRow.agent_verified;
+  const lockedVerifiedAgent=isAgent&&currentUser.agentVerified===true;
   const activeCount=listings.filter(l=>l.status==="Active").length;
   const maxListings=isSeller?2:9999;
   const canAddMore=unverifiedAgent?false:isSeller?activeCount<maxListings:true;
@@ -1851,9 +1852,13 @@ export const AgentDash = ({currentUser,showToast}) => {
           <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>{isSeller?"My Properties":"My Listings"}</h1>
           <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>{isSeller?`Individual seller · ${listings.length}/${maxListings} properties used`:"Manage and market your properties"}</p>
           <p style={{marginTop:10}}>
-            <button type="button" className="btn-outline" onClick={()=>{window.location.assign("/dashboard?changeRole=1");}} style={{padding:"8px 14px",borderRadius:10,fontSize:13,fontWeight:600}}>
-              Change account type
-            </button>
+            {lockedVerifiedAgent?(
+              <span style={{fontSize:13,color:"var(--muted)",display:"block",maxWidth:440}}>Verified agent accounts cannot switch to Buyer or Seller. Contact Northing admin if you need a change.</span>
+            ):(
+              <button type="button" className="btn-outline" onClick={()=>{window.location.assign("/dashboard?changeRole=1");}} style={{padding:"8px 14px",borderRadius:10,fontSize:13,fontWeight:600}}>
+                Change account type
+              </button>
+            )}
           </p>
         </div>
         {unverifiedAgent
