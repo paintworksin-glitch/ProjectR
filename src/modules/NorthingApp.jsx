@@ -2796,6 +2796,34 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nodes = () => document.querySelectorAll(".home-animate-on-scroll");
+    const reveal = () => {
+      nodes().forEach((el) => el.classList.add("home-animate-in"));
+    };
+    if (!("IntersectionObserver" in window)) {
+      reveal();
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      reveal();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("home-animate-in");
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: "0px 0px -6% 0px", threshold: 0.06 }
+    );
+    nodes().forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
   const testimonials=[
     {name:"Ravi Sharma",agency:"Sharma Realty, Mumbai",text:"Generated my first brochure in 2 minutes. Clients were blown away!"},
     {name:"Priya Nair",agency:"NRI Homes, Pune",text:"WhatsApp cards get shared instantly. More enquiries same day."},
@@ -2914,7 +2942,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           <a href="#home-testimonials">Trust</a>
         </div>
       </nav>
-      <section id="prop-grid" className="home-prop-section">
+      <section id="prop-grid" className="home-prop-section home-animate-on-scroll">
         <div className="home-featured-toolbar">
           <div>
             <div className="home-heading home-featured-title">Featured Properties</div>
@@ -2964,7 +2992,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
         )}
       </section>
       <SkylineRibbon variant="light" />
-      <section id="home-sample-outputs" className="home-sample-pane" aria-labelledby="home-sample-outputs-heading">
+      <section id="home-sample-outputs" className="home-sample-pane home-animate-on-scroll" aria-labelledby="home-sample-outputs-heading">
         <div className="home-sample-pane-bg-artifacts" aria-hidden="true">
           <SkylineHeroBackdrop tone="soft" />
           <div className="home-sample-pane-bg-orb home-sample-pane-bg-orb--a" />
@@ -3022,15 +3050,13 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
         </div>
       </section>
       
-      <section id="home-band-split" className="home-band-split">
-        <SkylineRibbon variant="band" />
+      <section id="home-band-split" className="home-band-split home-animate-on-scroll">
         <div className="gr home-band-split-inner">
           {[
-            {icon:"🏠",title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
-            {icon:"🏢",title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent"},
-          ].map(({icon,title,desc,cta})=>(
+            {title:"Selling or Renting?",desc:"List your property in minutes. Individual sellers get 2 free listings. Instant PDF brochure included.",cta:"List My Property"},
+            {title:"Real Estate Agent?",desc:"Unlimited listings, white-label PDF with your firm's logo, and WhatsApp cards. Built for professionals.",cta:"Join as Agent"},
+          ].map(({title,desc,cta})=>(
             <div key={title} className="card glass-card home-band-card">
-              <div className="home-band-card-media" aria-hidden>{icon}</div>
               <div>
                 <h3 className="home-heading">{title}</h3>
                 <p>{desc}</p>
@@ -3040,10 +3066,9 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           ))}
         </div>
       </section>
-      <section id="home-testimonials" className="home-band-cta">
+      <section id="home-testimonials" className="home-band-cta home-animate-on-scroll">
         <div style={{position:"absolute",top:-100,right:-60,width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle, rgba(26,26,26,0.06) 0%, transparent 68%)",pointerEvents:"none"}} />
         <div style={{position:"absolute",bottom:-80,left:-40,width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle, rgba(15,23,42,0.05) 0%, transparent 72%)",pointerEvents:"none"}} />
-        <SkylineRibbon variant="trust" />
         <div className="home-cta-inner">
           <div className="home-cta-eyebrow">
             <span>Trusted by Agents Across India</span>
