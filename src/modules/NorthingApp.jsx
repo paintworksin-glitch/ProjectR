@@ -1245,10 +1245,14 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   };
 
   const googleLogin = async () => {
+    const configuredSiteUrl =
+      (process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+    const browserOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const callbackBase = configuredSiteUrl || browserOrigin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://northing.in/auth/callback",
+        redirectTo: `${callbackBase}/auth/callback`,
       },
     });
     if (error) showToast(error.message, "error");
@@ -1261,9 +1265,12 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     }
     setLoading(true);
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const configuredSiteUrl =
+        (process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+      const browserOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const callbackBase = configuredSiteUrl || browserOrigin;
       const { error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-        redirectTo: `${origin}/login`,
+        redirectTo: `${callbackBase}/reset-password`,
       });
       if (error) throw error;
       showToast("Check your email for a password reset link.", "success");

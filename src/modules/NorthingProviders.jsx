@@ -28,6 +28,7 @@ function AppChrome({ children, agent }) {
   if (
     pathname === "/login" ||
     pathname === "/signup" ||
+    pathname === "/reset-password" ||
     pathname === "/onboarding" ||
     pathname === "/profile" ||
     pathname.startsWith("/share/") ||

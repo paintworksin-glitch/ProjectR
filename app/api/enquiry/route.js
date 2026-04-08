@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 /**
  * POST: create enquiry (authenticated buyer) + optional owner email via Resend.
  */
 export async function POST(request) {
+  const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+  const rate = checkRateLimit(`enquiry:${ip}`, 60_000, 20);
+  if (!rate.ok) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
