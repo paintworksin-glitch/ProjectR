@@ -2150,7 +2150,7 @@ export const MasterDash = ({showToast}) => {
     setDeleteTarget(null);showToast("Listing deleted","success");
   };
   const delU=async(id)=>{
-    const { error } = await supabase.from("profiles").update({ role: "disabled" }).eq("id", id);
+    const { error } = await supabase.rpc("master_disable_user", { target_id: id });
     if (error) {
       showToast(error.message || "Remove failed", "error");
       return;
@@ -2159,7 +2159,7 @@ export const MasterDash = ({showToast}) => {
     showToast("User removed","success");
   };
   const approveAgent=async(id)=>{
-    const { error } = await supabase.from("profiles").update({ agent_verified: true }).eq("id", id);
+    const { error } = await supabase.rpc("master_approve_agent", { target_id: id });
     if (error) {
       showToast(error.message || "Approval failed", "error");
       return;

@@ -1,9 +1,5 @@
--- Run in Supabase → SQL Editor (paste the whole file contents, not the path).
---
--- Fixes:
---   "Could not find the 'agent_verified' column of 'profiles' in the schema cache"
--- by (1) ensuring the column exists and (2) using RPC for approve/disable (see migration
--- 20260409200000_master_approve_rpc.sql). This script mirrors that migration for quick copy-paste.
+-- Approve / disable via RPC avoids PostgREST "schema cache" issues on PATCH to profiles
+-- when a new column exists in Postgres but the API cache has not refreshed yet.
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS agent_verified boolean NOT NULL DEFAULT false;
 
@@ -53,4 +49,5 @@ REVOKE ALL ON FUNCTION public.master_disable_user(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.master_approve_agent(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.master_disable_user(uuid) TO authenticated;
 
+-- Ask PostgREST to reload schema (helps REST/PATCH after DDL)
 NOTIFY pgrst, 'reload schema';
