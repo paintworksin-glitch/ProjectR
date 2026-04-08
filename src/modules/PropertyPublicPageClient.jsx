@@ -252,27 +252,21 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </>
         ) : null}
 
-        <div className="property-detail-actions">
-          <button type="button" className="btn-outline" onClick={() => _h.openWA(listing)}>
-            <WALogo size={16} /> Download WhatsApp Card
+        <div className="property-detail-actions property-detail-actions--tools">
+          <button type="button" className="btn-outline property-detail-tool-btn" onClick={() => _h.openWA(listing)}>
+            <WALogo size={15} /> WhatsApp card
           </button>
-          <button type="button" className="btn-outline" onClick={() => _h.openPDF(listing)}>
-            📄 Download PDF
-          </button>
-          <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-            <span className="northing-show-desktop">{user ? "Contact Broker" : "🔒 Login to view contact"}</span>
-            <span className="northing-show-mobile">{user ? "📞 View Contact" : "🔒 Login to view contact"}</span>
+          <button type="button" className="btn-outline property-detail-tool-btn" onClick={() => _h.openPDF(listing)}>
+            📄 PDF brochure
           </button>
         </div>
 
-        <section style={{ marginTop: 28, padding: 20, borderRadius: 12, border: "1px solid var(--border)", background: "var(--white)" }} aria-labelledby="enquiry-heading">
-          <h2 id="enquiry-heading" className="section-label" style={{ marginBottom: 12 }}>
+        <section className="property-detail-card-block" aria-labelledby="enquiry-heading">
+          <h2 id="enquiry-heading" className="section-label property-detail-card-block__title">
             Enquiry
           </h2>
           {!user ? (
-            <button type="button" className="btn-primary" onClick={() => router.push(loginNext)} style={{ width: "100%", padding: 12 }}>
-              Login to send enquiry
-            </button>
+            <p className="property-detail-guest-note">Sign in once to message the broker — use the bar at the bottom of the screen.</p>
           ) : (
             <>
               <textarea
@@ -322,21 +316,28 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
               📞 <a href={`tel:${listing.agentPhone.replace(/\s/g, "")}`}>{listing.agentPhone}</a>
             </p>
           ) : listing.agentPhone ? (
-            <button type="button" className="btn-primary" onClick={() => router.push(loginNext)} style={{ marginTop: 12, width: "100%" }}>
-              🔒 Login to view contact
-            </button>
+            <p className="property-detail-guest-note property-detail-guest-note--tight">Phone number unlocks after sign in (same sign-in as enquiry).</p>
           ) : (
-            <p className="property-detail-broker-meta" style={{ marginTop: 12 }}>
-              Phone on request
-            </p>
+            <p className="property-detail-broker-meta property-detail-broker-meta--spaced">Phone on request</p>
           )}
         </section>
       </div>
 
       <div className="property-detail-bottom-cta">
-        <button type="button" className="btn-primary" onClick={contactBroker} disabled={!listing.agentPhone}>
-          <span className="northing-show-desktop">{user ? "Contact Broker" : "🔒 Login to view contact"}</span>
-          <span className="northing-show-mobile">{user ? "📞 View Contact" : "🔒 Login to view contact"}</span>
+        <button
+          type="button"
+          className="btn-primary property-detail-bottom-cta__btn"
+          onClick={() => (user ? contactBroker() : router.push(loginNext))}
+          disabled={Boolean(user && !listing.agentPhone)}
+        >
+          {user ? (
+            <>
+              <span className="northing-show-desktop">Contact broker</span>
+              <span className="northing-show-mobile">📞 Contact broker</span>
+            </>
+          ) : (
+            "Sign in to unlock contact"
+          )}
         </button>
       </div>
 

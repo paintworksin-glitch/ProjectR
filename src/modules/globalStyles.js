@@ -739,12 +739,18 @@ export const G = `
   .property-detail-ai-text { font-size: 15px; line-height: 1.65; color: #334155; margin: 0 0 10px; white-space: pre-wrap; }
   .property-detail-ai-note { font-size: 12px; line-height: 1.45; color: #94a3b8; margin: 0; }
   .property-detail-actions { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 24px; }
-  .property-detail-actions .btn-primary { width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 12px; font-size: 14px; font-weight: 700; }
   .property-detail-actions .btn-outline { width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border-radius: 12px; font-size: 14px; font-weight: 700; }
+  .property-detail-actions--tools { flex-direction: row; flex-wrap: nowrap; gap: 8px; margin: 4px 0 20px; }
+  .property-detail-actions--tools .btn-outline { flex: 1 1 50%; min-width: 0; min-height: 44px; font-size: 13px; padding: 10px 8px; border-radius: 12px; }
   @media (min-width: 520px) {
-    .property-detail-actions { flex-direction: row; flex-wrap: wrap; }
-    .property-detail-actions .btn-primary, .property-detail-actions .btn-outline { flex: 1 1 calc(33.33% - 8px); min-width: 160px; }
+    .property-detail-actions--tools { max-width: 440px; }
   }
+  .property-detail-card-block { margin-top: 22px; padding: 16px; border-radius: 14px; border: 1px solid rgba(226,232,240,0.95); background: #fff; }
+  .property-detail-card-block__title { margin-bottom: 10px !important; }
+  .property-detail-guest-note { margin: 0; font-size: 13px; line-height: 1.55; color: #64748b; }
+  .property-detail-guest-note--tight { margin-top: 0; }
+  .property-detail-broker-meta--spaced { margin-top: 12px; }
+  .property-detail-bottom-cta__btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .property-detail-broker { margin-top: 8px; padding: 20px; border-radius: 16px; border: 1px solid rgba(226,232,240,0.95); background: #fafafa; }
   .property-detail-broker-row { display: flex; align-items: center; gap: 14px; }
   .property-detail-broker-photo { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: #e5e5e5; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #1a1a1a; }
@@ -754,7 +760,16 @@ export const G = `
   .property-detail-broker-phone { margin-top: 12px; font-size: 15px; font-weight: 600; }
   .property-detail-broker-phone a { color: #1a1a1a; text-decoration: none; }
   .property-detail-bottom-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 150; padding: 12px max(16px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right)); background: rgba(255,255,255,0.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(226,232,240,0.95); box-shadow: 0 -6px 28px rgba(15,23,42,0.08); }
-  .property-detail-bottom-cta .btn-primary { width: 100%; min-height: 52px; border-radius: 12px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer; font-family: inherit; }
+  .property-detail-bottom-cta .btn-primary { width: 100%; min-height: 48px; border-radius: 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer; font-family: inherit; letter-spacing: -0.02em; box-shadow: 0 4px 16px rgba(15,23,42,0.12); }
+  .wa-card-modal-inner { width: 100%; max-width: min(420px, calc(100vw - 24px)); box-sizing: border-box; }
+  .wa-card-modal-btn { width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; box-sizing: border-box; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font-size: 13px; font-weight: 700; padding: 10px 14px; min-height: 44px; transition: opacity 0.2s, filter 0.2s, transform 0.15s; -webkit-tap-highlight-color: transparent; }
+  .wa-card-modal-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+  .wa-card-modal-btn--download { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.22); }
+  .wa-card-modal-btn--download:hover:not(:disabled) { background: rgba(255,255,255,0.16); }
+  .wa-card-modal-btn--share { background: linear-gradient(180deg, #15995f 0%, #0d7349 100%); color: #fff; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+  .wa-card-modal-btn--share:hover:not(:disabled) { filter: brightness(1.06); }
+  .wa-card-modal-btn--close { background: transparent; color: rgba(255,255,255,0.5); border: none; font-size: 12px; font-weight: 600; min-height: 36px; padding: 4px 8px; max-width: none; }
+  .wa-card-modal-btn--close:hover { color: rgba(255,255,255,0.9); }
   .northing-show-mobile { display: none !important; }
   .northing-show-desktop { display: inline !important; }
   .feed-filter-label-short { display: none; }
@@ -769,11 +784,20 @@ export const G = `
     .feed-filter-backdrop { display: block; position: fixed; inset: 0; z-index: 180; background: rgba(15,23,42,0.45); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
     .feed-filter-drawer.card { position: fixed !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 190 !important; margin: 0 !important; border-radius: 16px 16px 0 0 !important; max-height: min(78vh, 560px) !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; padding: 20px max(16px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right)) !important; box-shadow: 0 -12px 40px rgba(15,23,42,0.18) !important; grid-template-columns: 1fr !important; }
     .dashboard-page-shell { padding-left: max(16px, env(safe-area-inset-left)) !important; padding-right: max(16px, env(safe-area-inset-right)) !important; }
-    .northing-modal-overlay { padding: 0 !important; align-items: stretch !important; }
-    .northing-modal-overlay > .card,
-    .northing-modal-overlay > .asl { max-width: 100% !important; width: 100% !important; min-height: 100vh !important; min-height: 100dvh !important; max-height: none !important; border-radius: 0 !important; margin: 0 !important; box-sizing: border-box !important; }
-    .northing-modal-overlay > .card.asl,
-    .northing-modal-overlay > .asl { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+    .northing-modal-overlay:not(.wa-modal-overlay) { padding: 0 !important; align-items: stretch !important; }
+    .northing-modal-overlay:not(.wa-modal-overlay) > .card,
+    .northing-modal-overlay:not(.wa-modal-overlay) > .asl:not(.wa-card-modal-inner) { max-width: 100% !important; width: 100% !important; min-height: 100vh !important; min-height: 100dvh !important; max-height: none !important; border-radius: 0 !important; margin: 0 !important; box-sizing: border-box !important; }
+    .northing-modal-overlay:not(.wa-modal-overlay) > .card.asl,
+    .northing-modal-overlay:not(.wa-modal-overlay) > .asl:not(.wa-card-modal-inner) { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+    .northing-modal-overlay.wa-modal-overlay { align-items: flex-end !important; justify-content: center !important; padding: 0 !important; padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+    .northing-modal-overlay.wa-modal-overlay > .wa-card-modal-inner.asl { min-height: auto !important; width: 100% !important; max-width: 100% !important; max-height: min(90dvh, 700px) !important; border-radius: 20px 20px 0 0 !important; margin: 0 !important; padding: 14px 14px max(16px, env(safe-area-inset-bottom)) !important; box-sizing: border-box !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+    .wa-card-modal-inner #wa-card {
+      width: min(420px, calc(100vw - 28px)) !important;
+      height: auto !important;
+      aspect-ratio: 1;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
     .master-dash-table-wrap { overflow-x: visible !important; }
     .master-dash-table-wrap table { min-width: 0 !important; }
   }

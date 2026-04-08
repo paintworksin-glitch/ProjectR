@@ -886,11 +886,10 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
 
   const cardW=420;
   const cardH=420;
-  const btnW=420;
 
   return (
-    <div className="afd northing-modal-overlay" style={{position:"fixed",inset:0,background:"rgba(10,5,2,0.75)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(8px)"}} onClick={onClose}>
-      <div className="asl" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,maxHeight:"95vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}>
+    <div className="afd northing-modal-overlay wa-modal-overlay" style={{position:"fixed",inset:0,background:"rgba(10,5,2,0.75)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(8px)"}} onClick={onClose}>
+      <div className="asl wa-card-modal-inner" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,maxHeight:"95vh",overflow:"auto"}} onClick={e=>e.stopPropagation()}>
 
         {/* THE CARD */}
         <div id="wa-card" style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
@@ -932,13 +931,13 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
         </div>
 
         {/* Action buttons */}
-        <button onClick={downloadImage} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.25)",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.6:1}}>
-          {downloading?"Processing...":"⬇️ Download Property Card"}
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={downloadImage} disabled={downloading}>
+          {downloading?"Processing…":"⬇ Download card"}
         </button>
-        <button onClick={shareOnWA} disabled={downloading} style={{width:btnW,padding:"12px 8px",borderRadius:10,fontSize:13,fontWeight:700,cursor:downloading?"not-allowed":"pointer",background:downloading?"rgba(37,211,102,0.5)":"#25D366",color:"#fff",border:"none",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:downloading?0.7:1}}>
-          {downloading?"⏳ Processing…":<><WALogo size={15}/>Share on WhatsApp</>}
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--share" onClick={shareOnWA} disabled={downloading}>
+          {downloading?"⏳ Working…":<><WALogo size={14}/>Share on WhatsApp</>}
         </button>
-        <button onClick={onClose} style={{width:btnW,padding:"10px 8px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.7)",border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit"}}>✕ Close</button>
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--close" onClick={onClose}>Close</button>
       </div>
     </div>
   );
