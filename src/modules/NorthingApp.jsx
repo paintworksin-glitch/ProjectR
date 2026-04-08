@@ -2816,6 +2816,9 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
               <span className="home-hero-headline-line home-hero-headline-line--sans">Northing to your</span>
               <span className="home-hero-headline-line home-hero-headline-line--serif">dream home</span>
             </h1>
+            <p className="home-hero-tagline">
+              Listings, verified agents, PDFs &amp; WhatsApp cards — built for Indian real estate.
+            </p>
             <div className="home-hero-actions">
               <button type="button" onClick={()=>onNavigate("feed")} className="home-hero-cta home-hero-cta--primary">🏠 Browse Properties</button>
               <button type="button" onClick={()=>onNavigate(currentUser?"dashboard":"login")} className="home-hero-cta home-hero-cta--secondary">📋 List Your Property</button>
@@ -3091,14 +3094,6 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           </div>
         </div>
       </footer>
-      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid var(--border)",padding:"8px 0 max(12px, env(safe-area-inset-bottom))",zIndex:200,justifyContent:"space-around",boxSizing:"border-box"}} className="mob-nav">
-        {[["🏠","Home","home"],["🔍","Browse","feed"],["➕","Sell","dashboard"],["👤","Account","dashboard"]].map(([icon,label,pg])=>(
-          <button key={label} onClick={()=>onNavigate(pg)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"inherit",padding:"0 8px"}}>
-            <span style={{fontSize:20}}>{icon}</span>
-            <span style={{fontSize:10,fontWeight:700}}>{label}</span>
-          </button>
-        ))}
-      </div>
       {waListing&&<ErrorBoundary><WACardModal listing={waListing} onClose={()=>setWAListing(null)} currentUser={currentUser}/></ErrorBoundary>}
       {pdfListing&&<ErrorBoundary><PDFModal listing={pdfListing} onClose={()=>setPdfListing(null)} currentUser={currentUser}/></ErrorBoundary>}
       {sampleDetailModal&&(
