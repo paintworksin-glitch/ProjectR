@@ -15,7 +15,13 @@ export default function DashboardRoutePage() {
     }
   }, [authLoading, user, router]);
 
-  if (authLoading || !user) {
+  useEffect(() => {
+    if (!authLoading && user && !user.role) {
+      router.replace("/onboarding");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user || !user.role) {
     return (
       <div
         style={{
