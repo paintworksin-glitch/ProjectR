@@ -1,14 +1,23 @@
--- Run once in Supabase Dashboard → SQL Editor (not as an auto migration).
--- Replace the email below with your real login email, then Run.
+-- =============================================================================
+-- Northing: grant master (admin) to the account that uses this email
+-- Run in: Supabase Dashboard → SQL Editor → paste → Run
+-- =============================================================================
 --
--- After success: log out of Northing, log back in, then open /admin or click Account.
+-- BEFORE: Replace YOUR_EMAIL below (both places) with your real login email.
+-- AFTER:  Sign out of Northing, sign in again, then open /admin
+--
+-- If UPDATE returns 0 rows, run the VERIFY query at the bottom and fix email.
+-- =============================================================================
 
+-- (1) PROMOTE TO MASTER — run this (edit email first)
 UPDATE public.profiles AS p
 SET role = 'master'
 FROM auth.users AS u
 WHERE u.id = p.id
-  AND lower(u.email) = lower('REPLACE_WITH_YOUR_EMAIL@example.com');
+  AND lower(trim(u.email)) = lower(trim('YOUR_EMAIL@example.com'));
 
--- Verify (optional):
--- SELECT p.id, u.email, p.role FROM public.profiles p
--- JOIN auth.users u ON u.id = p.id WHERE lower(u.email) = lower('REPLACE_WITH_YOUR_EMAIL@example.com');
+-- (2) VERIFY — optional; run after (1) to confirm
+-- SELECT u.email, p.role, p.id
+-- FROM public.profiles p
+-- INNER JOIN auth.users u ON u.id = p.id
+-- WHERE lower(trim(u.email)) = lower(trim('YOUR_EMAIL@example.com'));
