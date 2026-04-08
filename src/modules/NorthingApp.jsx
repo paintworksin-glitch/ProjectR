@@ -2166,8 +2166,8 @@ export const MasterDash = ({showToast}) => {
     <div className="dashboard-page-shell" style={{maxWidth:1200,margin:"0 auto",padding:"32px 20px"}}>
       {deleteTarget&&<ConfirmModal message={`Delete "${deleteTarget.title}"? This cannot be undone.`} onConfirm={()=>delL(deleteTarget.id)} onCancel={()=>setDeleteTarget(null)}/>}
       <div style={{marginBottom:28}}>
-        <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>Platform Control</h1>
-        <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Full platform visibility and management</p>
+        <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>Overview</h1>
+        <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Listings, agents, and activity</p>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:28}} className="gr">
         {[["Total Listings",listings.length,"📋"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Agents",agents.length,"🏢"],["Users",users.length,"👥"]].map(([l,v,i])=>(
@@ -3237,7 +3237,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button type="button" className={page==="pricing"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("pricing"))}>Pricing</button>
           <button type="button" className={page==="contact"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("contact"))}>Contact</button>
           {currentUser&&<button type="button" className={page==="profile"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("profile"))}>Profile</button>}
-          {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
+          {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
         </div>
         <div className="nav-drawer-foot">
           {currentUser?(
@@ -3267,7 +3267,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
         <button type="button" onClick={()=>onNavigate("contact")} style={{...deskBtn,background:page==="contact"?"var(--primary-light)":"transparent",color:page==="contact"?"var(--primary)":"var(--muted)"}}>Contact</button>
         {currentUser?<>
           <button onClick={()=>onNavigate("profile")} className="hm" style={{...deskBtn,background:page==="profile"?"var(--primary-light)":"transparent",color:page==="profile"?"var(--primary)":"var(--muted)"}}>Profile</button>
-          <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
+          <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>
           <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--gray)",borderRadius:24,padding:"5px 12px 5px 5px",border:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>onNavigate("dashboard")}>
             <div style={{width:28,height:28,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:800}}>{currentUser.name?.charAt(0)}</div>
             <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}} className="hm">{currentUser.name?.split(" ")[0]}</span>

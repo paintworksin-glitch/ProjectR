@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Admin · Northing",
-  description: "Operations and moderation",
+  title: "Overview · Northing",
+  description: "Signed-in workspace",
   robots: { index: false, follow: false },
 };
 
