@@ -1345,49 +1345,6 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={googleLogin}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              borderRadius: 11,
-              fontSize: 15,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              border: "1.5px solid #1a1a1a",
-              background: "#ffffff",
-              color: "#1a1a1a",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                border: "1px solid #1a1a1a",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 800,
-                lineHeight: 1,
-              }}
-            >
-              G
-            </span>
-            Continue with Google
-          </button>
-          {orDivider}
-
           {mode === "login" && (
             <>
               <div style={{ marginBottom: 12 }}>
