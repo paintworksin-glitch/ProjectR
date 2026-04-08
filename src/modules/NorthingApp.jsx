@@ -3237,7 +3237,9 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
             {agent.logo_url?<img src={agent.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:36}}>{agent.name?.charAt(0)}</span>}
           </div>
           <div style={{flex:1,minWidth:200}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>Verified Agent · Northing</div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>
+              {agent.agent_verified===true?"Verified Agent":"Independent Broker"} · Northing
+            </div>
             <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:900,color:"#fff",margin:"0 0 4px"}}>{agent.agency_name||agent.name}</h1>
             {agent.agency_name&&<div style={{fontSize:14,color:"rgba(255,255,255,0.5)",marginBottom:8}}>{agent.name}</div>}
             <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:6}}>
@@ -3338,7 +3340,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           ):(
             <>
               <button type="button" className="btn-outline" style={{padding:"12px 16px",borderRadius:12,fontWeight:600,fontSize:14,width:"100%",boxSizing:"border-box"}} onClick={wrapNav(()=>onNavigate("login"))}>Log In</button>
-              <button type="button" className="btn-primary" style={{padding:"12px 16px",borderRadius:12,fontWeight:700,fontSize:14,border:"none",width:"100%",boxSizing:"border-box"}} onClick={wrapNav(()=>onNavigate("login"))}>Sign Up</button>
+              <button type="button" className="btn-primary" style={{padding:"12px 16px",borderRadius:12,fontWeight:700,fontSize:14,border:"none",width:"100%",boxSizing:"border-box"}} onClick={wrapNav(()=>onNavigate("signup"))}>Sign Up</button>
             </>
           )}
         </div>
@@ -3368,7 +3370,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button onClick={onLogout} style={{padding:"7px 13px",borderRadius:8,fontWeight:600,fontSize:12,cursor:"pointer",background:"var(--gray)",color:"var(--muted)",border:"1px solid var(--border)",transition:"all 0.2s"}}>Sign Out</button>
         </>:<>
           <button onClick={()=>onNavigate("login")} style={{padding:"7px 16px",borderRadius:9,fontWeight:600,fontSize:13,cursor:"pointer",background:"transparent",color:"var(--primary)",border:"none"}}>Log In</button>
-          <button onClick={()=>onNavigate("login")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
+          <button onClick={()=>onNavigate("signup")} className="btn-green" style={{padding:"9px 20px",borderRadius:9,fontSize:13}}>Sign Up →</button>
         </>}
       </div>
       <div className="nav-mob-actions">

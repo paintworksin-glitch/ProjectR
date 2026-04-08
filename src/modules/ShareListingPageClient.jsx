@@ -13,6 +13,7 @@ import {
   useViewerBrandProfile,
   track,
 } from "./NorthingApp.jsx";
+import { supabase } from "@/lib/supabaseClient";
 
 /**
  * Marketing share view — data from server (SSR + OG); UI + modals only.
@@ -20,6 +21,7 @@ import {
 export default function ShareListingPageClient({ initialListing, fullListingUrl }) {
   const router = useRouter();
   const listing = initialListing;
+  const [sessionUser, setSessionUser] = useState(null);
   const navigate = (path) => {
     router.push(path);
   };
@@ -39,7 +41,21 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
     if (listing?.id) track(listing.id, "pageview");
   }, [listing?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!cancelled) setSessionUser(session?.user || null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!listing) return null;
+  const loginNext = `/login?next=${encodeURIComponent(`/share/${listing.id}`)}`;
 
   const fields = [
     ["Type", listing.propertyType],
@@ -205,14 +221,27 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
           </div>
           {listing.agentPhone && (
             <div style={{ marginBottom: 14 }}>
-              📞{" "}
-              <a href={`tel:${listing.agentPhone}`} style={{ color: "var(--primary)", fontWeight: 700 }}>
-                {listing.agentPhone}
-              </a>
+              {sessionUser ? (
+                <>
+                  📞{" "}
+                  <a href={`tel:${listing.agentPhone}`} style={{ color: "var(--primary)", fontWeight: 700 }}>
+                    {listing.agentPhone}
+                  </a>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate(loginNext)}
+                  style={{ padding: "8px 14px", borderRadius: 9, fontSize: 13 }}
+                >
+                  🔒 Login to view contact
+                </button>
+              )}
             </div>
           )}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {listing.agentPhone && (
+            {listing.agentPhone && sessionUser && (
               <a
                 href={`https://wa.me/${listing.agentPhone.replace(/\D/g, "")}`}
                 target="_blank"
@@ -249,6 +278,16 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
             >
               WhatsApp Card
             </button>
+            {listing.agentPhone && !sessionUser ? (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => navigate(loginNext)}
+                style={{ padding: "11px 18px", borderRadius: 10, fontSize: 14 }}
+              >
+                Login to contact broker
+              </button>
+            ) : null}
             <button type="button" onClick={() => _h.openPDF(listing)} className="btn-outline" style={{ padding: "11px 18px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
               PDF report
             </button>
