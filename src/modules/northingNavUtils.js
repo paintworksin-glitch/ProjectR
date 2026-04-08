@@ -8,6 +8,8 @@ export function shellPathForPage(page, agentId) {
   if (page === "privacy") return "/privacy";
   if (page === "terms") return "/terms";
   if (page === "about") return "/about";
+  if (page === "pricing") return "/pricing";
+  if (page === "contact") return "/contact";
   return "/";
 }
 
@@ -23,5 +25,7 @@ export function resolveNavPage(pathname, agentFromSearch) {
   if (path === "/privacy") return { page: "privacy", agentId: null };
   if (path === "/terms") return { page: "terms", agentId: null };
   if (path === "/about") return { page: "about", agentId: null };
+  if (path === "/pricing") return { page: "pricing", agentId: null };
+  if (path === "/contact") return { page: "contact", agentId: null };
   return { page: "home", agentId: null };
 }

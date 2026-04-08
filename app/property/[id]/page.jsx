@@ -18,11 +18,36 @@ export async function generateMetadata({ params }) {
       ...meta.openGraph,
       siteName: "Northing",
     },
+    alternates: {
+      canonical: `/property/${params.id}`,
+    },
   };
 }
 
 export default async function PropertyPage({ params }) {
   const listing = await getListing(params.id);
   if (!listing) notFound();
-  return <PropertyPublicPageClient id={params.id} initialListing={listing} />;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: listing.title || "Property",
+    description: listing.description || `Property listing in ${listing.location || "India"}`,
+    image: Array.isArray(listing.photos) ? listing.photos.filter(Boolean).slice(0, 5) : [],
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: listing.price || 0,
+      availability: "https://schema.org/InStock",
+    },
+    brand: {
+      "@type": "Brand",
+      name: "Northing",
+    },
+  };
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <PropertyPublicPageClient id={params.id} initialListing={listing} />
+    </>
+  );
 }

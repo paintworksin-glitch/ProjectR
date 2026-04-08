@@ -14,6 +14,9 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
+    alternates: {
+      canonical: `/broker/${params.name}`,
+    },
     openGraph: {
       title,
       description,

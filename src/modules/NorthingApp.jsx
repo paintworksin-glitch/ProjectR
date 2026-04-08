@@ -3059,6 +3059,8 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
                 ["Featured","home","prop-grid"],
                 ["Samples","home","home-sample-outputs"],
                 ["About","about"],
+                ["Pricing","pricing"],
+                ["Contact","contact"],
               ].map(([label,pg,anchor])=>(
                 <button key={label} type="button" onClick={()=>anchor?onNavigate(pg,undefined,anchor):onNavigate(pg)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(248,250,252,0.14)",borderRadius:10,padding:"8px 14px",cursor:"pointer",color:"rgba(248,250,252,0.88)",font:"inherit",fontSize:12,fontWeight:600,transition:"background 0.2s, color 0.2s, border-color 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.1)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.color="rgba(248,250,252,0.88)";}}>{label}</button>
               ))}
@@ -3229,6 +3231,8 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
           <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"prop-grid"))}>Featured</button>
           <button type="button" onClick={wrapNav(()=>onNavigate("home",undefined,"home-sample-outputs"))}>Samples</button>
           <button type="button" className={page==="about"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("about"))}>About</button>
+          <button type="button" className={page==="pricing"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("pricing"))}>Pricing</button>
+          <button type="button" className={page==="contact"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("contact"))}>Contact</button>
           {currentUser&&<button type="button" className={page==="profile"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("profile"))}>Profile</button>}
           {currentUser&&<button type="button" className={page==="dashboard"?"nav-drawer-link-active":""} onClick={wrapNav(()=>onNavigate("dashboard"))}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>}
         </div>
@@ -3256,6 +3260,8 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
         <button type="button" onClick={()=>onNavigate("home",undefined,"prop-grid")} style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>Featured</button>
         <button type="button" onClick={()=>onNavigate("home",undefined,"home-sample-outputs")} style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>Samples</button>
         <button type="button" onClick={()=>onNavigate("about")} style={{...deskBtn,background:page==="about"?"var(--primary-light)":"transparent",color:page==="about"?"var(--primary)":"var(--muted)"}}>About</button>
+        <button type="button" onClick={()=>onNavigate("pricing")} style={{...deskBtn,background:page==="pricing"?"var(--primary-light)":"transparent",color:page==="pricing"?"var(--primary)":"var(--muted)"}}>Pricing</button>
+        <button type="button" onClick={()=>onNavigate("contact")} style={{...deskBtn,background:page==="contact"?"var(--primary-light)":"transparent",color:page==="contact"?"var(--primary)":"var(--muted)"}}>Contact</button>
         {currentUser?<>
           <button onClick={()=>onNavigate("profile")} className="hm" style={{...deskBtn,background:page==="profile"?"var(--primary-light)":"transparent",color:page==="profile"?"var(--primary)":"var(--muted)"}}>Profile</button>
           <button onClick={()=>onNavigate("dashboard")} className="hm" style={{...deskBtn,background:"transparent",color:"var(--muted)"}}>{currentUser.role==="master"?"Control":currentUser.role==="agent"?"Listings":currentUser.role==="seller"?"My Properties":"Account"}</button>

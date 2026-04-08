@@ -8,6 +8,9 @@ export const metadata = {
     description: "Terms and conditions for using the Northing property marketing platform.",
     siteName: "Northing",
   },
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsLayout({ children }) {

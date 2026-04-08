@@ -18,6 +18,9 @@ export async function generateMetadata({ params }) {
       ...meta.openGraph,
       siteName: "Northing",
     },
+    alternates: {
+      canonical: `/property/${params.id}`,
+    },
   };
 }
 

@@ -10,6 +10,9 @@ export const metadata = {
       "Browse active property listings from independent brokers across Mumbai, Thane and Navi Mumbai on Northing.",
     siteName: "Northing",
   },
+  alternates: {
+    canonical: "/feed",
+  },
 };
 
 export default function FeedLayout({ children }) {

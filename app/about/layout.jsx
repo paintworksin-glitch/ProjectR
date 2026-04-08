@@ -10,6 +10,9 @@ export const metadata = {
       "Northing helps independent brokers in Mumbai, Thane and Navi Mumbai list and share properties with professional WhatsApp cards and PDF brochures.",
     siteName: "Northing",
   },
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutLayout({ children }) {

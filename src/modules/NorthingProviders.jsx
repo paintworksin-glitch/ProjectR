@@ -140,6 +140,8 @@ export default function NorthingProviders({ children }) {
         p === "privacy" ||
         p === "terms" ||
         p === "about" ||
+        p === "pricing" ||
+        p === "contact" ||
         p === "profile"
       ) {
         router.push(shellPathForPage(p, null));

@@ -8,6 +8,9 @@ export const metadata = {
     description: "How Northing collects, uses, and protects your information.",
     siteName: "Northing",
   },
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyLayout({ children }) {
