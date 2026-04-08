@@ -33,6 +33,7 @@ function AppChrome({ children, agent }) {
     pathname === "/profile" ||
     pathname.startsWith("/share/") ||
     pathname.startsWith("/property/") ||
+    pathname.startsWith("/agent/") ||
     pathname.startsWith("/broker/")
   ) {
     return <>{children}</>;

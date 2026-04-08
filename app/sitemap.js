@@ -29,6 +29,12 @@ export default async function sitemap() {
         { url: `${base}/share/${row.id}`, lastModified, changeFrequency: "weekly", priority: 0.6 },
       ];
     });
+    const agentIdUrls = Array.from(new Set((listings || []).map((row) => row.agent_id).filter(Boolean))).map((id) => ({
+      url: `${base}/agent/${id}`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.5,
+    }));
 
     const seen = new Set();
     const brokerUrls = (brokers || [])
@@ -48,7 +54,7 @@ export default async function sitemap() {
       })
       .filter(Boolean);
 
-    return [...staticUrls, ...listingUrls, ...brokerUrls];
+    return [...staticUrls, ...listingUrls, ...agentIdUrls, ...brokerUrls];
   } catch {
     return staticUrls;
   }
