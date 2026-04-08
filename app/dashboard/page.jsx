@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AgentDash, UserDash, MasterDash } from "@/modules/NorthingApp";
+import { AgentDash, UserDash } from "@/modules/NorthingApp";
 import { useNorthing } from "@/modules/NorthingContext";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -113,6 +113,12 @@ export default function DashboardRoutePage() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
+    if (!authLoading && user?.role === "master") {
+      router.replace("/admin");
+    }
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
     let cancelled = false;
     if (authLoading || !user) return;
     (async () => {
@@ -144,6 +150,22 @@ export default function DashboardRoutePage() {
     );
   }
 
+  if (user.role === "master") {
+    return (
+      <div
+        style={{
+          minHeight: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--muted)",
+        }}
+      >
+        Loading…
+      </div>
+    );
+  }
+
   const showRoleChooser = mustChooseRole || (changeRole && user.role !== "master");
 
   if (showRoleChooser) {
@@ -159,10 +181,6 @@ export default function DashboardRoutePage() {
         showToast={showToast}
       />
     );
-  }
-
-  if (user.role === "master") {
-    return <MasterDash showToast={showToast} />;
   }
 
   if (user.role === "user") {

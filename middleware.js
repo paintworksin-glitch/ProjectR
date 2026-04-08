@@ -26,6 +26,21 @@ export async function middleware(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  if (isAdminRoute) {
+    if (!user) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    const { data: prof, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (error || prof?.role !== "master") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return response;
+  }
+
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/profile") ||
@@ -41,5 +56,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/onboarding", "/login", "/signup"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/profile/:path*", "/onboarding", "/login", "/signup"],
 };

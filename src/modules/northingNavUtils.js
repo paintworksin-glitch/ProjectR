@@ -21,7 +21,7 @@ export function resolveNavPage(pathname, agentFromSearch) {
   if (path === "/login") return { page: "login", agentId: null };
   if (path === "/signup") return { page: "signup", agentId: null };
   if (path === "/profile") return { page: "profile", agentId: null };
-  if (path === "/dashboard") return { page: "dashboard", agentId: null };
+  if (path === "/dashboard" || path === "/admin") return { page: "dashboard", agentId: null };
   if (path === "/privacy") return { page: "privacy", agentId: null };
   if (path === "/terms") return { page: "terms", agentId: null };
   if (path === "/about") return { page: "about", agentId: null };

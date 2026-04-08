@@ -61,8 +61,8 @@ function DashboardAuthRedirect({ authLoading, user, pathname, agent }) {
   useLayoutEffect(() => {
     if (authLoading) return;
     if (agent) return;
-    if (pathname === "/dashboard" && !user) {
-      router.replace("/login");
+    if ((pathname === "/dashboard" || pathname === "/admin") && !user) {
+      router.replace(pathname === "/admin" ? "/login?next=/admin" : "/login");
     }
   }, [authLoading, user, pathname, router, agent]);
 
@@ -171,8 +171,13 @@ export default function NorthingProviders({ children }) {
   const nav = useCallback(
     (p, userOverride, homeAnchorId) => {
       const effectiveUser = userOverride !== undefined ? userOverride : user;
-      if (p === "dashboard" && !effectiveUser) {
-        router.push("/login");
+      if (p === "dashboard") {
+        if (!effectiveUser) {
+          router.push("/login");
+          window.scrollTo(0, 0);
+          return;
+        }
+        router.push(effectiveUser.role === "master" ? "/admin" : "/dashboard");
         window.scrollTo(0, 0);
         return;
       }
@@ -181,7 +186,6 @@ export default function NorthingProviders({ children }) {
         p === "feed" ||
         p === "login" ||
         p === "signup" ||
-        p === "dashboard" ||
         p === "privacy" ||
         p === "terms" ||
         p === "about" ||
