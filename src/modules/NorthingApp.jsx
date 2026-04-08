@@ -1103,7 +1103,7 @@ export const SecretAdminModal = ({onLogin,onClose,showToast}) => {
   );
 };
 
-export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login", redirectTo = "/dashboard" }) => {
+export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login", redirectTo = "/dashboard", forcedMode = null }) => {
   const [mode, setMode] = useState(initialMode === "register" ? "register" : "login");
   const [form, setForm] = useState({
     name: "",
@@ -1117,8 +1117,10 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
+    if (forcedMode) return;
     setMode(initialMode === "register" ? "register" : "login");
-  }, [initialMode]);
+  }, [initialMode, forcedMode]);
+  const currentMode = forcedMode || mode;
 
   const insertProfileSafely = async (row) => {
     let candidate = { ...row };
@@ -1248,7 +1250,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         const em = String(error.message || "").toLowerCase();
         if (em.includes("already registered") || em.includes("already been registered")) {
           showToast("Account already exists. Please sign in.", "error");
-          setMode("login");
+          onNavigate && onNavigate("login");
           setF("password", "");
           setF("confirmPassword", "");
           setLoading(false);
@@ -1372,14 +1374,14 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
               Northing
             </div>
             <h2 className="login-heading-serif" style={{ fontSize: 28, fontWeight: 600, color: "var(--navy)", marginBottom: 6 }}>
-              <ShinyText text={mode === "login" ? "Welcome back." : "Create your account."} color="#0f172a" shineColor="#333333" speed={3} spread={140} />
+              <ShinyText text={currentMode === "login" ? "Welcome back." : "Create your account."} color="#0f172a" shineColor="#333333" speed={3} spread={140} />
             </h2>
             <p style={{ fontSize: 14, color: "var(--muted)" }}>
-              {mode === "login" ? "Sign in with email and password." : "Tell us who you are and how to reach you."}
+              {currentMode === "login" ? "Sign in with email and password." : "Tell us who you are and how to reach you."}
             </p>
           </div>
 
-          {mode === "login" && (
+          {currentMode === "login" && (
             <>
               <div style={{ marginBottom: 12 }}>
                 <input className="inp" type="email" autoComplete="email" placeholder="Email address" value={form.email} onChange={(e) => setF("email", e.target.value)} />
@@ -1425,7 +1427,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
             </>
           )}
 
-          {mode === "register" && (
+          {currentMode === "register" && (
             <>
               <div style={{ marginBottom: 12 }}>
                 <input className="inp" placeholder="Full name *" autoComplete="name" value={form.name} onChange={(e) => setF("name", e.target.value)} />

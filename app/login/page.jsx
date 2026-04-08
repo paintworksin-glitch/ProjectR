@@ -8,5 +8,5 @@ export default function LoginRoutePage() {
   const { login, showToast, nav } = useNorthing();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
-  return <LoginPage onLogin={login} showToast={showToast} onNavigate={nav} redirectTo={next} />;
+  return <LoginPage key="login-route" onLogin={login} showToast={showToast} onNavigate={nav} forcedMode="login" redirectTo={next} />;
 }
