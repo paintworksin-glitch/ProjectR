@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useReducer } from "react"
 import { NorthingErrorBoundary as ErrorBoundary } from "@/components/NorthingErrorBoundary";
 import { NorthingRemoteImage } from "@/components/NorthingRemoteImage";
 import { mapSignInError, mapSignUpError, mapResetPasswordEmailError } from "@/lib/authFieldErrors";
+import { parseEnquiriesTableError } from "@/lib/enquiriesErrors";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import AuthLeftPanel from "./AuthLeftPanel.jsx";
@@ -1929,6 +1930,7 @@ export const AgentDash = ({currentUser,showToast}) => {
   const [profRow,setProfRow]=useState(null);
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
+  const [enquiriesError,setEnquiriesError]=useState(null);
   const [enquiryStatusUpdating,setEnquiryStatusUpdating]=useState(null);
   const [upgradeRequesting,setUpgradeRequesting]=useState(false);
   const logoRef=useRef();
@@ -1954,6 +1956,7 @@ export const AgentDash = ({currentUser,showToast}) => {
     if(tab!=="enquiries") return;
     (async()=>{
       setEnquiriesLoading(true);
+      setEnquiriesError(null);
       try{
         const {data,error}=await supabase.from("enquiries").select("id,listing_id,buyer_id,message,status,created_at").eq("seller_id",currentUser.id).order("created_at",{ascending:false});
         if(error) throw error;
@@ -1972,8 +1975,10 @@ export const AgentDash = ({currentUser,showToast}) => {
         }
         setEnquiries(rows.map(r=>({...r,buyer:bmap[r.buyer_id],listingTitle:lmap[r.listing_id]})));
       }catch(e){
-        showToast(e?.message||"Could not load enquiries","error");
+        const {isMissingTable,message}=parseEnquiriesTableError(e);
         setEnquiries([]);
+        setEnquiriesError(message);
+        if(!isMissingTable) showToast(message,"error");
       }finally{
         setEnquiriesLoading(false);
       }
@@ -2082,7 +2087,7 @@ export const AgentDash = ({currentUser,showToast}) => {
       </div>
       {tab==="enquiries"&&(
         <div className="card" style={{padding:24}}>
-          {enquiriesLoading?<p style={{color:"var(--muted)"}}>Loading…</p>:enquiries.length===0?<p style={{color:"var(--muted)"}}>No enquiries yet.</p>:(
+          {enquiriesLoading?<p style={{color:"var(--muted)"}}>Loading…</p>:enquiriesError?<div role="alert" style={{padding:16,borderRadius:12,border:"1px solid #FECACA",background:"#FEF2F2",color:"#991B1B",fontSize:14,lineHeight:1.55}}>{enquiriesError}</div>:enquiries.length===0?<p style={{color:"var(--muted)"}}>No enquiries yet.</p>:(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               {enquiries.map((e)=>(
                 <div key={e.id} style={{borderBottom:"1px solid var(--border)",paddingBottom:16}}>
@@ -2223,6 +2228,7 @@ export const AgentDash = ({currentUser,showToast}) => {
 export const UserDash = ({currentUser,showToast}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
+  const [enquiriesError,setEnquiriesError]=useState(null);
   useEffect(()=>{
     (async()=>{
       try{
@@ -2250,6 +2256,7 @@ export const UserDash = ({currentUser,showToast}) => {
   useEffect(()=>{
     if(tab!=="enquiries") return;
     setEnquiriesLoading(true);
+    setEnquiriesError(null);
     (async()=>{
       try{
         const {data,error}=await supabase
@@ -2260,8 +2267,10 @@ export const UserDash = ({currentUser,showToast}) => {
         if(error) throw error;
         setEnquiries(data||[]);
       }catch(e){
-        showToast(e?.message||"Could not load enquiries","error");
+        const {isMissingTable,message}=parseEnquiriesTableError(e);
         setEnquiries([]);
+        setEnquiriesError(message);
+        if(!isMissingTable) showToast(message,"error");
       }finally{
         setEnquiriesLoading(false);
       }
@@ -2315,6 +2324,8 @@ export const UserDash = ({currentUser,showToast}) => {
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:12}}>My Enquiries</h2>
           {enquiriesLoading ? (
             <p style={{color:"var(--muted)"}}>Loading…</p>
+          ) : enquiriesError ? (
+            <div role="alert" style={{padding:16,borderRadius:12,border:"1px solid #FECACA",background:"#FEF2F2",color:"#991B1B",fontSize:14,lineHeight:1.55}}>{enquiriesError}</div>
           ) : enquiries.length===0 ? (
             <p style={{color:"var(--muted)"}}>No enquiries sent yet.</p>
           ) : (
