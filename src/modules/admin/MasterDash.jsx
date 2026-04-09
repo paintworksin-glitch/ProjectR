@@ -310,7 +310,8 @@ export function MasterDash({ showToast }) {
       showToast(error.message || "Remove failed", "error");
       return;
     }
-    setProfiles((p) => p.filter((x) => x.id !== id));
+    // Persisted as role=disabled in DB; keep row in state so it does not "reappear" after refresh.
+    setProfiles((p) => p.map((x) => (x.id === id ? { ...x, role: "disabled" } : x)));
     showToast("User disabled", "success");
   };
 
@@ -1019,8 +1020,15 @@ export function MasterDash({ showToast }) {
                               : badge("active", "#EFF6FF", "#1D4ED8", "1px solid #BFDBFE")}
                           </td>
                           <td style={{ padding: "12px 14px" }}>
-                            <button type="button" className="btn-danger" style={{ padding: "5px 10px", fontSize: 11 }} disabled={u.id === myId} onClick={() => delU(u.id)}>
-                              Remove
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              style={{ padding: "5px 10px", fontSize: 11 }}
+                              disabled={u.id === myId || u.role === "disabled"}
+                              onClick={() => delU(u.id)}
+                              title="Sets account to disabled (does not delete the row)"
+                            >
+                              Disable
                             </button>
                           </td>
                         </tr>
