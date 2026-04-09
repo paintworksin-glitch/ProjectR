@@ -25,6 +25,7 @@ import { canCreateListing } from "@/lib/listingEligibility";
 import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
 import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
+import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 
 export { PROPERTY_BACK_STORAGE_KEY };
 
@@ -515,15 +516,6 @@ const dbToForm = (l) => ({
   agentName:l.agent_name, agentPhone:l.agent_phone, agentEmail:l.agent_email,
   agencyName:l.agency_name, photos:l.photos||[]
 });
-
-const uploadPhoto = async (file) => {
-  const ext = file.name.split(".").pop().toLowerCase() || "jpg";
-  const name = `${Date.now()}-${Math.random().toString(36).substr(2,7)}.${ext}`;
-  const { error } = await supabase.storage.from("property-photos").upload(name, file, { contentType: file.type, upsert: false });
-  if (error) throw error;
-  const { data } = supabase.storage.from("property-photos").getPublicUrl(name);
-  return data.publicUrl;
-};
 
 const burnWatermark = (file, { logoUrl, brandName } = {}) => new Promise((resolve) => {
   const img = new Image();

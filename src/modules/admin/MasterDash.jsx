@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -15,6 +15,8 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { mapListing } from "@/lib/mapListing";
 import { fmtP } from "@/lib/formatPrice";
+import { NorthingRemoteImage } from "@/components/NorthingRemoteImage";
+import { uploadPropertyPhoto } from "@/lib/uploadPropertyPhoto";
 import { PropModal, ConfirmModal, WALogo, _h } from "@/modules/NorthingApp.jsx";
 
 const PAGE_SIZE = 10;
@@ -138,6 +140,10 @@ export function MasterDash({ showToast }) {
   });
   const [agentProfileEdit, setAgentProfileEdit] = useState(null);
   const [savingAgentProfile, setSavingAgentProfile] = useState(false);
+  const [newUserLogoLoading, setNewUserLogoLoading] = useState(false);
+  const [agentModalLogoLoading, setAgentModalLogoLoading] = useState(false);
+  const newUserLogoInputRef = useRef(null);
+  const agentModalLogoInputRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -540,6 +546,47 @@ export function MasterDash({ showToast }) {
       setSavingAgentProfile(false);
     }
   };
+
+  const handleNewUserLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Logo must be under 2MB", "error");
+      return;
+    }
+    setNewUserLogoLoading(true);
+    try {
+      const url = await uploadPropertyPhoto(file);
+      setNewUser((s) => ({ ...s, logoUrl: url }));
+      showToast("Logo uploaded ✓", "success");
+    } catch (err) {
+      showToast("Upload failed: " + (err?.message || ""), "error");
+    }
+    setNewUserLogoLoading(false);
+    e.target.value = "";
+  };
+
+  const handleAgentModalLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Logo must be under 2MB", "error");
+      return;
+    }
+    setAgentModalLogoLoading(true);
+    try {
+      const url = await uploadPropertyPhoto(file);
+      setAgentProfileEdit((s) => (s ? { ...s, logoUrl: url } : s));
+      showToast("Logo uploaded ✓", "success");
+    } catch (err) {
+      showToast("Upload failed: " + (err?.message || ""), "error");
+    }
+    setAgentModalLogoLoading(false);
+    e.target.value = "";
+  };
+
+  const agentPublicProfileHref =
+    agentProfileEdit && typeof window !== "undefined" ? `${window.location.origin}?agent=${agentProfileEdit.id}` : "";
 
   const exportUsersCsv = () => {
     const headers = ["Name", "Email", "Phone", "Role", "Created", "Status"];
@@ -956,7 +1003,25 @@ export function MasterDash({ showToast }) {
               </div>
               <div className="card admin-table-card" style={{ overflow: "hidden" }}>
                 <div className="master-dash-table-wrap admin-table-wrap" style={{ overflowX: "auto" }}>
-                  <table className="admin-data-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
+                  <table
+                    className="admin-data-table admin-agents-table"
+                    style={{
+                      width: "100%",
+                      minWidth: 980,
+                      borderCollapse: "collapse",
+                      tableLayout: "fixed",
+                    }}
+                  >
+                    <colgroup>
+                      <col style={{ width: "15%" }} />
+                      <col style={{ width: "20%" }} />
+                      <col style={{ width: "11%" }} />
+                      <col style={{ width: "10%" }} />
+                      <col style={{ width: "9%" }} />
+                      <col style={{ width: "8%" }} />
+                      <col style={{ width: "7%" }} />
+                      <col style={{ width: "20%" }} />
+                    </colgroup>
                     <thead>
                       <tr style={{ background: "var(--navy)" }}>
                         {["Name", "Email", "Phone", "RERA", "Verification", "Plan", "Listings", "Actions"].map((h) => (
@@ -970,6 +1035,7 @@ export function MasterDash({ showToast }) {
                               textAlign: "left",
                               textTransform: "uppercase",
                               letterSpacing: 0.5,
+                              verticalAlign: "bottom",
                             }}
                           >
                             {h}
@@ -992,20 +1058,40 @@ export function MasterDash({ showToast }) {
                             }}
                             className="admin-table-row"
                           >
-                            <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{a.name || "—"}</td>
-                            <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)", wordBreak: "break-word" }}>{a.email || "—"}</td>
-                            <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)" }}>{a.phone || a.mobile_number || "—"}</td>
-                            <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)" }}>{a.rera_number || "—"}</td>
-                            <td style={{ padding: "12px 14px" }}>
+                            <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 700, color: "var(--navy)", verticalAlign: "top" }}>
+                              <div>{a.name || "—"}</div>
+                              {a.agency_name ? (
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginTop: 4, lineHeight: 1.35 }}>{a.agency_name}</div>
+                              ) : null}
+                            </td>
+                            <td
+                              style={{
+                                padding: "12px 14px",
+                                fontSize: 12,
+                                color: "var(--muted)",
+                                wordBreak: "break-word",
+                                overflowWrap: "anywhere",
+                                verticalAlign: "top",
+                              }}
+                            >
+                              {a.email || "—"}
+                            </td>
+                            <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)", verticalAlign: "top", whiteSpace: "nowrap" }}>
+                              {a.phone || a.mobile_number || "—"}
+                            </td>
+                            <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)", verticalAlign: "top", wordBreak: "break-word" }}>
+                              {a.rera_number || "—"}
+                            </td>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               {ver ? badge("verified", "#ECFDF5", "#065F46", "1px solid #A7F3D0") : badge("pending", "#FFFBEB", "#D97706", "1px solid #FDE68A")}
                             </td>
-                            <td style={{ padding: "12px 14px" }}>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               {paid ? badge("paid", "#DCFCE7", "#166534", "1px solid #86EFAC") : badge("free", "#F3F4F6", "#6B7280", "1px solid #E5E7EB")}
                             </td>
-                            <td style={{ padding: "12px 14px" }}>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <span className="badge tag">{nList}</span>
                             </td>
-                            <td style={{ padding: "12px 14px" }}>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                 {!ver ? (
                                   <button type="button" className="btn-outline" style={{ padding: "4px 8px", fontSize: 11 }} disabled={agentBusy === a.id} onClick={() => approveAgent(a.id)}>
@@ -1181,7 +1267,7 @@ export function MasterDash({ showToast }) {
                     >
                       Agent firm profile (optional)
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "repeat(3,minmax(140px,1fr))", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "1fr 1fr", gap: 10 }}>
                       <input
                         className="inp"
                         placeholder="Agency / firm name"
@@ -1190,16 +1276,61 @@ export function MasterDash({ showToast }) {
                       />
                       <input
                         className="inp"
-                        placeholder="Logo image URL"
-                        value={newUser.logoUrl}
-                        onChange={(e) => setNewUser((s) => ({ ...s, logoUrl: e.target.value }))}
-                      />
-                      <input
-                        className="inp"
                         placeholder="RERA registration no."
                         value={newUser.reraNumber}
                         onChange={(e) => setNewUser((s) => ({ ...s, reraNumber: e.target.value }))}
                       />
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <div
+                        style={{
+                          display: "block",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "var(--muted)",
+                          marginBottom: 8,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        Company logo
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 14,
+                            border: "2px dashed var(--border)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                            background: "var(--gray)",
+                            flexShrink: 0,
+                            position: "relative",
+                          }}
+                        >
+                          {newUser.logoUrl ? (
+                            <NorthingRemoteImage src={newUser.logoUrl} alt="Company logo" fill style={{ objectFit: "contain" }} />
+                          ) : (
+                            <span style={{ fontSize: 26, opacity: 0.4 }}>🏢</span>
+                          )}
+                        </div>
+                        <div>
+                          <input ref={newUserLogoInputRef} type="file" accept="image/*" onChange={handleNewUserLogoUpload} style={{ display: "none" }} />
+                          <button
+                            type="button"
+                            onClick={() => newUserLogoInputRef.current?.click()}
+                            disabled={newUserLogoLoading}
+                            className="btn-ghost"
+                            style={{ padding: "9px 18px", borderRadius: 9, fontSize: 13, marginBottom: 6 }}
+                          >
+                            {newUserLogoLoading ? "Uploading…" : "📁 Upload logo"}
+                          </button>
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>PNG or JPG · Max 2MB · Same storage as agent dashboard</div>
+                        </div>
+                      </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "1fr 1fr", gap: 10, marginTop: 10 }}>
                       <input
@@ -1366,72 +1497,289 @@ export function MasterDash({ showToast }) {
         >
           <div
             className="card"
-            style={{ maxWidth: 520, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 22 }}
+            style={{ maxWidth: 640, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 24 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              id="agent-profile-admin-title"
-              style={{ fontFamily: "'Fraunces',serif", fontSize: 18, fontWeight: 800, color: "var(--navy)", margin: "0 0 4px" }}
-            >
-              Agency / firm profile
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 16px" }}>
-              {agentProfileEdit.name || "Agent"}
-              {agentProfileEdit.email ? ` · ${agentProfileEdit.email}` : ""}
-            </p>
-            <div style={{ display: "grid", gap: 10 }}>
-              <input
-                className="inp"
-                placeholder="Mobile (10 digits, unique)"
-                value={agentProfileEdit.phone}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, phone: e.target.value } : s))}
-              />
-              <input
-                className="inp"
-                placeholder="Agency / firm name"
-                value={agentProfileEdit.agencyName}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, agencyName: e.target.value } : s))}
-              />
-              <input
-                className="inp"
-                placeholder="Logo image URL"
-                value={agentProfileEdit.logoUrl}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, logoUrl: e.target.value } : s))}
-              />
-              <input
-                className="inp"
-                placeholder="RERA registration no."
-                value={agentProfileEdit.reraNumber}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, reraNumber: e.target.value } : s))}
-              />
-              <input
-                className="inp"
-                placeholder="Office address"
-                value={agentProfileEdit.address}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, address: e.target.value } : s))}
-              />
-              <input
-                className="inp"
-                placeholder="Website (https://…)"
-                value={agentProfileEdit.website}
-                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, website: e.target.value } : s))}
-              />
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)" }}>
+            <div style={{ maxWidth: 620 }}>
+              <h2
+                id="agent-profile-admin-title"
+                style={{ fontFamily: "'Fraunces',serif", fontSize: 20, fontWeight: 800, color: "var(--navy)", margin: "0 0 8px" }}
+              >
+                🏢 Agency / Firm Profile
+              </h2>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px" }}>
+                {agentProfileEdit.name || "Agent"}
+                {agentProfileEdit.email ? ` · ${agentProfileEdit.email}` : ""}
+              </p>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted)",
+                  marginBottom: 12,
+                  background: "var(--primary-light)",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid var(--primary-mid)",
+                }}
+              >
+                ⭐ Logo and details are stored on the same profile the agent sees in their dashboard (PDF brochures, public page). Changes apply for both admin and agent.
+              </p>
+              <div
+                style={{
+                  background: "var(--gray)",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  marginBottom: 20,
+                  border: "1px solid var(--border)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", marginBottom: 2 }}>🔗 Public profile page</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{agentPublicProfileHref}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (agentPublicProfileHref) {
+                      navigator.clipboard?.writeText(agentPublicProfileHref);
+                      showToast("Link copied", "success");
+                    }
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 9,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: "var(--primary)",
+                    color: "#fff",
+                    border: "none",
+                    fontFamily: "inherit",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  📋 Copy link
+                </button>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--muted)",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Company logo
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 14,
+                      border: "2px dashed var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      background: "var(--gray)",
+                      flexShrink: 0,
+                      position: "relative",
+                    }}
+                  >
+                    {agentProfileEdit.logoUrl ? (
+                      <NorthingRemoteImage src={agentProfileEdit.logoUrl} alt="Company logo" fill style={{ objectFit: "contain" }} />
+                    ) : (
+                      <span style={{ fontSize: 28, opacity: 0.4 }}>🏢</span>
+                    )}
+                  </div>
+                  <div>
+                    <input ref={agentModalLogoInputRef} type="file" accept="image/*" onChange={handleAgentModalLogoUpload} style={{ display: "none" }} />
+                    <button
+                      type="button"
+                      onClick={() => agentModalLogoInputRef.current?.click()}
+                      disabled={agentModalLogoLoading}
+                      className="btn-ghost"
+                      style={{ padding: "9px 18px", borderRadius: 9, fontSize: 13, marginBottom: 6 }}
+                    >
+                      {agentModalLogoLoading ? "Uploading…" : "📁 Upload logo"}
+                    </button>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>PNG or JPG · Max 2MB · Square recommended</div>
+                  </div>
+                </div>
+              </div>
+              {[
+                ["Agency / Firm Name", "agencyName", "e.g. Sharma Realty"],
+                ["Office Address", "address", "Full office address"],
+                ["Website", "website", "https://yoursite.com"],
+              ].map(([label, key, placeholder]) => (
+                <div key={key} style={{ marginBottom: 14 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--muted)",
+                      marginBottom: 4,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    {label}
+                  </label>
+                  <input
+                    className="inp"
+                    placeholder={placeholder}
+                    value={agentProfileEdit[key] || ""}
+                    onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, [key]: e.target.value } : s))}
+                  />
+                </div>
+              ))}
+              <div style={{ marginBottom: 14 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--muted)",
+                    marginBottom: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  RERA registration no.
+                </label>
+                <input
+                  className="inp"
+                  placeholder="RERA no."
+                  value={agentProfileEdit.reraNumber || ""}
+                  onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, reraNumber: e.target.value } : s))}
+                />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--muted)",
+                    marginBottom: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Phone
+                </label>
+                <input
+                  className="inp"
+                  placeholder="10-digit mobile"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  value={agentProfileEdit.phone || ""}
+                  onChange={(e) =>
+                    setAgentProfileEdit((s) => (s ? { ...s, phone: e.target.value.replace(/\D/g, "").slice(0, 10) } : s))
+                  }
+                />
+              </div>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", marginBottom: 14 }}>
                 <input
                   type="checkbox"
                   checked={agentProfileEdit.agentVerified}
                   onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, agentVerified: e.target.checked } : s))}
                 />
-                Verified agent
+                Verified agent (admin)
               </label>
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-              <button type="button" className="btn-green" style={{ padding: "10px 18px", borderRadius: 9, fontWeight: 700 }} disabled={savingAgentProfile} onClick={saveAgentProfileFromAdmin}>
-                {savingAgentProfile ? "Saving…" : "Save"}
+              <button
+                type="button"
+                onClick={saveAgentProfileFromAdmin}
+                disabled={savingAgentProfile}
+                className="btn-primary"
+                style={{ padding: "12px 28px", borderRadius: 10, fontSize: 14, display: "flex", alignItems: "center", gap: 8, marginTop: 4, marginBottom: 16 }}
+              >
+                {savingAgentProfile ? (
+                  <>
+                    <span className="spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save profile →"
+                )}
               </button>
-              <button type="button" className="btn-outline" style={{ padding: "10px 18px", borderRadius: 9 }} disabled={savingAgentProfile} onClick={() => setAgentProfileEdit(null)}>
-                Cancel
-              </button>
+              <div className="card" style={{ padding: 20, background: "var(--cream)", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  PDF header preview
+                </div>
+                <div
+                  style={{
+                    background: "var(--gray)",
+                    borderRadius: 12,
+                    padding: 16,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                    {agentProfileEdit.logoUrl ? (
+                      <NorthingRemoteImage
+                        src={agentProfileEdit.logoUrl}
+                        alt="Company logo preview"
+                        width={52}
+                        height={52}
+                        style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 8, border: "1px solid var(--border)", background: "#fff", flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 8,
+                          background: "var(--primary-light)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 24,
+                          border: "1px solid var(--primary-mid)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        🏢
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: "var(--navy)" }}>{agentProfileEdit.agencyName || "Your firm name"}</div>
+                      {agentProfileEdit.phone ? (
+                        <div style={{ fontSize: 12, color: "var(--muted)" }}>📞 {agentProfileEdit.phone}</div>
+                      ) : null}
+                      {agentProfileEdit.address ? (
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>📍 {agentProfileEdit.address}</div>
+                      ) : null}
+                      {agentProfileEdit.website ? (
+                        <div style={{ fontSize: 11, color: "var(--primary)", wordBreak: "break-all" }}>{agentProfileEdit.website}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", fontSize: 10, color: "var(--muted)", flexShrink: 0, marginLeft: 8 }}>
+                    <div>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    <div style={{ marginTop: 4, fontWeight: 600 }}>Brochure header preview</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                <button type="button" className="btn-outline" style={{ padding: "10px 18px", borderRadius: 9 }} disabled={savingAgentProfile} onClick={() => setAgentProfileEdit(null)}>
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

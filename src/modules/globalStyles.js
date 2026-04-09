@@ -796,8 +796,11 @@ export const G = `
       margin-left: auto !important;
       margin-right: auto !important;
     }
-    .master-dash-table-wrap { overflow-x: visible !important; }
-    .master-dash-table-wrap table { min-width: 0 !important; }
+    /* Keep horizontal scroll so thead/tbody columns stay aligned (min-width: 0 collapsed columns). */
+    .master-dash-table-wrap {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
   }
   .admin-data-table tbody tr.admin-table-row:hover td { background: rgba(15, 23, 42, 0.045); }
   .admin-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
