@@ -115,6 +115,20 @@ export function MasterDash({ showToast }) {
   const [roleBusy, setRoleBusy] = useState(null);
   const [listingBusy, setListingBusy] = useState(null);
   const [agentBusy, setAgentBusy] = useState(null);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "user",
+    password: "",
+    createListing: false,
+    listingTitle: "",
+    listingCity: "",
+    listingPrice: "",
+    listingType: "Sale",
+    propertyType: "Apartment",
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -305,14 +319,76 @@ export function MasterDash({ showToast }) {
       showToast("You cannot remove your own account", "error");
       return;
     }
-    const { error } = await supabase.rpc("master_disable_user", { target_id: id });
-    if (error) {
-      showToast(error.message || "Remove failed", "error");
+    const ok = typeof window === "undefined" ? true : window.confirm("Permanently delete this user account? This cannot be undone.");
+    if (!ok) return;
+    const resp = await fetch("/api/admin/users/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: id, hardDelete: true }),
+    });
+    const payload = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      showToast(payload?.error || "Delete failed", "error");
       return;
     }
-    // Persisted as role=disabled in DB; keep row in state so it does not "reappear" after refresh.
-    setProfiles((p) => p.map((x) => (x.id === id ? { ...x, role: "disabled" } : x)));
-    showToast("User disabled", "success");
+    setProfiles((p) => p.filter((x) => x.id !== id));
+    showToast("User deleted permanently", "success");
+  };
+
+  const createUserFromAdmin = async () => {
+    if (!newUser.email.trim() || !newUser.password.trim()) {
+      showToast("Email and password are required", "error");
+      return;
+    }
+    if (newUser.createListing && (!newUser.listingTitle.trim() || !newUser.listingCity.trim() || Number(newUser.listingPrice) <= 0)) {
+      showToast("Listing title, city and valid price are required", "error");
+      return;
+    }
+    setCreatingUser(true);
+    try {
+      const resp = await fetch("/api/admin/users/create-with-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          password: newUser.password,
+          createListing: newUser.createListing,
+          listing: newUser.createListing
+            ? {
+                title: newUser.listingTitle,
+                city: newUser.listingCity,
+                price: Number(newUser.listingPrice),
+                listingType: newUser.listingType,
+                propertyType: newUser.propertyType,
+              }
+            : null,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(payload?.error || "User creation failed");
+      showToast(newUser.createListing ? "User and listing created" : "User created", "success");
+      setNewUser({
+        name: "",
+        email: "",
+        phone: "",
+        role: "user",
+        password: "",
+        createListing: false,
+        listingTitle: "",
+        listingCity: "",
+        listingPrice: "",
+        listingType: "Sale",
+        propertyType: "Apartment",
+      });
+      await load();
+    } catch (e) {
+      showToast(e?.message || "Could not create user", "error");
+    } finally {
+      setCreatingUser(false);
+    }
   };
 
   const updateListing = async (id, { status, featured }) => {
@@ -942,6 +1018,50 @@ export function MasterDash({ showToast }) {
 
           {tab === "users" && (
             <div>
+              <div className="card" style={{ padding: "16px", marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
+                  Add user
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "repeat(5,minmax(120px,1fr))", gap: 10 }}>
+                  <input className="inp" placeholder="Name" value={newUser.name} onChange={(e) => setNewUser((s) => ({ ...s, name: e.target.value }))} />
+                  <input className="inp" placeholder="Email *" value={newUser.email} onChange={(e) => setNewUser((s) => ({ ...s, email: e.target.value }))} />
+                  <input className="inp" placeholder="Phone" value={newUser.phone} onChange={(e) => setNewUser((s) => ({ ...s, phone: e.target.value }))} />
+                  <input className="inp" placeholder="Password *" type="password" value={newUser.password} onChange={(e) => setNewUser((s) => ({ ...s, password: e.target.value }))} />
+                  <select className="inp" value={newUser.role} onChange={(e) => setNewUser((s) => ({ ...s, role: e.target.value }))}>
+                    {ROLE_OPTIONS.filter((r) => r.value !== "disabled").map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}>
+                    <input type="checkbox" checked={newUser.createListing} onChange={(e) => setNewUser((s) => ({ ...s, createListing: e.target.checked }))} />
+                    Create first listing
+                  </label>
+                  <button type="button" className="btn-green" style={{ padding: "8px 14px", borderRadius: 9, fontSize: 12, fontWeight: 700 }} disabled={creatingUser} onClick={createUserFromAdmin}>
+                    {creatingUser ? "Creating..." : "Create user"}
+                  </button>
+                </div>
+                {newUser.createListing && (
+                  <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "2fr 1fr 1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
+                    <input className="inp" placeholder="Listing title *" value={newUser.listingTitle} onChange={(e) => setNewUser((s) => ({ ...s, listingTitle: e.target.value }))} />
+                    <input className="inp" placeholder="City *" value={newUser.listingCity} onChange={(e) => setNewUser((s) => ({ ...s, listingCity: e.target.value }))} />
+                    <input className="inp" placeholder="Price *" type="number" value={newUser.listingPrice} onChange={(e) => setNewUser((s) => ({ ...s, listingPrice: e.target.value }))} />
+                    <select className="inp" value={newUser.listingType} onChange={(e) => setNewUser((s) => ({ ...s, listingType: e.target.value }))}>
+                      <option value="Sale">Sale</option>
+                      <option value="Rent">Rent</option>
+                    </select>
+                    <select className="inp" value={newUser.propertyType} onChange={(e) => setNewUser((s) => ({ ...s, propertyType: e.target.value }))}>
+                      <option value="Apartment">Apartment</option>
+                      <option value="Villa">Villa</option>
+                      <option value="Plot">Plot</option>
+                      <option value="Commercial">Commercial</option>
+                    </select>
+                  </div>
+                )}
+              </div>
               <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
                 <input
                   value={searchUsers}
@@ -992,8 +1112,8 @@ export function MasterDash({ showToast }) {
                           }}
                           className="admin-table-row"
                         >
-                          <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{u.name || "—"}</td>
-                          <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)", wordBreak: "break-word" }}>{u.email || "—"}</td>
+                          <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{u.name || (u.email ? u.email.split("@")[0] : `User ${String(u.id || "").slice(0, 6)}`)}</td>
+                          <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)", wordBreak: "break-word" }}>{u.email || "missing-email@legacy-profile"}</td>
                           <td style={{ padding: "12px 14px", fontSize: 12, color: "var(--muted)" }}>{u.phone || u.mobile_number || "—"}</td>
                           <td style={{ padding: "12px 14px" }}>
                             <select
@@ -1024,11 +1144,11 @@ export function MasterDash({ showToast }) {
                               type="button"
                               className="btn-danger"
                               style={{ padding: "5px 10px", fontSize: 11 }}
-                              disabled={u.id === myId || u.role === "disabled"}
+                              disabled={u.id === myId}
                               onClick={() => delU(u.id)}
-                              title="Sets account to disabled (does not delete the row)"
+                              title="Permanently deletes this account"
                             >
-                              Disable
+                              Delete
                             </button>
                           </td>
                         </tr>

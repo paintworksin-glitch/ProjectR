@@ -1,0 +1,104 @@
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
+
+async function assertMaster() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!me || me.role !== "master") return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  return { user };
+}
+
+function cleanRole(role) {
+  const r = String(role || "user").toLowerCase();
+  return ["user", "seller", "agent", "master", "disabled"].includes(r) ? r : "user";
+}
+
+export async function POST(request) {
+  const auth = await assertMaster();
+  if (auth.error) return auth.error;
+
+  try {
+    const body = await request.json();
+    const name = String(body?.name || "").trim();
+    const email = String(body?.email || "").trim().toLowerCase();
+    const phone = String(body?.phone || "").trim();
+    const role = cleanRole(body?.role);
+    const password = String(body?.password || "").trim();
+    const createListing = body?.createListing === true;
+    const listing = body?.listing || {};
+
+    if (!email || !password || password.length < 6) {
+      return NextResponse.json({ error: "Email and password (min 6 chars) are required" }, { status: 400 });
+    }
+
+    const admin = createSupabaseAdminClient();
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name },
+    });
+    if (createErr) return NextResponse.json({ error: createErr.message }, { status: 400 });
+    const newUserId = created?.user?.id;
+    if (!newUserId) return NextResponse.json({ error: "User creation failed" }, { status: 400 });
+
+    const { error: profErr } = await admin.from("profiles").upsert(
+      {
+        id: newUserId,
+        name: name || email.split("@")[0],
+        email,
+        phone: phone || null,
+        mobile_number: phone || null,
+        role,
+      },
+      { onConflict: "id" }
+    );
+    if (profErr) return NextResponse.json({ error: profErr.message }, { status: 400 });
+
+    let createdListingId = null;
+    if (createListing) {
+      const title = String(listing?.title || "").trim();
+      const city = String(listing?.city || "").trim();
+      const listingType = String(listing?.listingType || "Sale").trim() || "Sale";
+      const propertyType = String(listing?.propertyType || "Apartment").trim() || "Apartment";
+      const price = Number(listing?.price) || 0;
+      if (!title || !city || price <= 0) {
+        return NextResponse.json(
+          { error: "Listing needs title, city, and valid price" },
+          { status: 400 }
+        );
+      }
+      const { data: inserted, error: listingErr } = await admin
+        .from("listings")
+        .insert({
+          agent_id: newUserId,
+          title,
+          location: city,
+          property_type: propertyType,
+          listing_type: listingType,
+          price,
+          status: "Active",
+          description: "Listing created by admin dashboard",
+          highlights: [],
+          photos: [],
+          agent_name: name || email.split("@")[0],
+          agent_phone: phone || null,
+          agent_email: email,
+          details: {},
+        })
+        .select("id")
+        .single();
+      if (listingErr) return NextResponse.json({ error: listingErr.message }, { status: 400 });
+      createdListingId = inserted?.id || null;
+    }
+
+    return NextResponse.json({ ok: true, userId: newUserId, listingId: createdListingId });
+  } catch (e) {
+    return NextResponse.json({ error: e?.message || "Failed to create user" }, { status: 500 });
+  }
+}
