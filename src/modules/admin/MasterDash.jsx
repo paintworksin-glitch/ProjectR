@@ -129,7 +129,15 @@ export function MasterDash({ showToast }) {
     listingPrice: "",
     listingType: "Sale",
     propertyType: "Apartment",
+    agencyName: "",
+    address: "",
+    website: "",
+    logoUrl: "",
+    reraNumber: "",
+    agentVerified: false,
   });
+  const [agentProfileEdit, setAgentProfileEdit] = useState(null);
+  const [savingAgentProfile, setSavingAgentProfile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -366,6 +374,18 @@ export function MasterDash({ showToast }) {
                 propertyType: newUser.propertyType,
               }
             : null,
+          ...(newUser.role === "agent"
+            ? {
+                agentProfile: {
+                  agencyName: newUser.agencyName,
+                  address: newUser.address,
+                  website: newUser.website,
+                  logoUrl: newUser.logoUrl,
+                  reraNumber: newUser.reraNumber,
+                  agentVerified: newUser.agentVerified,
+                },
+              }
+            : {}),
         }),
       });
       const payload = await resp.json().catch(() => ({}));
@@ -383,6 +403,12 @@ export function MasterDash({ showToast }) {
         listingPrice: "",
         listingType: "Sale",
         propertyType: "Apartment",
+        agencyName: "",
+        address: "",
+        website: "",
+        logoUrl: "",
+        reraNumber: "",
+        agentVerified: false,
       });
       await load();
     } catch (e) {
@@ -483,6 +509,36 @@ export function MasterDash({ showToast }) {
     }
     setProfiles((rows) => rows.map((x) => (x.id === id ? { ...x, agent_verified: true } : x)));
     showToast("Agent approved", "success");
+  };
+
+  const saveAgentProfileFromAdmin = async () => {
+    if (!agentProfileEdit) return;
+    setSavingAgentProfile(true);
+    try {
+      const resp = await fetch("/api/admin/users/agent-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetId: agentProfileEdit.id,
+          agencyName: agentProfileEdit.agencyName,
+          address: agentProfileEdit.address,
+          website: agentProfileEdit.website,
+          logoUrl: agentProfileEdit.logoUrl,
+          reraNumber: agentProfileEdit.reraNumber,
+          agentVerified: agentProfileEdit.agentVerified,
+          phone: agentProfileEdit.phone,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(payload?.error || "Save failed");
+      showToast("Agent profile saved", "success");
+      setAgentProfileEdit(null);
+      await load();
+    } catch (e) {
+      showToast(e?.message || "Could not save profile", "error");
+    } finally {
+      setSavingAgentProfile(false);
+    }
   };
 
   const exportUsersCsv = () => {
@@ -986,6 +1042,27 @@ export function MasterDash({ showToast }) {
                                 >
                                   View listings
                                 </button>
+                                <button
+                                  type="button"
+                                  className="btn-outline"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={() =>
+                                    setAgentProfileEdit({
+                                      id: a.id,
+                                      agencyName: a.agency_name || "",
+                                      address: a.address || "",
+                                      website: a.website || "",
+                                      logoUrl: a.logo_url || "",
+                                      reraNumber: a.rera_number || "",
+                                      agentVerified: a.agent_verified === true,
+                                      phone: a.phone || a.mobile_number || "",
+                                      name: a.name || "",
+                                      email: a.email || "",
+                                    })
+                                  }
+                                >
+                                  Profile
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1088,6 +1165,64 @@ export function MasterDash({ showToast }) {
                       <option value="Plot">Plot</option>
                       <option value="Commercial">Commercial</option>
                     </select>
+                  </div>
+                )}
+                {newUser.role === "agent" && (
+                  <div style={{ marginTop: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.6,
+                        marginBottom: 10,
+                      }}
+                    >
+                      Agent firm profile (optional)
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "repeat(3,minmax(140px,1fr))", gap: 10 }}>
+                      <input
+                        className="inp"
+                        placeholder="Agency / firm name"
+                        value={newUser.agencyName}
+                        onChange={(e) => setNewUser((s) => ({ ...s, agencyName: e.target.value }))}
+                      />
+                      <input
+                        className="inp"
+                        placeholder="Logo image URL"
+                        value={newUser.logoUrl}
+                        onChange={(e) => setNewUser((s) => ({ ...s, logoUrl: e.target.value }))}
+                      />
+                      <input
+                        className="inp"
+                        placeholder="RERA registration no."
+                        value={newUser.reraNumber}
+                        onChange={(e) => setNewUser((s) => ({ ...s, reraNumber: e.target.value }))}
+                      />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "1fr 1fr", gap: 10, marginTop: 10 }}>
+                      <input
+                        className="inp"
+                        placeholder="Office address"
+                        value={newUser.address}
+                        onChange={(e) => setNewUser((s) => ({ ...s, address: e.target.value }))}
+                      />
+                      <input
+                        className="inp"
+                        placeholder="Website (https://…)"
+                        value={newUser.website}
+                        onChange={(e) => setNewUser((s) => ({ ...s, website: e.target.value }))}
+                      />
+                    </div>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", marginTop: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={newUser.agentVerified}
+                        onChange={(e) => setNewUser((s) => ({ ...s, agentVerified: e.target.checked }))}
+                      />
+                      Mark agent as verified
+                    </label>
                   </div>
                 )}
               </div>
@@ -1211,6 +1346,96 @@ export function MasterDash({ showToast }) {
       )}
 
       {modal && <PropModal listing={modal} onClose={() => setModal(null)} />}
+
+      {agentProfileEdit && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="agent-profile-admin-title"
+          onClick={() => setAgentProfileEdit(null)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: 520, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 22 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              id="agent-profile-admin-title"
+              style={{ fontFamily: "'Fraunces',serif", fontSize: 18, fontWeight: 800, color: "var(--navy)", margin: "0 0 4px" }}
+            >
+              Agency / firm profile
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 16px" }}>
+              {agentProfileEdit.name || "Agent"}
+              {agentProfileEdit.email ? ` · ${agentProfileEdit.email}` : ""}
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input
+                className="inp"
+                placeholder="Mobile (10 digits, unique)"
+                value={agentProfileEdit.phone}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, phone: e.target.value } : s))}
+              />
+              <input
+                className="inp"
+                placeholder="Agency / firm name"
+                value={agentProfileEdit.agencyName}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, agencyName: e.target.value } : s))}
+              />
+              <input
+                className="inp"
+                placeholder="Logo image URL"
+                value={agentProfileEdit.logoUrl}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, logoUrl: e.target.value } : s))}
+              />
+              <input
+                className="inp"
+                placeholder="RERA registration no."
+                value={agentProfileEdit.reraNumber}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, reraNumber: e.target.value } : s))}
+              />
+              <input
+                className="inp"
+                placeholder="Office address"
+                value={agentProfileEdit.address}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, address: e.target.value } : s))}
+              />
+              <input
+                className="inp"
+                placeholder="Website (https://…)"
+                value={agentProfileEdit.website}
+                onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, website: e.target.value } : s))}
+              />
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)" }}>
+                <input
+                  type="checkbox"
+                  checked={agentProfileEdit.agentVerified}
+                  onChange={(e) => setAgentProfileEdit((s) => (s ? { ...s, agentVerified: e.target.checked } : s))}
+                />
+                Verified agent
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <button type="button" className="btn-green" style={{ padding: "10px 18px", borderRadius: 9, fontWeight: 700 }} disabled={savingAgentProfile} onClick={saveAgentProfileFromAdmin}>
+                {savingAgentProfile ? "Saving…" : "Save"}
+              </button>
+              <button type="button" className="btn-outline" style={{ padding: "10px 18px", borderRadius: 9 }} disabled={savingAgentProfile} onClick={() => setAgentProfileEdit(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

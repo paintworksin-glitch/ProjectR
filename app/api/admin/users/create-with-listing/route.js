@@ -19,9 +19,9 @@ function cleanRole(role) {
   return ["user", "seller", "agent", "master", "disabled"].includes(r) ? r : "user";
 }
 
-function digits10(phone) {
-  const d = String(phone || "").replace(/\D/g, "");
-  return d.length >= 10 ? d.slice(-10) : "";
+function trimOrNull(v) {
+  const s = String(v ?? "").trim();
+  return s === "" ? null : s;
 }
 
 export async function POST(request) {
@@ -76,17 +76,27 @@ export async function POST(request) {
     const newUserId = created?.user?.id;
     if (!newUserId) return NextResponse.json({ error: "User creation failed" }, { status: 400 });
 
-    const { error: profErr } = await admin.from("profiles").upsert(
-      {
-        id: newUserId,
-        name: name || email.split("@")[0],
-        email,
-        phone: phone10,
-        mobile_number: phone10,
-        role,
-      },
-      { onConflict: "id" }
-    );
+    const profileRow = {
+      id: newUserId,
+      name: name || email.split("@")[0],
+      email,
+      phone: phone10,
+      mobile_number: phone10,
+      role,
+    };
+    if (role === "agent") {
+      const ap = body?.agentProfile;
+      if (ap && typeof ap === "object") {
+        profileRow.agency_name = trimOrNull(ap.agencyName);
+        profileRow.address = trimOrNull(ap.address);
+        profileRow.website = trimOrNull(ap.website);
+        profileRow.logo_url = trimOrNull(ap.logoUrl);
+        profileRow.rera_number = trimOrNull(ap.reraNumber);
+        if (ap.agentVerified === true) profileRow.agent_verified = true;
+      }
+    }
+
+    const { error: profErr } = await admin.from("profiles").upsert(profileRow, { onConflict: "id" });
     if (profErr) return NextResponse.json({ error: adminApiErrorMessage(profErr) }, { status: 400 });
 
     let createdListingId = null;
