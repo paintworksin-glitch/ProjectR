@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, useReducer, Component } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useReducer } from "react";
+import { NorthingErrorBoundary as ErrorBoundary } from "@/components/NorthingErrorBoundary";
+import { NorthingRemoteImage } from "@/components/NorthingRemoteImage";
+import { mapSignInError, mapSignUpError, mapResetPasswordEmailError } from "@/lib/authFieldErrors";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import AuthLeftPanel from "./AuthLeftPanel.jsx";
@@ -673,13 +676,25 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
   return (
     <div className="card" style={{overflow:"hidden",cursor:"pointer"}} onClick={()=>onView(listing)} role="button" tabIndex={0} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onView(listing);}}}>
       <div style={{height:195,position:"relative",background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        {listing.photos?.[0] ? <img src={listing.photos[0]} alt="" loading="lazy" decoding="async" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <div style={{fontSize:48,opacity:0.4}}>🏠</div>}
+        {listing.photos?.[0] ? (
+          <NorthingRemoteImage
+            src={listing.photos[0]}
+            alt={listing.title ? `${listing.title} — property photo` : "Property photo"}
+            fill
+            sizes="(max-width:768px) 100vw, 400px"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div style={{ fontSize: 48, opacity: 0.4 }}>🏠</div>
+        )}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(27,58,45,0.5) 0%,transparent 55%)"}} />
         <div style={{position:"absolute",top:12,left:12}}>
           <span className="badge" style={{background:listing.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:listing.listingType==="Rent"?"#B45309":"#059669",border:`1px solid ${listing.listingType==="Rent"?"#FDE68A":"#A7F3D0"}`}}>{listing.listingType}</span>
         </div>
         <div style={{position:"absolute",top:44,left:12,zIndex:2,background:"rgba(255,255,255,0.94)",borderRadius:9,padding:5,boxShadow:"0 2px 10px rgba(0,0,0,0.12)",border:"1px solid rgba(226,232,240,0.9)",minWidth:34,minHeight:34,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          {wlLogo ? <img src={wlLogo} alt="" style={{width:34,height:34,objectFit:"contain",display:"block"}}/> : null}
+          {wlLogo ? (
+            <NorthingRemoteImage src={wlLogo} alt="Agency logo" width={34} height={34} style={{ width: 34, height: 34, objectFit: "contain", display: "block" }} />
+          ) : null}
         </div>
         <div style={{position:"absolute",top:12,right:12}}>
           <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
@@ -895,7 +910,7 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
         <div id="wa-card" style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
           {/* Photo */}
           {listing.photos?.[0]
-            ?<img src={listing.photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+            ?<NorthingRemoteImage src={listing.photos[0]} alt={listing.title ? `${listing.title} — property photo` : "Property photo"} fill style={{objectFit:"cover"}}/>
             :<div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#2d2118,#1a1410)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:72,opacity:0.08}}>🏠</div></div>
           }
           {/* Gradient overlay */}
@@ -905,7 +920,7 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
           <div style={{position:"absolute",top:16,left:16,right:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{background:"var(--primary)",color:"#fff",fontSize:11,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.5px"}}>FOR {listing.listingType?.toUpperCase()}</span>
             <div style={{background:"rgba(0,0,0,0.5)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:10,padding:"5px 10px",display:"flex",alignItems:"center",justifyContent:"center",minHeight:26,minWidth:40}}>
-              {wlLogo ? <img src={wlLogo} alt="" style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/> : null}
+              {wlLogo ? <NorthingRemoteImage src={wlLogo} alt="Agency logo" width={120} height={26} style={{height:26,maxWidth:120,width:"auto",objectFit:"contain",display:"block"}}/> : null}
             </div>
           </div>
 
@@ -984,7 +999,7 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
                 {headerLogoSrc ? (
-                  <img src={headerLogoSrc} alt="Brand" style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee",background:"#fff"}}/>
+                  <NorthingRemoteImage src={headerLogoSrc} alt="Brand logo" width={64} height={64} style={{width:64,height:64,objectFit:"contain",borderRadius:10,border:"1px solid #eee",background:"#fff"}}/>
                 ) : (
                   <div style={{width:64,height:64,borderRadius:10,border:"1px solid #eee",background:"#fafafa",flexShrink:0}} aria-hidden />
                 )}
@@ -1003,7 +1018,7 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
           ):(
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
               <div>
-                <img src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
+                <NorthingRemoteImage src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" width={220} height={36} style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
                 <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:6,textTransform:"uppercase"}}>Professional Property Marketing</div>
               </div>
               <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
@@ -1038,7 +1053,7 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {listing.photos.map((p,i)=>(
                   <div key={i} data-pdf-photo="1" style={{position:"relative"}}>
-                    <img src={p} alt={`Photo ${i+1}`} style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
+                    <NorthingRemoteImage src={p} alt={`Property photo ${i+1}`} width={720} height={320} style={{width:"100%",height:320,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}/>
                     {i===0&&<div style={{position:"absolute",top:10,left:10,background:"var(--primary)",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>Cover Photo</div>}
                   </div>
                 ))}
@@ -1051,9 +1066,11 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:14}}>Location Map</div>
             {listing.location?(
               gMapsKey&&mapSrc?(
-                <img
+                <NorthingRemoteImage
                   src={mapSrc}
                   alt="Property location map"
+                  width={640}
+                  height={220}
                   style={{width:"100%",height:220,objectFit:"cover",borderRadius:12,border:"1px solid #eee",display:"block"}}
                 />
               ):(
@@ -1137,6 +1154,16 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     phone: "",
   });
   const [loading, setLoading] = useState(false);
+  const [loginFieldErrors, setLoginFieldErrors] = useState({ email: "", password: "", general: "" });
+  const [registerFieldErrors, setRegisterFieldErrors] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    general: "",
+  });
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
   const sessionHandledRef = useRef(false);
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -1220,10 +1247,16 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   };
 
   const submitLogin = async () => {
+    setForgotPasswordError("");
     if (!form.email?.trim() || !form.password) {
-      showToast("Email and password required", "error");
+      setLoginFieldErrors({
+        email: !form.email?.trim() ? "Email is required." : "",
+        password: !form.password ? "Password is required." : "",
+        general: "",
+      });
       return;
     }
+    setLoginFieldErrors({ email: "", password: "", general: "" });
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -1233,29 +1266,40 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       if (error) throw error;
       await finishSession(data.user.id);
     } catch (err) {
-      showToast(err.message || "Something went wrong", "error");
+      const m = mapSignInError(err);
+      setLoginFieldErrors({
+        email: m.email || "",
+        password: m.password || "",
+        general: m.general || "",
+      });
     }
     setLoading(false);
   };
 
   const submitRegister = async () => {
+    const blank = { name: "", email: "", phone: "", password: "", confirmPassword: "", general: "" };
     if (!form.name?.trim() || !form.email?.trim()) {
-      showToast("Full name and email are required", "error");
+      setRegisterFieldErrors({
+        ...blank,
+        name: !form.name?.trim() ? "Full name is required." : "",
+        email: !form.email?.trim() ? "Email is required." : "",
+      });
       return;
     }
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (phoneDigits.length !== 10) {
-      showToast("Enter a valid 10-digit Indian mobile number", "error");
+      setRegisterFieldErrors({ ...blank, phone: "Enter a valid 10-digit Indian mobile number." });
       return;
     }
     if (form.password.length < 6) {
-      showToast("Password must be at least 6 characters", "error");
+      setRegisterFieldErrors({ ...blank, password: "Password must be at least 6 characters." });
       return;
     }
     if (form.password !== form.confirmPassword) {
-      showToast("Passwords do not match", "error");
+      setRegisterFieldErrors({ ...blank, confirmPassword: "Passwords do not match." });
       return;
     }
+    setRegisterFieldErrors(blank);
     setLoading(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -1274,7 +1318,10 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       if (error) {
         const em = String(error.message || "").toLowerCase();
         if (em.includes("already registered") || em.includes("already been registered")) {
-          showToast("Account already exists. Please sign in.", "error");
+          setRegisterFieldErrors({
+            ...blank,
+            email: "An account with this email already exists. Sign in instead.",
+          });
           onNavigate && onNavigate("login");
           setF("password", "");
           setF("confirmPassword", "");
@@ -1298,7 +1345,15 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         showToast("Check your email to confirm your account, then sign in.", "success");
       }
     } catch (err) {
-      showToast(err.message || "Sign up failed", "error");
+      const m = mapSignUpError(err);
+      setRegisterFieldErrors({
+        name: m.name || "",
+        email: m.email || "",
+        phone: m.phone || "",
+        password: m.password || "",
+        confirmPassword: m.confirmPassword || "",
+        general: m.general || "",
+      });
     }
     setLoading(false);
   };
@@ -1318,8 +1373,9 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   };
 
   const sendForgotPassword = async () => {
+    setForgotPasswordError("");
     if (!form.email?.trim()) {
-      showToast("Enter your email in the field above", "error");
+      setLoginFieldErrors((f) => ({ ...f, email: "Enter your email to receive a reset link." }));
       return;
     }
     setLoading(true);
@@ -1334,7 +1390,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       if (error) throw error;
       showToast("Check your email for a password reset link.", "success");
     } catch (err) {
-      showToast(err.message || "Could not send reset email", "error");
+      setForgotPasswordError(mapResetPasswordEmailError(err));
     }
     setLoading(false);
   };
@@ -1408,20 +1464,59 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
 
           {currentMode === "login" && (
             <>
+              {loginFieldErrors.general ? (
+                <div role="alert" style={{ fontSize: 13, color: "#DC2626", marginBottom: 12, lineHeight: 1.45 }}>
+                  {loginFieldErrors.general}
+                </div>
+              ) : null}
               <div style={{ marginBottom: 12 }}>
-                <input className="inp" type="email" autoComplete="email" placeholder="Email address" value={form.email} onChange={(e) => setF("email", e.target.value)} />
+                <label htmlFor="northing-login-email" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Email
+                </label>
+                <input
+                  id="northing-login-email"
+                  className="inp"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Email address"
+                  value={form.email}
+                  onChange={(e) => {
+                    setF("email", e.target.value);
+                    setLoginFieldErrors((er) => ({ ...er, email: "", general: "" }));
+                  }}
+                  style={{ borderColor: loginFieldErrors.email ? "#FCA5A5" : "var(--border)" }}
+                />
+                {loginFieldErrors.email ? (
+                  <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{loginFieldErrors.email}</div>
+                ) : null}
               </div>
               <div style={{ marginBottom: 8 }}>
+                <label htmlFor="northing-login-password" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Password
+                </label>
                 <input
+                  id="northing-login-password"
                   className="inp"
                   type="password"
                   autoComplete="current-password"
                   placeholder="Password"
                   value={form.password}
-                  onChange={(e) => setF("password", e.target.value)}
+                  onChange={(e) => {
+                    setF("password", e.target.value);
+                    setLoginFieldErrors((er) => ({ ...er, password: "", general: "" }));
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && submitLogin()}
+                  style={{ borderColor: loginFieldErrors.password ? "#FCA5A5" : "var(--border)" }}
                 />
+                {loginFieldErrors.password ? (
+                  <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{loginFieldErrors.password}</div>
+                ) : null}
               </div>
+              {forgotPasswordError ? (
+                <div role="alert" style={{ fontSize: 12, color: "#DC2626", marginBottom: 8 }}>
+                  {forgotPasswordError}
+                </div>
+              ) : null}
               <div style={{ marginBottom: 16, textAlign: "right" }}>
                 <button
                   type="button"
@@ -1454,39 +1549,108 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
 
           {currentMode === "register" && (
             <>
+              {registerFieldErrors.general ? (
+                <div role="alert" style={{ fontSize: 13, color: "#DC2626", marginBottom: 12, lineHeight: 1.45 }}>
+                  {registerFieldErrors.general}
+                </div>
+              ) : null}
               <div style={{ marginBottom: 12 }}>
-                <input className="inp" placeholder="Full name *" autoComplete="name" value={form.name} onChange={(e) => setF("name", e.target.value)} />
+                <label htmlFor="northing-reg-name" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Full name
+                </label>
+                <input
+                  id="northing-reg-name"
+                  className="inp"
+                  placeholder="Full name"
+                  autoComplete="name"
+                  value={form.name}
+                  onChange={(e) => {
+                    setF("name", e.target.value);
+                    setRegisterFieldErrors((er) => ({ ...er, name: "" }));
+                  }}
+                  style={{ borderColor: registerFieldErrors.name ? "#FCA5A5" : "var(--border)" }}
+                />
+                {registerFieldErrors.name ? <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.name}</div> : null}
               </div>
               <div style={{ marginBottom: 12 }}>
-                <input className="inp" type="email" placeholder="Email *" autoComplete="email" value={form.email} onChange={(e) => setF("email", e.target.value)} />
+                <label htmlFor="northing-reg-email" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Email
+                </label>
+                <input
+                  id="northing-reg-email"
+                  className="inp"
+                  type="email"
+                  placeholder="Email"
+                  autoComplete="email"
+                  value={form.email}
+                  onChange={(e) => {
+                    setF("email", e.target.value);
+                    setRegisterFieldErrors((er) => ({ ...er, email: "" }));
+                  }}
+                  style={{ borderColor: registerFieldErrors.email ? "#FCA5A5" : "var(--border)" }}
+                />
+                {registerFieldErrors.email ? <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.email}</div> : null}
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <label htmlFor="northing-reg-phone" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Mobile Number (10 digits, India +91) <span style={{ color: "#DC2626" }}>*</span>
                 </label>
                 <input
+                  id="northing-reg-phone"
                   className="inp"
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
                   placeholder="10-digit mobile number"
                   value={form.phone}
-                  onChange={(e) => setF("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  onChange={(e) => {
+                    setF("phone", e.target.value.replace(/\D/g, "").slice(0, 10));
+                    setRegisterFieldErrors((er) => ({ ...er, phone: "" }));
+                  }}
+                  style={{ borderColor: registerFieldErrors.phone ? "#FCA5A5" : "var(--border)" }}
                 />
+                {registerFieldErrors.phone ? <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.phone}</div> : null}
               </div>
               <div style={{ marginBottom: 12 }}>
-                <input className="inp" type="password" autoComplete="new-password" placeholder="Password *" value={form.password} onChange={(e) => setF("password", e.target.value)} />
-              </div>
-              <div style={{ marginBottom: 16 }}>
+                <label htmlFor="northing-reg-password" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Password
+                </label>
                 <input
+                  id="northing-reg-password"
                   className="inp"
                   type="password"
                   autoComplete="new-password"
-                  placeholder="Confirm password *"
-                  value={form.confirmPassword}
-                  onChange={(e) => setF("confirmPassword", e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitRegister()}
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={(e) => {
+                    setF("password", e.target.value);
+                    setRegisterFieldErrors((er) => ({ ...er, password: "" }));
+                  }}
+                  style={{ borderColor: registerFieldErrors.password ? "#FCA5A5" : "var(--border)" }}
                 />
+                {registerFieldErrors.password ? <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.password}</div> : null}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label htmlFor="northing-reg-confirm" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Confirm password
+                </label>
+                <input
+                  id="northing-reg-confirm"
+                  className="inp"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm password"
+                  value={form.confirmPassword}
+                  onChange={(e) => {
+                    setF("confirmPassword", e.target.value);
+                    setRegisterFieldErrors((er) => ({ ...er, confirmPassword: "" }));
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && submitRegister()}
+                  style={{ borderColor: registerFieldErrors.confirmPassword ? "#FCA5A5" : "var(--border)" }}
+                />
+                {registerFieldErrors.confirmPassword ? (
+                  <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.confirmPassword}</div>
+                ) : null}
               </div>
               <button onClick={submitRegister} disabled={loading} className="btn-primary" style={{ width: "100%", padding: "13px", borderRadius: 11, fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 {loading ? (
@@ -1731,7 +1895,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
             const isScoring=scoringIdx===i;
             return(
               <div key={i} style={{position:"relative",flexShrink:0}}>
-                <img src={p} alt="" style={{width:100,height:80,objectFit:"cover",borderRadius:8,border:`2px solid ${isCover?"var(--primary)":"var(--border)"}`,display:"block",transition:"border 0.2s"}}/>
+                <NorthingRemoteImage src={p} alt={`Listing photo ${i+1}`} width={100} height={80} style={{width:100,height:80,objectFit:"cover",borderRadius:8,border:`2px solid ${isCover?"var(--primary)":"var(--border)"}`,display:"block",transition:"border 0.2s"}}/>
                 {isScoring&&<div style={{position:"absolute",inset:0,borderRadius:8,background:"rgba(26,26,26,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}><span className="spin"/></div>}
                 {isCover&&<div style={{position:"absolute",top:4,left:4,background:"var(--primary)",color:"#fff",fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:8}}>⭐ COVER</div>}
                 {meta?.score&&!isScoring&&<div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.6)",color:"#fff",fontSize:8,fontWeight:700,padding:"2px 5px",borderRadius:6}}>{meta.score.overall}/10</div>}
@@ -1773,9 +1937,16 @@ export const AgentDash = ({currentUser,showToast}) => {
   useEffect(()=>{setProfile(p=>({...p,phone:currentUser.phone||p.phone}));},[currentUser.phone]);
   const load=async()=>{
     setLoading(true);
-    const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
-    if(!error) setListings(data||[]);
-    setLoading(false);
+    try{
+      const {data,error}=await supabase.from("listings").select("*").eq("agent_id",currentUser.id).order("created_at",{ascending:false});
+      if(error) throw error;
+      setListings(data||[]);
+    }catch(e){
+      showToast(e?.message||"Could not load listings","error");
+      setListings([]);
+    }finally{
+      setLoading(false);
+    }
   };
   useEffect(()=>{load();},[]);
   useEffect(()=>{supabase.from("profiles").select("agent_verified").eq("id",currentUser.id).single().then(({data})=>setProfRow(data));},[currentUser.id]);
@@ -1783,24 +1954,31 @@ export const AgentDash = ({currentUser,showToast}) => {
     if(tab!=="enquiries") return;
     (async()=>{
       setEnquiriesLoading(true);
-      const {data}=await supabase.from("enquiries").select("id,listing_id,buyer_id,message,status,created_at").eq("seller_id",currentUser.id).order("created_at",{ascending:false});
-      const rows=data||[];
-      const bids=[...new Set(rows.map(r=>r.buyer_id).filter(Boolean))];
-      const lids=[...new Set(rows.map(r=>r.listing_id).filter(Boolean))];
-      let bmap={};
-      let lmap={};
-      if(bids.length){
-        const {data:bp}=await supabase.from("profiles").select("id,name,phone,mobile_number").in("id",bids);
-        bmap=Object.fromEntries((bp||[]).map(p=>[p.id,p]));
+      try{
+        const {data,error}=await supabase.from("enquiries").select("id,listing_id,buyer_id,message,status,created_at").eq("seller_id",currentUser.id).order("created_at",{ascending:false});
+        if(error) throw error;
+        const rows=data||[];
+        const bids=[...new Set(rows.map(r=>r.buyer_id).filter(Boolean))];
+        const lids=[...new Set(rows.map(r=>r.listing_id).filter(Boolean))];
+        let bmap={};
+        let lmap={};
+        if(bids.length){
+          const {data:bp}=await supabase.from("profiles").select("id,name,phone,mobile_number").in("id",bids);
+          bmap=Object.fromEntries((bp||[]).map(p=>[p.id,p]));
+        }
+        if(lids.length){
+          const {data:ls}=await supabase.from("listings").select("id,title").in("id",lids);
+          lmap=Object.fromEntries((ls||[]).map(l=>[l.id,l.title]));
+        }
+        setEnquiries(rows.map(r=>({...r,buyer:bmap[r.buyer_id],listingTitle:lmap[r.listing_id]})));
+      }catch(e){
+        showToast(e?.message||"Could not load enquiries","error");
+        setEnquiries([]);
+      }finally{
+        setEnquiriesLoading(false);
       }
-      if(lids.length){
-        const {data:ls}=await supabase.from("listings").select("id,title").in("id",lids);
-        lmap=Object.fromEntries((ls||[]).map(l=>[l.id,l.title]));
-      }
-      setEnquiries(rows.map(r=>({...r,buyer:bmap[r.buyer_id],listingTitle:lmap[r.listing_id]})));
-      setEnquiriesLoading(false);
     })();
-  },[tab,currentUser.id]);
+  },[tab,currentUser.id,showToast]);
   const quickStatus=async(id,newStatus)=>{
     setStatusChanging(id);
     const {error}=await supabase.from("listings").update({status:newStatus}).eq("id",id);
@@ -1943,7 +2121,7 @@ export const AgentDash = ({currentUser,showToast}) => {
             {listings.map(raw=>{const l=mapListing(raw);return(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
                 <div style={{height:160,background:"linear-gradient(135deg,var(--primary-light),var(--primary-mid))",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:40,opacity:0.35}}>🏠</div>}
+                  {l.photos?.[0]?<NorthingRemoteImage src={l.photos[0]} alt={l.title ? `${l.title} — listing photo` : "Listing photo"} fill style={{objectFit:"cover"}}/>:<div style={{fontSize:40,opacity:0.35}}>🏠</div>}
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.4) 0%,transparent 60%)"}}/>
                   <span className="badge" style={{position:"absolute",top:10,left:10,background:"var(--primary-light)",color:"var(--primary)",border:"1px solid var(--primary-mid)"}}>{l.status}</span>
                   <span className="badge" style={{position:"absolute",top:10,right:10,background:"#fff",color:"var(--navy)",border:"1px solid var(--border)"}}>{l.listingType}</span>
@@ -1995,8 +2173,8 @@ export const AgentDash = ({currentUser,showToast}) => {
             <div style={{marginBottom:20}}>
               <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Company Logo</label>
               <div style={{display:"flex",alignItems:"center",gap:16}}>
-                <div style={{width:80,height:80,borderRadius:14,border:"2px dashed var(--border)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:"var(--gray)",flexShrink:0}}>
-                  {profile.logoUrl?<img src={profile.logoUrl} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{fontSize:28,opacity:0.4}}>🏢</span>}
+                <div style={{width:80,height:80,borderRadius:14,border:"2px dashed var(--border)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",background:"var(--gray)",flexShrink:0,position:"relative"}}>
+                  {profile.logoUrl?<NorthingRemoteImage src={profile.logoUrl} alt="Company logo" fill style={{objectFit:"contain"}}/>:<span style={{fontSize:28,opacity:0.4}}>🏢</span>}
                 </div>
                 <div>
                   <input type="file" ref={logoRef} accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
@@ -2021,7 +2199,7 @@ export const AgentDash = ({currentUser,showToast}) => {
             <div style={{fontSize:12,fontWeight:700,color:"var(--muted)",marginBottom:12,textTransform:"uppercase",letterSpacing:0.5}}>PDF Header Preview</div>
             <div style={{background:"var(--gray)",borderRadius:12,padding:16,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid var(--border)"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
-                {profile.logoUrl?<img src={profile.logoUrl} alt="" style={{width:52,height:52,objectFit:"contain",borderRadius:8,border:"1px solid var(--border)",background:"#fff"}}/>:<div style={{width:52,height:52,borderRadius:8,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,border:"1px solid var(--primary-mid)"}}>🏢</div>}
+                {profile.logoUrl?<NorthingRemoteImage src={profile.logoUrl} alt="Company logo preview" width={52} height={52} style={{width:52,height:52,objectFit:"contain",borderRadius:8,border:"1px solid var(--border)",background:"#fff"}}/>:<div style={{width:52,height:52,borderRadius:8,background:"var(--primary-light)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,border:"1px solid var(--primary-mid)"}}>🏢</div>}
                 <div>
                   <div style={{fontWeight:800,fontSize:16,color:"var(--navy)"}}>{profile.agencyName||"Your Firm Name"}</div>
                   {profile.phone&&<div style={{fontSize:12,color:"var(--muted)"}}>📞 {profile.phone}</div>}
@@ -2047,29 +2225,48 @@ export const UserDash = ({currentUser,showToast}) => {
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   useEffect(()=>{
     (async()=>{
-      const {data,error}=await supabase.from("saved_listings").select("listings(*)").eq("user_id",currentUser.id);
-      if(!error) setSaved((data||[]).map(r=>mapListing(r.listings)).filter(Boolean));
-      setLoading(false);
+      try{
+        const {data,error}=await supabase.from("saved_listings").select("listings(*)").eq("user_id",currentUser.id);
+        if(error) throw error;
+        setSaved((data||[]).map(r=>mapListing(r.listings)).filter(Boolean));
+      }catch(e){
+        showToast(e?.message||"Could not load saved listings","error");
+        setSaved([]);
+      }finally{
+        setLoading(false);
+      }
     })();
-  },[]);
+  },[showToast]);
   const unsave=async(id)=>{
-    await supabase.from("saved_listings").delete().eq("user_id",currentUser.id).eq("listing_id",id);
-    setSaved(s=>s.filter(l=>l.id!==id));
-    showToast("Removed from saved","success");
+    try{
+      const {error}=await supabase.from("saved_listings").delete().eq("user_id",currentUser.id).eq("listing_id",id);
+      if(error) throw error;
+      setSaved(s=>s.filter(l=>l.id!==id));
+      showToast("Removed from saved","success");
+    }catch(e){
+      showToast(e?.message||"Could not remove saved listing","error");
+    }
   };
   useEffect(()=>{
     if(tab!=="enquiries") return;
     setEnquiriesLoading(true);
     (async()=>{
-      const {data}=await supabase
-        .from("enquiries")
-        .select("id,message,status,created_at,listings(title,location)")
-        .eq("buyer_id",currentUser.id)
-        .order("created_at",{ascending:false});
-      setEnquiries(data||[]);
-      setEnquiriesLoading(false);
+      try{
+        const {data,error}=await supabase
+          .from("enquiries")
+          .select("id,message,status,created_at,listings(title,location)")
+          .eq("buyer_id",currentUser.id)
+          .order("created_at",{ascending:false});
+        if(error) throw error;
+        setEnquiries(data||[]);
+      }catch(e){
+        showToast(e?.message||"Could not load enquiries","error");
+        setEnquiries([]);
+      }finally{
+        setEnquiriesLoading(false);
+      }
     })();
-  },[tab,currentUser.id]);
+  },[tab,currentUser.id,showToast]);
   return (
     <div className="dashboard-page-shell" style={{maxWidth:1100,margin:"0 auto",padding:"32px 20px"}}>
       <div style={{marginBottom:28}}>
@@ -2095,7 +2292,7 @@ export const UserDash = ({currentUser,showToast}) => {
             {saved.map(l=>(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
                 <div style={{height:155,background:"linear-gradient(135deg,#E8F5EE,#C2E8D4)",position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{fontSize:36,opacity:0.3}}>🏠</div>}
+                  {l.photos?.[0]?<NorthingRemoteImage src={l.photos[0]} alt={l.title ? `${l.title} — saved listing photo` : "Saved listing photo"} fill style={{objectFit:"cover"}}/>:<div style={{fontSize:36,opacity:0.3}}>🏠</div>}
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(27,58,45,0.4) 0%,transparent 60%)"}}/>
                   <div style={{position:"absolute",bottom:10,left:12,fontSize:18,fontWeight:800,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>{fmtP(l.price)}</div>
                 </div>
@@ -2166,15 +2363,24 @@ export const MasterDash = ({showToast}) => {
   },[]);
   useEffect(()=>{
     (async()=>{
-      const [lr,ar,ur]=await Promise.all([
-        supabase.from("listings").select("*").order("created_at",{ascending:false}),
-        supabase.from("profiles").select("*").eq("role","agent"),
-        supabase.from("profiles").select("*").eq("role","user"),
-      ]);
-      setListings(lr.data||[]);setAgents(ar.data||[]);setUsers(ur.data||[]);
-      setLoading(false);
+      try{
+        const [lr,ar,ur]=await Promise.all([
+          supabase.from("listings").select("*").order("created_at",{ascending:false}),
+          supabase.from("profiles").select("*").eq("role","agent"),
+          supabase.from("profiles").select("*").eq("role","user"),
+        ]);
+        if(lr.error) throw lr.error;
+        if(ar.error) throw ar.error;
+        if(ur.error) throw ur.error;
+        setListings(lr.data||[]);setAgents(ar.data||[]);setUsers(ur.data||[]);
+      }catch(e){
+        showToast(e?.message||"Could not load admin data","error");
+        setListings([]);setAgents([]);setUsers([]);
+      }finally{
+        setLoading(false);
+      }
     })();
-  },[]);
+  },[showToast]);
   const delL=async(id)=>{
     await supabase.from("listings").delete().eq("id",id);
     setListings(l=>l.filter(x=>x.id!==id));
@@ -2357,18 +2563,27 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
     let cancelled=false;
     (async()=>{
       setLoading(true);
-      const qs=new URLSearchParams();
-      qs.set("page",String(page));
-      qs.set("pageSize",String(pageSize));
-      qs.set("sort",sort);
-      Object.entries(filters).forEach(([k,v])=>{if(v)qs.set(k,String(v));});
-      const res=await fetch(`/api/listings?${qs.toString()}`,{cache:"no-store"});
-      const json=await res.json().catch(()=>({}));
-      if(cancelled)return;
-      if(!res.ok){showToast(json?.error||"Could not load listings","error");setListings([]);setTotalCount(0);setLoading(false);return;}
-      setListings((json.items||[]).map(mapListing).filter(Boolean));
-      setTotalCount(Number(json.totalCount||0));
-      setLoading(false);
+      try{
+        const qs=new URLSearchParams();
+        qs.set("page",String(page));
+        qs.set("pageSize",String(pageSize));
+        qs.set("sort",sort);
+        Object.entries(filters).forEach(([k,v])=>{if(v)qs.set(k,String(v));});
+        const res=await fetch(`/api/listings?${qs.toString()}`,{cache:"no-store"});
+        const json=await res.json().catch(()=>({}));
+        if(cancelled)return;
+        if(!res.ok){showToast(json?.error||"Could not load listings","error");setListings([]);setTotalCount(0);return;}
+        setListings((json.items||[]).map(mapListing).filter(Boolean));
+        setTotalCount(Number(json.totalCount||0));
+      }catch(e){
+        if(!cancelled){
+          showToast(e?.message||"Network error — could not load listings.","error");
+          setListings([]);
+          setTotalCount(0);
+        }
+      }finally{
+        if(!cancelled)setLoading(false);
+      }
     })();
     return()=>{cancelled=true;};
   },[filters,sort,page,showToast]);
@@ -2381,8 +2596,21 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
     if(!currentUser){router.push(`/login?next=${encodeURIComponent("/feed")}`);return;}
     if(currentUser.role!=="user"){showToast("Only buyers can save listings","error");return;}
     const isSaved=savedIds.includes(id);
-    if(isSaved){await supabase.from("saved_listings").delete().eq("user_id",currentUser.id).eq("listing_id",id);setSavedIds(s=>s.filter(x=>x!==id));showToast("Removed from saved","success");}
-    else{await supabase.from("saved_listings").insert({user_id:currentUser.id,listing_id:id});setSavedIds(s=>[...s,id]);showToast("Saved! ❤️","success");}
+    try{
+      if(isSaved){
+        const {error}=await supabase.from("saved_listings").delete().eq("user_id",currentUser.id).eq("listing_id",id);
+        if(error) throw error;
+        setSavedIds(s=>s.filter(x=>x!==id));
+        showToast("Removed from saved","success");
+      }else{
+        const {error}=await supabase.from("saved_listings").insert({user_id:currentUser.id,listing_id:id});
+        if(error) throw error;
+        setSavedIds(s=>[...s,id]);
+        showToast("Saved! ❤️","success");
+      }
+    }catch(e){
+      showToast(e?.message||"Could not update saved listings","error");
+    }
   };
   return (
     <div className="feed-page" style={{minHeight:"100vh",background:"var(--cream)"}}>
@@ -2457,7 +2685,7 @@ const HomeSampleWaCardForExport = ({ listing, cardId }) => {
   return (
     <div id={cardId} style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
       {listing.photos?.[0]
-        ?<img src={listing.photos[0]} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+        ?<NorthingRemoteImage src={listing.photos[0]} alt={listing.title ? `${listing.title} — sample card photo` : "Sample property photo"} fill style={{objectFit:"cover"}}/>
         :<div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#2d2118,#1a1410)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:72,opacity:0.08}}>🏠</div></div>
       }
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
@@ -2512,7 +2740,7 @@ const HomePdfSamplePrint = () => {
       ):(
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28,paddingBottom:20,borderBottom:"3px solid var(--primary)"}}>
           <div>
-            <img src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
+            <NorthingRemoteImage src={DEFAULT_NORTHING_LOGO_SRC} alt="Northing" width={220} height={36} style={{height:36,width:"auto",maxWidth:220,objectFit:"contain",display:"block"}}/>
             <div style={{fontSize:10,color:"#888",letterSpacing:"1.5px",marginTop:6,textTransform:"uppercase"}}>Professional Property Marketing</div>
           </div>
           <div style={{textAlign:"right",fontSize:12,color:"#888"}}><div>{td}</div><div style={{marginTop:3}}>{ref}</div></div>
@@ -2994,7 +3222,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
             {filtered.map(l=>(
               <div key={l.id} className="card glass-card home-listing-card" style={{overflow:"hidden"}} onClick={()=>onOpenProperty(l)} role="button" tabIndex={0} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" ") { e.preventDefault(); onOpenProperty(l); }}}>
                 <div className="home-listing-media">
-                  {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div className="home-listing-photo-ph">🏠</div>}
+                  {l.photos?.[0]?<NorthingRemoteImage src={l.photos[0]} alt={l.title ? `${l.title} — property photo` : "Property photo"} fill style={{objectFit:"cover"}}/>:<div className="home-listing-photo-ph">🏠</div>}
                   <span className="home-listing-status" style={{background:l.status==="Active"?"#ECFDF5":l.status==="Rented"?"#FFFBEB":"#F5F3FF",color:l.status==="Active"?"#059669":l.status==="Rented"?"#D97706":"#7C3AED",border:`1px solid ${l.status==="Active"?"#A7F3D0":l.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{l.status||"Available"}</span>
                 </div>
                 <div className="home-listing-body">
@@ -3118,7 +3346,7 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
           <div className="home-footer-top">
             <div className="home-footer-brand">
               <button type="button" className="home-footer-logo-btn" onClick={()=>onNavigate("home")} aria-label="Northing home">
-                <img src="/northing-logo-light.svg" alt="" width={200} height={48} className="home-footer-logo" />
+                <NorthingRemoteImage src="/northing-logo-light.svg" alt="Northing" width={200} height={48} className="home-footer-logo" style={{ width: 200, height: 48, objectFit: "contain", display: "block" }} />
               </button>
               <p className="home-footer-tagline">Listings, brochures &amp; WhatsApp cards — built for Indian brokers.</p>
             </div>
@@ -3210,11 +3438,19 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
   const [agent,setAgent]=useState(null);const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [modal,setModal]=useState(null);const [waL,setWaL]=useState(null);const [pdfL,setPdfL]=useState(null);const [copied,setCopied]=useState(false);
   useEffect(()=>{
     (async()=>{
-      const [{data:a},{data:l}]=await Promise.all([
-        supabase.from("profiles").select("*").eq("id",agentId).single(),
-        supabase.from("listings").select("*").eq("agent_id",agentId).eq("status","Active").order("created_at",{ascending:false}),
-      ]);
-      setAgent(a);setListings((l||[]).map(mapListing).filter(Boolean));setLoading(false);
+      try{
+        const [aRes,lRes]=await Promise.all([
+          supabase.from("profiles").select("*").eq("id",agentId).single(),
+          supabase.from("listings").select("*").eq("agent_id",agentId).eq("status","Active").order("created_at",{ascending:false}),
+        ]);
+        if(aRes.error) throw aRes.error;
+        if(lRes.error) throw lRes.error;
+        setAgent(aRes.data);setListings((lRes.data||[]).map(mapListing).filter(Boolean));
+      }catch{
+        setAgent(null);setListings([]);
+      }finally{
+        setLoading(false);
+      }
     })();
   },[agentId]);
   if(loading) return <div style={{minHeight:"60vh",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--muted)"}}>Loading agent profile…</div>;
@@ -3224,8 +3460,8 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
     <div style={{background:"var(--cream)",minHeight:"100vh"}}>
       <div style={{background:"var(--navy)",padding:"48px 24px 40px"}}>
         <div style={{maxWidth:960,margin:"0 auto",display:"flex",alignItems:"center",gap:24,flexWrap:"wrap"}}>
-          <div style={{width:88,height:88,borderRadius:20,background:agent.logo_url?"#fff":"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid rgba(255,255,255,0.15)",flexShrink:0}}>
-            {agent.logo_url?<img src={agent.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:36}}>{agent.name?.charAt(0)}</span>}
+          <div style={{width:88,height:88,borderRadius:20,background:agent.logo_url?"#fff":"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid rgba(255,255,255,0.15)",flexShrink:0,position:"relative"}}>
+            {agent.logo_url?<NorthingRemoteImage src={agent.logo_url} alt={agent.agency_name||agent.name ? `${agent.agency_name||agent.name} logo` : "Agent logo"} fill style={{objectFit:"contain"}}/>:<span style={{color:"#fff",fontWeight:900,fontFamily:"'Fraunces',serif",fontSize:36}}>{agent.name?.charAt(0)}</span>}
           </div>
           <div style={{flex:1,minWidth:200}}>
             <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>
@@ -3257,7 +3493,7 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
             {listings.map(l=>(
               <div key={l.id} className="card" style={{overflow:"hidden",cursor:"pointer"}} onClick={()=>setModal(l)}>
                 <div style={{height:175,background:"linear-gradient(135deg,var(--primary-light),var(--primary-mid))",position:"relative",overflow:"hidden"}}>
-                  {l.photos?.[0]?<img src={l.photos[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,opacity:0.3}}>🏠</div>}
+                  {l.photos?.[0]?<NorthingRemoteImage src={l.photos[0]} alt={l.title ? `${l.title} — listing photo` : "Listing photo"} fill style={{objectFit:"cover"}}/>:<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,opacity:0.3}}>🏠</div>}
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 55%)"}}/>
                   <span style={{position:"absolute",top:10,left:10,background:l.listingType==="Sale"?"var(--primary)":"#0ea5e9",color:"#fff",fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20}}>{l.listingType==="Sale"?"For Sale":"For Rent"}</span>
                   <div style={{position:"absolute",bottom:10,left:12,fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#fff"}}>{fmtP(l.price)}{l.listingType==="Rent"&&<span style={{fontSize:11,opacity:0.8}}>/mo</span>}</div>
@@ -3341,7 +3577,7 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
     <>
     <nav className="glass-nav-enhance" style={{position:"sticky",top:0,zIndex:100,minHeight:64,height:"auto",paddingTop:8,paddingBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",paddingLeft:20,paddingRight:20,borderBottom:"1px solid rgba(148,163,184,0.22)",transition:"box-shadow 0.35s ease, border-color 0.3s",boxShadow:scrolled?"0 4px 20px rgba(15,23,42,0.05), 0 10px 40px rgba(15,23,42,0.04), 0 1px 0 rgba(255,255,255,0.85) inset":"0 1px 0 rgba(255,255,255,0.65) inset"}}>
       <button onClick={()=>{onNavigate("home");onSecretClick();}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"4px 0",flexShrink:0}} aria-label="Northing home">
-        <img className="nav-logo-img" src={navBrandSrc} alt="Northing" style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} />
+        <NorthingRemoteImage className="nav-logo-img" src={navBrandSrc} alt={navBrandSrc===DEFAULT_NORTHING_LOGO_SRC?"Northing":`${currentUser?.agencyName||currentUser?.name||"Agent"} logo`} width={280} height={58} style={{height:58,width:"auto",maxWidth:280,objectFit:"contain",display:"block"}} priority />
       </button>
       <div className="nav-desktop-cluster">
         {["home","feed"].map(p=><button key={p} onClick={()=>onNavigate(p)} style={{...deskBtn,background:page===p?"var(--primary-light)":"transparent",color:page===p?"var(--primary)":"var(--muted)",textTransform:"capitalize"}}>{p==="feed"?"Browse":p}</button>)}
@@ -3372,29 +3608,6 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
     </>
   );
 };
-
-export class ErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { crashed: false, error: null }; }
-  static getDerivedStateFromError(error) { return { crashed: true, error }; }
-  componentDidCatch(error, info) { console.error("Northing crash:", error, info); }
-  render() {
-    if (this.state.crashed) {
-      return (
-        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cream)",fontFamily:"'Inter',sans-serif",padding:24}}>
-          <div style={{textAlign:"center",maxWidth:420}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",marginBottom:8}}>Northing</div>
-            <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>Something went wrong</h2>
-            <p style={{fontSize:14,color:"#78716c",marginBottom:24,lineHeight:1.6}}>The app encountered an unexpected error. Your data is safe — just reload to continue.</p>
-            <button onClick={()=>window.location.reload()} style={{background:"#1a1a1a",color:"#fff",border:"none",padding:"12px 28px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>↺ Reload App</button>
-            {this.state.error && <details style={{marginTop:20,textAlign:"left",fontSize:11,color:"#aaa",background:"var(--gray)",padding:12,borderRadius:8,wordBreak:"break-all"}}><summary style={{cursor:"pointer",marginBottom:6}}>Error details</summary>{this.state.error.toString()}</details>}
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 export const MarketingKitModal = ({listing, onClose, currentUser}) => {
   const agentBrand = useListingAgentBrand(listing, currentUser);
@@ -3492,11 +3705,15 @@ export const useViewerBrandProfile = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
-      const { data: p } = await supabase.from("profiles").select("id,logo_url,agency_name").eq("id", session.user.id).single();
-      if (cancelled || !p) return;
-      setViewer({ id: p.id, logoUrl: p.logo_url || null, agencyName: p.agency_name || null });
+      try {
+        const { data: { session }, error: sErr } = await supabase.auth.getSession();
+        if (sErr || !session?.user?.id) return;
+        const { data: p, error: pErr } = await supabase.from("profiles").select("id,logo_url,agency_name").eq("id", session.user.id).single();
+        if (cancelled || pErr || !p) return;
+        setViewer({ id: p.id, logoUrl: p.logo_url || null, agencyName: p.agency_name || null });
+      } catch {
+        if (!cancelled) setViewer(null);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -3544,7 +3761,14 @@ export const PropertyDetailCarousel = ({ photos, title }) => {
           ) : (
             list.map((src, i) => (
               <div key={i} className="property-detail-carousel-slide">
-                <img src={src} alt={i === 0 ? (title || "Property") : ""} loading={i === 0 ? "eager" : "lazy"} decoding="async" />
+                <NorthingRemoteImage
+                  src={src}
+                  alt={title ? `${title} — photo ${i + 1} of ${list.length}` : `Property photo ${i + 1} of ${list.length}`}
+                  fill
+                  sizes="(max-width: 520px) 100vw, 520px"
+                  priority={i === 0}
+                  style={{ objectFit: "cover" }}
+                />
               </div>
             ))
           )}
@@ -3578,10 +3802,16 @@ export const BrokerPublicPage = ({ name }) => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     (async () => {
-      const slug = decodeURIComponent(name).replace(/-/g,' ');
-      const { data } = await supabase.from('profiles').select('id,name').ilike('name', slug);
-      setAgentId(data?.[0]?.id || null);
-      setLoading(false);
+      try {
+        const slug = decodeURIComponent(name).replace(/-/g,' ');
+        const { data, error } = await supabase.from('profiles').select('id,name').ilike('name', slug);
+        if (error) throw error;
+        setAgentId(data?.[0]?.id || null);
+      } catch {
+        setAgentId(null);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [name]);
   if (loading) return (

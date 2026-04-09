@@ -25,21 +25,35 @@ export default function OnboardingPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (!session?.user) {
-        router.replace("/login");
-        return;
+      try {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (sessionError) throw sessionError;
+        if (!session?.user) {
+          router.replace("/login");
+          return;
+        }
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (profileError) throw profileError;
+        if (profile?.role) {
+          router.replace("/dashboard");
+          return;
+        }
+        setChecking(false);
+      } catch {
+        if (!cancelled) {
+          setMessage("Could not load your profile. Please refresh or sign in again.");
+          setChecking(false);
+        }
       }
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
-      if (cancelled) return;
-      if (profile?.role) {
-        router.replace("/dashboard");
-        return;
-      }
-      setChecking(false);
     })();
     return () => {
       cancelled = true;

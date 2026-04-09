@@ -15,10 +15,10 @@ import {
   WACardModal,
   PDFModal,
   MarketingKitModal,
-  ErrorBoundary,
   useSecretAdmin,
   _h,
 } from "./NorthingApp.jsx";
+import { NorthingErrorBoundary as ErrorBoundary } from "@/components/NorthingErrorBoundary";
 import { useNorthing } from "./NorthingContext.jsx";
 
 function AppChrome({ children, agent }) {

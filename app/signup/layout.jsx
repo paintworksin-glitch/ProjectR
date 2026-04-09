@@ -1,3 +1,5 @@
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+
 export const runtime = "nodejs";
 
 export const metadata = {
@@ -11,5 +13,5 @@ export const metadata = {
 };
 
 export default function SignupLayout({ children }) {
-  return children;
+  return <RouteErrorBoundary>{children}</RouteErrorBoundary>;
 }

@@ -712,7 +712,7 @@ export const G = `
   .property-detail-carousel-shell { width: 100%; max-width: min(100%, 520px); margin: 0 auto; padding: 0 max(12px, env(safe-area-inset-left)) 0 max(12px, env(safe-area-inset-right)); box-sizing: border-box; }
   .property-detail-carousel-outer { position: relative; width: 100%; background: #0f0f0f; overflow: hidden; touch-action: pan-x pinch-zoom; border-radius: 14px; box-shadow: 0 8px 32px rgba(15,23,42,0.12); }
   .property-detail-carousel-track { display: flex; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
-  .property-detail-carousel-slide { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; max-height: min(56vh, 420px); }
+  .property-detail-carousel-slide { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; max-height: min(56vh, 420px); position: relative; }
   .property-detail-carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.45); background: rgba(0,0,0,0.5); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; font-family: inherit; padding: 0; -webkit-tap-highlight-color: transparent; transition: background 0.2s, opacity 0.2s; }
   .property-detail-carousel-btn:hover:not(:disabled) { background: rgba(0,0,0,0.65); }
   .property-detail-carousel-btn:disabled { opacity: 0.28; cursor: not-allowed; }
