@@ -30,6 +30,20 @@ test.describe("Security", () => {
     expect([401, 404]).toContain(res.status());
   });
 
+  test("Security API auth blocks unauthenticated update routes", async ({ request }) => {
+    test.skip(
+      !hasEnv("NEXT_PUBLIC_SUPABASE_URL") || !hasEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      "Set Supabase envs in .env.test to assert API auth behavior"
+    );
+    const statusRes = await request.post("/api/enquiry-status", {
+      data: { enquiry_id: "00000000-0000-0000-0000-000000000000", status: "closed" },
+    });
+    expect([401, 404]).toContain(statusRes.status());
+
+    const upgradeRes = await request.post("/api/upgrade-request", { data: {} });
+    expect([401, 404]).toContain(upgradeRes.status());
+  });
+
   test.skip("Cannot edit another user's listing", async () => {});
   test.skip("Cannot see another user's enquiries", async () => {});
   test.skip("Rate limiting blocks repeated requests", async () => {});

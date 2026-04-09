@@ -31,8 +31,40 @@ test.describe("Auth - Login", () => {
     expect(res.status()).toBe(200);
   });
 
-  test.skip("Cannot login with wrong password", async () => {});
-  test.skip("Cannot login with unregistered email", async () => {});
+  test("Cannot login with wrong password", async () => {
+    test.skip(
+      !hasEnv("E2E_BUYER_EMAIL") || !hasEnv("E2E_BUYER_PASSWORD"),
+      "Set E2E_BUYER_EMAIL and E2E_BUYER_PASSWORD in .env.test"
+    );
+    const supabase = createClient(
+      requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: requireEnv("E2E_BUYER_EMAIL"),
+      password: `${requireEnv("E2E_BUYER_PASSWORD")}_wrong`,
+    });
+    expect(data.user).toBeNull();
+    expect(error).toBeTruthy();
+  });
+
+  test("Cannot login with unregistered email", async () => {
+    test.skip(
+      !hasEnv("NEXT_PUBLIC_SUPABASE_URL") || !hasEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      "Set Supabase envs in .env.test"
+    );
+    const supabase = createClient(
+      requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: `e2e-unreg-${Date.now()}@example.com`,
+      password: "password123",
+    });
+    expect(data.user).toBeNull();
+    expect(error).toBeTruthy();
+  });
+
   test.skip("Redirects to dashboard after login", async () => {});
   test.skip("Rate limiting blocks after 5 failed attempts", async () => {});
 });
