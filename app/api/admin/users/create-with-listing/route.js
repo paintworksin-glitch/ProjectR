@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import { adminApiErrorMessage, createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 async function assertMaster() {
   const supabase = await createSupabaseServerClient();
@@ -36,14 +36,19 @@ export async function POST(request) {
       return NextResponse.json({ error: "Email and password (min 6 chars) are required" }, { status: 400 });
     }
 
-    const admin = createSupabaseAdminClient();
+    let admin;
+    try {
+      admin = createSupabaseAdminClient();
+    } catch (e) {
+      return NextResponse.json({ error: adminApiErrorMessage(e) }, { status: 500 });
+    }
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: { name },
     });
-    if (createErr) return NextResponse.json({ error: createErr.message }, { status: 400 });
+    if (createErr) return NextResponse.json({ error: adminApiErrorMessage(createErr) }, { status: 400 });
     const newUserId = created?.user?.id;
     if (!newUserId) return NextResponse.json({ error: "User creation failed" }, { status: 400 });
 
@@ -58,7 +63,7 @@ export async function POST(request) {
       },
       { onConflict: "id" }
     );
-    if (profErr) return NextResponse.json({ error: profErr.message }, { status: 400 });
+    if (profErr) return NextResponse.json({ error: adminApiErrorMessage(profErr) }, { status: 400 });
 
     let createdListingId = null;
     if (createListing) {
@@ -93,12 +98,12 @@ export async function POST(request) {
         })
         .select("id")
         .single();
-      if (listingErr) return NextResponse.json({ error: listingErr.message }, { status: 400 });
+      if (listingErr) return NextResponse.json({ error: adminApiErrorMessage(listingErr) }, { status: 400 });
       createdListingId = inserted?.id || null;
     }
 
     return NextResponse.json({ ok: true, userId: newUserId, listingId: createdListingId });
   } catch (e) {
-    return NextResponse.json({ error: e?.message || "Failed to create user" }, { status: 500 });
+    return NextResponse.json({ error: adminApiErrorMessage(e) }, { status: 500 });
   }
 }
