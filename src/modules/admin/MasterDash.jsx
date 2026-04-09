@@ -116,6 +116,7 @@ export function MasterDash({ showToast }) {
   const [listingBusy, setListingBusy] = useState(null);
   const [agentBusy, setAgentBusy] = useState(null);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [showNewUserPw, setShowNewUserPw] = useState(false);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -1025,8 +1026,36 @@ export function MasterDash({ showToast }) {
                 <div style={{ display: "grid", gridTemplateColumns: dashNarrow ? "1fr" : "repeat(5,minmax(120px,1fr))", gap: 10 }}>
                   <input className="inp" placeholder="Name" value={newUser.name} onChange={(e) => setNewUser((s) => ({ ...s, name: e.target.value }))} />
                   <input className="inp" placeholder="Email *" value={newUser.email} onChange={(e) => setNewUser((s) => ({ ...s, email: e.target.value }))} />
-                  <input className="inp" placeholder="Phone" value={newUser.phone} onChange={(e) => setNewUser((s) => ({ ...s, phone: e.target.value }))} />
-                  <input className="inp" placeholder="Password *" type="password" value={newUser.password} onChange={(e) => setNewUser((s) => ({ ...s, password: e.target.value }))} />
+                  <input className="inp" placeholder="Phone (unique)" value={newUser.phone} onChange={(e) => setNewUser((s) => ({ ...s, phone: e.target.value }))} />
+                  <div style={{ position: "relative", minWidth: 0 }}>
+                    <input
+                      className="inp"
+                      placeholder="Password *"
+                      type={showNewUserPw ? "text" : "password"}
+                      value={newUser.password}
+                      onChange={(e) => setNewUser((s) => ({ ...s, password: e.target.value }))}
+                      style={{ width: "100%", boxSizing: "border-box", paddingRight: 72 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      aria-label={showNewUserPw ? "Hide password" : "Show password"}
+                      onClick={() => setShowNewUserPw((s) => !s)}
+                      style={{
+                        position: "absolute",
+                        right: 4,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: "6px 8px",
+                        borderRadius: 8,
+                        color: "var(--muted)",
+                      }}
+                    >
+                      {showNewUserPw ? "Hide" : "Show"}
+                    </button>
+                  </div>
                   <select className="inp" value={newUser.role} onChange={(e) => setNewUser((s) => ({ ...s, role: e.target.value }))}>
                     {ROLE_OPTIONS.filter((r) => r.value !== "disabled").map((o) => (
                       <option key={o.value} value={o.value}>

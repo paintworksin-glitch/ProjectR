@@ -1342,6 +1342,24 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     registerSubmitRef.current = true;
     setLoading(true);
     try {
+      const { data: phoneOk, error: phoneRpcErr } = await supabase.rpc("phone_is_available", {
+        p_digits: phoneDigits,
+      });
+      if (phoneRpcErr) {
+        setRegisterFieldErrors({
+          ...blank,
+          general: "Could not verify phone number. If this persists, ask your admin to run the latest database migration.",
+        });
+        return;
+      }
+      if (phoneOk === false) {
+        setRegisterFieldErrors({
+          ...blank,
+          phone: "This mobile number is already registered. Sign in or use a different number.",
+        });
+        return;
+      }
+
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const { data, error } = await supabase.auth.signUp({
         email: form.email.trim(),
@@ -2156,10 +2174,28 @@ export const AgentDash = ({currentUser,showToast}) => {
   const saveProfile=async()=>{
     setProfileSaving(true);
     try{
-      const {error}=await supabase.from("profiles").update({agency_name:profile.agencyName,phone:profile.phone,logo_url:profile.logoUrl,address:profile.address,website:profile.website}).eq("id",currentUser.id);
+      const rawDigits=String(profile.phone||"").replace(/\D/g,"");
+      const norm10=rawDigits.length>=10?rawDigits.slice(-10):"";
+      if(norm10.length===10){
+        const {data:ok,error:rpcErr}=await supabase.rpc("phone_is_available",{p_digits:norm10,p_exclude:currentUser.id});
+        if(rpcErr) throw rpcErr;
+        if(ok===false){showToast("This mobile number is already used on another account.","error");setProfileSaving(false);return;}
+      }
+      const {error}=await supabase.from("profiles").update({
+        agency_name:profile.agencyName,
+        phone:norm10.length===10?norm10:profile.phone,
+        mobile_number:norm10.length===10?norm10:null,
+        logo_url:profile.logoUrl,
+        address:profile.address,
+        website:profile.website,
+      }).eq("id",currentUser.id);
       if(error) throw error;
       showToast("Profile saved ✓","success");
-    }catch(err){showToast("Save failed: "+err.message,"error");}
+    }catch(err){
+      const em=String(err?.message||"");
+      if(em.toLowerCase().includes("duplicate")||em.includes("profiles_mobile_norm")) showToast("That mobile number is already registered.","error");
+      else showToast("Save failed: "+em,"error");
+    }
     setProfileSaving(false);
   };
   const enrichedUser={...currentUser,...profile};

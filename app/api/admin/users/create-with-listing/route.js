@@ -18,6 +18,11 @@ function cleanRole(role) {
   return ["user", "seller", "agent", "master", "disabled"].includes(r) ? r : "user";
 }
 
+function digits10(phone) {
+  const d = String(phone || "").replace(/\D/g, "");
+  return d.length >= 10 ? d.slice(-10) : "";
+}
+
 export async function POST(request) {
   const auth = await assertMaster();
   if (auth.error) return auth.error;
@@ -42,6 +47,19 @@ export async function POST(request) {
     } catch (e) {
       return NextResponse.json({ error: adminApiErrorMessage(e) }, { status: 500 });
     }
+
+    const phone10 = digits10(phone);
+    if (phone10.length === 10) {
+      const { data: avail, error: phoneErr } = await admin.rpc("phone_is_available", {
+        p_digits: phone10,
+        p_exclude: null,
+      });
+      if (phoneErr) return NextResponse.json({ error: adminApiErrorMessage(phoneErr) }, { status: 400 });
+      if (avail === false) {
+        return NextResponse.json({ error: "This mobile number is already registered to another account." }, { status: 400 });
+      }
+    }
+
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
@@ -57,8 +75,8 @@ export async function POST(request) {
         id: newUserId,
         name: name || email.split("@")[0],
         email,
-        phone: phone || null,
-        mobile_number: phone || null,
+        phone: phone10.length === 10 ? phone10 : phone || null,
+        mobile_number: phone10.length === 10 ? phone10 : phone || null,
         role,
       },
       { onConflict: "id" }
