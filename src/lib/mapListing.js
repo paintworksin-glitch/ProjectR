@@ -30,6 +30,7 @@ export function mapListing(l) {
     bathrooms: l.bathrooms,
     furnishingStatus: l.furnishing_status,
     status: l.status,
+    featured: l.featured === true,
     description: l.description,
     highlights: l.highlights || [],
     agentName: l.agent_name,

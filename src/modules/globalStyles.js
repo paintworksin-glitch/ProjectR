@@ -799,4 +799,9 @@ export const G = `
     .master-dash-table-wrap { overflow-x: visible !important; }
     .master-dash-table-wrap table { min-width: 0 !important; }
   }
+  .admin-data-table tbody tr.admin-table-row:hover td { background: rgba(15, 23, 42, 0.045); }
+  .admin-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) {
+    .admin-overview-grid { grid-template-columns: 1fr !important; }
+  }
 `;

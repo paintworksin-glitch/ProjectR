@@ -627,7 +627,7 @@ export const Toast = ({msg,type,onClose}) => (
   </div>
 );
 
-const ConfirmModal = ({message,onConfirm,onCancel}) => (
+export const ConfirmModal = ({message,onConfirm,onCancel}) => (
   <div className="afd northing-modal-overlay" style={{position:"fixed",inset:0,background:"rgba(27,58,45,0.45)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
     <div className="card asl" style={{padding:28,maxWidth:360,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:20}}>
@@ -738,7 +738,7 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
   );
 };
 
-const PropModal = ({listing,onClose}) => {
+export const PropModal = ({listing,onClose}) => {
   useEffect(()=>{if(listing?.id)track(listing.id,"view");},[listing?.id]);
   if(!listing) return null;
   const fields=[["Type",listing.propertyType],["Listing",listing.listingType],["Size",listing.sizesqft?`${listing.sizesqft} sqft`:null],["Beds",listing.bedrooms||null],["Baths",listing.bathrooms||null],["Furnishing",listing.furnishingStatus],["Condition",listing.condition],["Built Year",listing.builtYear],["Floor",listing.propertyFloor],["Total Floors",listing.totalFloors],["Parking",listing.parkingType],["Vastu",listing.vastuDirection],["RERA",listing.reraRegistered==="Yes"?`Yes – ${listing.reraNumber||""}`:listing.reraRegistered]].filter(([,v])=>v);
@@ -2362,194 +2362,6 @@ export const UserDash = ({currentUser,showToast}) => {
   );
 };
 
-export const MasterDash = ({showToast}) => {
-  const [listings,setListings]=useState([]);const [agents,setAgents]=useState([]);const [users,setUsers]=useState([]);const [tab,setTab]=useState("overview");const [search,setSearch]=useState("");const [modal,setModal]=useState(null);const [loading,setLoading]=useState(true);const [deleteTarget,setDeleteTarget]=useState(null);const [dashNarrow,setDashNarrow]=useState(false);
-  useEffect(()=>{
-    if(typeof window==="undefined")return;
-    const mq=window.matchMedia("(max-width: 768px)");
-    const fn=()=>setDashNarrow(mq.matches);
-    fn();
-    mq.addEventListener("change",fn);
-    return()=>mq.removeEventListener("change",fn);
-  },[]);
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const [lr,ar,ur]=await Promise.all([
-          supabase.from("listings").select("*").order("created_at",{ascending:false}),
-          supabase.from("profiles").select("*").eq("role","agent"),
-          supabase.from("profiles").select("*").eq("role","user"),
-        ]);
-        if(lr.error) throw lr.error;
-        if(ar.error) throw ar.error;
-        if(ur.error) throw ur.error;
-        setListings(lr.data||[]);setAgents(ar.data||[]);setUsers(ur.data||[]);
-      }catch(e){
-        showToast(e?.message||"Could not load admin data","error");
-        setListings([]);setAgents([]);setUsers([]);
-      }finally{
-        setLoading(false);
-      }
-    })();
-  },[showToast]);
-  const delL=async(id)=>{
-    await supabase.from("listings").delete().eq("id",id);
-    setListings(l=>l.filter(x=>x.id!==id));
-    setDeleteTarget(null);showToast("Listing deleted","success");
-  };
-  const delU=async(id)=>{
-    const { error } = await supabase.rpc("master_disable_user", { target_id: id });
-    if (error) {
-      showToast(error.message || "Remove failed", "error");
-      return;
-    }
-    setAgents(a=>a.filter(x=>x.id!==id));setUsers(u=>u.filter(x=>x.id!==id));
-    showToast("User removed","success");
-  };
-  const approveAgent=async(id)=>{
-    const { error } = await supabase.rpc("master_approve_agent", { target_id: id });
-    if (error) {
-      showToast(error.message || "Approval failed", "error");
-      return;
-    }
-    setAgents(a=>a.map(x=>x.id===id?{...x,agent_verified:true}:x));
-    showToast("Agent approved","success");
-  };
-  const filtered=listings.filter(l=>!search||(mapListing(l).title||"").toLowerCase().includes(search.toLowerCase())||(l.location||"").toLowerCase().includes(search.toLowerCase()));
-  const tabs=[["overview","📊 Overview"],["analytics","🔥 Analytics"],["listings","🏠 Listings"],["agents","🏢 Agents"],["users","👥 Users"]];
-  return (
-    <div className="dashboard-page-shell" style={{maxWidth:1200,margin:"0 auto",padding:"32px 20px"}}>
-      {deleteTarget&&<ConfirmModal message={`Delete "${deleteTarget.title}"? This cannot be undone.`} onConfirm={()=>delL(deleteTarget.id)} onCancel={()=>setDeleteTarget(null)}/>}
-      <div style={{marginBottom:28}}>
-        <h1 style={{fontFamily:"'Fraunces',serif",fontSize:28,fontWeight:800,color:"var(--navy)",margin:0}}>Overview</h1>
-        <p style={{fontSize:14,color:"var(--muted)",marginTop:4}}>Listings, agents, and activity</p>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:28}} className="gr">
-        {[["Total Listings",listings.length,"📋"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Agents",agents.length,"🏢"],["Users",users.length,"👥"]].map(([l,v,i])=>(
-          <div key={l} className="card" style={{padding:"20px 22px"}}><div style={{fontSize:24,marginBottom:8}}>{i}</div><div style={{fontFamily:"'Fraunces',serif",fontSize:30,fontWeight:800,color:"var(--navy)"}}>{v}</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{l}</div></div>
-        ))}
-      </div>
-      <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",overflowX:"auto"}}>
-        {tabs.map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 18px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",whiteSpace:"nowrap"}}>{l}</button>)}
-      </div>
-      {loading?<div style={{textAlign:"center",padding:40,color:"var(--muted)"}}>Loading…</div>:(
-        <>
-          {tab==="overview"&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}} className="gr">
-              <div className="card" style={{padding:24}}><h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:18}}>Top Agents</h3>{agents.sort((a,b)=>listings.filter(l=>l.agent_id===b.id).length-listings.filter(l=>l.agent_id===a.id).length).slice(0,5).map(a=>{const c=listings.filter(l=>l.agent_id===a.id).length;return(<div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--border)"}}><div><div style={{fontSize:14,fontWeight:700,color:"var(--navy)"}}>{a.name}</div><div style={{fontSize:12,color:"var(--muted)"}}>{a.agency_name||"Independent"}</div></div><span className="badge tag">{c} listings</span></div>);})}</div>
-              <div className="card" style={{padding:24}}><h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:18}}>Status Distribution</h3>{[["Active","#059669","#ECFDF5"],["Rented","#D97706","#FFFBEB"],["Sold","#7C3AED","#F5F3FF"]].map(([s,c,bg])=>{const n=listings.filter(l=>l.status===s).length;const p=listings.length?Math.round(n/listings.length*100):0;return(<div key={s} style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:5,fontWeight:600}}><span style={{color:"var(--muted)"}}>{s}</span><span style={{color:c}}>{n} ({p}%)</span></div><div style={{height:6,background:"var(--border)",borderRadius:3}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:3,transition:"width 0.5s"}}/></div></div>);})}</div>
-            </div>
-          )}
-          {tab==="analytics"&&(
-            <div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}} className="gr3">
-                {[["Views",listings.reduce((s,l)=>s+(l.view_count||0),0)],["WA",listings.reduce((s,l)=>s+(l.wa_count||0),0)],["PDF",listings.reduce((s,l)=>s+(l.pdf_count||0),0)]].map(([label,val])=>(
-                  <div key={label} className="card" style={{padding:"20px 22px"}}>
-                    <div style={{fontFamily:"'Fraunces',serif",fontSize:32,fontWeight:900,color:"var(--navy)",marginBottom:4}}>{val}</div>
-                    <div style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="card" style={{padding:24,marginTop:16}}>
-                <h3 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:700,color:"var(--navy)",marginBottom:16}}>Hottest Listings</h3>
-                {[...listings].sort((a,b)=>(b.view_count+b.wa_count*2+b.pdf_count)-(a.view_count+a.wa_count*2+a.pdf_count)).slice(0,10).map((raw,i)=>{
-                  const l=mapListing(raw);
-                  return l?(
-                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
-                      <span style={{fontWeight:800,color:"var(--muted)",width:20,textAlign:"center"}}>{i+1}</span>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"var(--navy)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
-                        <div style={{fontSize:11,color:"var(--muted)"}}>{l.agentName}</div>
-                      </div>
-                      <div style={{fontSize:11,fontWeight:700,display:"flex",gap:8}}>
-                        <span style={{color:"#0ea5e9"}}>{"👁️"}{l.viewCount}</span>
-                        <span style={{color:"#25D366"}}>{"📲"}{l.waCount}</span>
-                        <span style={{color:"var(--primary)"}}>{"📄"}{l.pdfCount}</span>
-                      </div>
-                    </div>
-                  ):null;
-                })}
-                {listings.length===0&&<p style={{color:"var(--muted)",fontSize:13}}>No data yet.</p>}
-              </div>
-            </div>
-          )}
-          {tab==="listings"&&(
-            <div>
-              <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search listings…" className="inp" style={{maxWidth:dashNarrow?undefined:340,width:dashNarrow?"100%":undefined,boxSizing:"border-box"}}/><span style={{fontSize:13,color:"var(--muted)",fontWeight:600}}>{filtered.length} results</span></div>
-              {dashNarrow?(
-                <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  {filtered.map((raw)=>{const l=mapListing(raw);return(
-                    <div key={l.id} className="card" style={{padding:16}}>
-                      <div style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:6,lineHeight:1.35}}>{l.title}</div>
-                      <div style={{fontSize:13,color:"var(--muted)",marginBottom:4}}>📍 {l.location}</div>
-                      <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>{l.agentName}</div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center",marginBottom:10}}>
-                        <span className="badge" style={{background:l.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:l.listingType==="Rent"?"#B45309":"#059669",border:"1px solid rgba(0,0,0,0.06)"}}>{l.listingType}</span>
-                        <span className="badge tag">{l.status}</span>
-                        <span style={{fontSize:15,fontWeight:700,color:"var(--green2)",fontFamily:"'Fraunces',serif"}}>{fmtP(l.price)}</span>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                        <button type="button" onClick={()=>setModal(l)} className="btn-ghost" style={{padding:"10px",borderRadius:8,fontSize:13,minHeight:44}}>View</button>
-                        <button type="button" onClick={()=>showWACard(l)} style={{padding:"10px",borderRadius:8,fontSize:13,minHeight:44,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
-                        <button type="button" onClick={()=>showPDF(l)} className="btn-ghost" style={{padding:"10px",borderRadius:8,fontSize:13,minHeight:44}}>📄 PDF</button>
-                        <button type="button" onClick={()=>setDeleteTarget(l)} className="btn-danger" style={{padding:"10px",borderRadius:8,fontSize:13,minHeight:44}}>Delete</button>
-                      </div>
-                    </div>
-                  );})}
-                  {filtered.length===0&&<div className="card" style={{textAlign:"center",padding:"36px",color:"var(--muted)"}}>No listings found</div>}
-                </div>
-              ):(
-                <div className="card" style={{overflow:"hidden"}}><div className="master-dash-table-wrap" style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}><thead><tr style={{background:"var(--navy)"}}>{["Title","Location","Agent","Type","Price","Status","Actions"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{filtered.map((raw,i)=>{const l=mapListing(raw);return(<tr key={l.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"11px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{l.title}</td><td style={{padding:"11px 14px",fontSize:12,color:"var(--muted)"}}>{l.location}</td><td style={{padding:"11px 14px",fontSize:12,color:"var(--muted)"}}>{l.agentName}</td><td style={{padding:"11px 14px"}}><span className="badge" style={{background:l.listingType==="Rent"?"#FFFBEB":"#ECFDF5",color:l.listingType==="Rent"?"#B45309":"#059669",border:"1px solid rgba(0,0,0,0.06)"}}>{l.listingType}</span></td><td style={{padding:"11px 14px",fontSize:13,fontWeight:700,color:"var(--green2)",fontFamily:"'Fraunces',serif"}}>{fmtP(l.price)}</td><td style={{padding:"11px 14px"}}><span className="badge tag">{l.status}</span></td><td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:5}}><button type="button" onClick={()=>setModal(l)} className="btn-ghost" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>View</button><button type="button" onClick={()=>showWACard(l)} style={{padding:"4px 9px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:3}}><WALogo size={10}/>WA</button><button type="button" onClick={()=>showPDF(l)} className="btn-ghost" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>📄</button><button type="button" onClick={()=>setDeleteTarget(l)} className="btn-danger" style={{padding:"4px 9px",borderRadius:6,fontSize:11}}>Del</button></div></td></tr>);})} </tbody></table></div>{filtered.length===0&&<div style={{textAlign:"center",padding:"36px",color:"var(--muted)"}}>No listings found</div>}</div>
-              )}
-            </div>
-          )}
-          {tab==="agents"&&(dashNarrow?(
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {agents.map((a)=>(
-                <div key={a.id} className="card" style={{padding:16}}>
-                  <div style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{a.name}</div>
-                  <div style={{fontSize:13,color:"var(--muted)",marginBottom:4,wordBreak:"break-word"}}>{a.email}</div>
-                  <div style={{fontSize:13,color:"var(--muted)",marginBottom:10}}>{a.agency_name||"—"}</div>
-                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
-                    <span className="badge tag">{listings.filter(l=>l.agent_id===a.id).length} listings</span>
-                    <span className="badge tag-navy">{a.agent_verified?"verified":"pending"}</span>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    <button type="button" onClick={()=>approveAgent(a.id)} disabled={a.agent_verified===true} className="btn-outline" style={{padding:"12px",borderRadius:8,fontSize:13,minHeight:44}}>
-                      {a.agent_verified?"Approved":"Approve"}
-                    </button>
-                    <button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{padding:"12px",borderRadius:8,fontSize:14,minHeight:44}}>Remove</button>
-                  </div>
-                </div>
-              ))}
-              {agents.length===0&&<div className="card" style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No agents yet</div>}
-            </div>
-          ):(
-            <div className="card" style={{overflow:"hidden"}}><div className="master-dash-table-wrap" style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{background:"var(--navy)"}}>{["Name","Email","Agency","Listings","Verification","Action"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{agents.map((a,i)=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{a.name}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.email}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{a.agency_name||"—"}</td><td style={{padding:"12px 14px"}}><span className="badge tag">{listings.filter(l=>l.agent_id===a.id).length} listings</span></td><td style={{padding:"12px 14px"}}><span className="badge tag-navy">{a.agent_verified?"verified":"pending"}</span></td><td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><button type="button" onClick={()=>approveAgent(a.id)} disabled={a.agent_verified===true} className="btn-outline" style={{padding:"5px 10px",borderRadius:7,fontSize:11}}>{a.agent_verified?"Approved":"Approve"}</button><button type="button" onClick={()=>delU(a.id)} className="btn-danger" style={{padding:"5px 12px",borderRadius:7,fontSize:11}}>Remove</button></div></td></tr>)}</tbody></table></div>{agents.length===0&&<div style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No agents yet</div>}</div>
-          ))}
-          {tab==="users"&&(dashNarrow?(
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {users.map((u)=>(
-                <div key={u.id} className="card" style={{padding:16}}>
-                  <div style={{fontSize:15,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{u.name}</div>
-                  <div style={{fontSize:13,color:"var(--muted)",marginBottom:4,wordBreak:"break-word"}}>{u.email}</div>
-                  <div style={{fontSize:13,color:"var(--muted)",marginBottom:10}}>{u.phone||"—"}</div>
-                  <span className="badge tag-navy" style={{marginBottom:12,display:"inline-block"}}>{u.role}</span>
-                  <button type="button" onClick={()=>delU(u.id)} className="btn-danger" style={{width:"100%",padding:"12px",borderRadius:8,fontSize:14,minHeight:44}}>Remove</button>
-                </div>
-              ))}
-              {users.length===0&&<div className="card" style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No users yet</div>}
-            </div>
-          ):(
-            <div className="card" style={{overflow:"hidden"}}><div className="master-dash-table-wrap" style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{background:"var(--navy)"}}>{["Name","Email","Phone","Role","Action"].map(h=><th key={h} style={{padding:"12px 14px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textAlign:"left",textTransform:"uppercase",letterSpacing:0.5}}>{h}</th>)}</tr></thead><tbody>{users.map((u,i)=><tr key={u.id} style={{borderBottom:"1px solid var(--border)",background:i%2===0?"var(--white)":"var(--cream)"}}><td style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:"var(--navy)"}}>{u.name}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{u.email}</td><td style={{padding:"12px 14px",fontSize:12,color:"var(--muted)"}}>{u.phone||"—"}</td><td style={{padding:"12px 14px"}}><span className="badge tag-navy">{u.role}</span></td><td style={{padding:"12px 14px"}}><button type="button" onClick={()=>delU(u.id)} className="btn-danger" style={{padding:"5px 12px",borderRadius:7,fontSize:11}}>Remove</button></td></tr>)}</tbody></table></div>{users.length===0&&<div style={{textAlign:"center",padding:32,color:"var(--muted)"}}>No users yet</div>}</div>
-          ))}
-        </>
-      )}
-      {modal&&<PropModal listing={modal} onClose={()=>setModal(null)}/>}
-    </div>
-  );
-};
-
 export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
   const router=useRouter();
   const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [savedIds,setSavedIds]=useState(currentUser?.savedListings||[]);const [filters,setFilters]=useState({search:"",propertyType:"",listingType:"",city:"",minPrice:"",maxPrice:"",bedrooms:"",furnishing:""});const [sort,setSort]=useState("newest");const [open,setOpen]=useState(false);const [feedMobile,setFeedMobile]=useState(false);const [page,setPage]=useState(1);const [totalCount,setTotalCount]=useState(0);
@@ -2974,8 +2786,14 @@ export const Home = ({currentUser,onNavigate,onOpenProperty}) => {
   const [homeQsOpen,setHomeQsOpen]=useState(false);
   useEffect(()=>{
     (async()=>{
-      const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false}).limit(24);
-      setListings((data||[]).map(mapListing).filter(Boolean));
+      const {data}=await supabase.from("listings").select("*").eq("status","Active").order("created_at",{ascending:false}).limit(48);
+      const rows=data||[];
+      rows.sort((a,b)=>{
+        const fa=a.featured===true?1:0; const fb=b.featured===true?1:0;
+        if(fb!==fa) return fb-fa;
+        return new Date(b.created_at||0)-new Date(a.created_at||0);
+      });
+      setListings(rows.slice(0,24).map(mapListing).filter(Boolean));
       setLoading(false);
     })();
   },[]);

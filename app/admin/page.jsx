@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MasterDash } from "@/modules/NorthingApp";
+import { MasterDash } from "@/modules/admin/MasterDash";
 import { useNorthing } from "@/modules/NorthingContext";
 
 export default function AdminPage() {
