@@ -2676,7 +2676,7 @@ export const Feed = ({currentUser,showToast,onNavigate,onOpenProperty}) => {
   );
 };
 
-/** Off-screen WA card for homepage PNG export (layout aligned with WACardModal). */
+/** Off-screen WA card for homepage PNG export (native img hero for html2canvas; WACardModal keeps NorthingRemoteImage for on-screen preview). */
 const HomeSampleWaCardForExport = ({ listing, cardId }) => {
   const price = fmtP(listing.price);
   const details = [listing.bedrooms>0?`🛏 ${listing.bedrooms} Bed${listing.bedrooms>1?"s":""}`:null,listing.bathrooms>0?`🚿 ${listing.bathrooms} Bath${listing.bathrooms>1?"s":""}`:null,listing.sizesqft?`📐 ${listing.sizesqft} sqft`:null,listing.furnishingStatus?`🛋 ${listing.furnishingStatus}`:null].filter(Boolean);
@@ -2685,7 +2685,7 @@ const HomeSampleWaCardForExport = ({ listing, cardId }) => {
   return (
     <div id={cardId} style={{width:cardW,height:cardH,borderRadius:20,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.7)",position:"relative",flexShrink:0,background:"#1a1410"}}>
       {listing.photos?.[0]
-        ?<NorthingRemoteImage src={listing.photos[0]} alt={listing.title ? `${listing.title} — sample card photo` : "Sample property photo"} fill style={{objectFit:"cover"}}/>
+        ?<img src={listing.photos[0]} alt="" aria-hidden style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}} onError={(e)=>{ e.currentTarget.style.display="none"; }}/>
         :<div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#2d2118,#1a1410)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:72,opacity:0.08}}>🏠</div></div>
       }
       <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.18) 0%,rgba(0,0,0,0.05) 35%,rgba(10,5,2,0.92) 68%,rgba(10,5,2,1) 100%)"}}/>
