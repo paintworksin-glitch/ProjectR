@@ -64,7 +64,7 @@ export async function canCreateListing(supabase, userIdHint) {
     const { count, error: cErr } = await supabase
       .from("listings")
       .select("*", { count: "exact", head: true })
-      .eq("agent_id", userId)
+      .eq("agent_id", uid)
       .eq("status", "Active");
     if (cErr) return { ok: false, message: "Could not check your listing count." };
     if ((count || 0) >= 2) {
