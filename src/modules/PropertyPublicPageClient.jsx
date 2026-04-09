@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
-import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
+import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { supabase } from "@/lib/supabaseClient";
 import { useNorthing } from "./NorthingContext.jsx";
 import {
@@ -50,6 +50,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [enquiryMsg, setEnquiryMsg] = useState("Hi, I am interested in this property");
   const [enquiryBusy, setEnquiryBusy] = useState(false);
+  const [enquirySent, setEnquirySent] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [savedLocal, setSavedLocal] = useState(null);
 
@@ -78,6 +79,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   useEffect(() => {
     setDescExpanded(false);
+    setEnquirySent(false);
   }, [id]);
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   if (!listing) return null;
 
+  const listingActive = listing.status === "Active";
   const loginNext = `/login?next=${encodeURIComponent(`/property/${listing.id}`)}`;
 
   const contactBroker = () => {
@@ -133,6 +136,10 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       router.push(loginNext);
       return;
     }
+    if (!listingActive) {
+      showToast("This listing is not active.", "error");
+      return;
+    }
     const msg = enquiryMsg.trim();
     if (!msg) {
       showToast("Enter a message", "error");
@@ -147,6 +154,12 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "Failed to send");
+      try {
+        sessionStorage.setItem(OPEN_ENQUIRIES_TAB_STORAGE_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      setEnquirySent(true);
       showToast("Your enquiry has been sent. The agent will contact you shortly.", "success");
       setEnquiryMsg("Hi, I am interested in this property");
     } catch (e) {
@@ -170,6 +183,17 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   const brokerInitial = (listing.agentName || "?").charAt(0).toUpperCase();
   const verifiedBadge = listing.ownerAgentVerified === true;
+
+  const statusLabel =
+    listing.status === "Active"
+      ? { text: "Active listing", tone: "ok" }
+      : listing.status === "Sold"
+        ? { text: "Sold", tone: "muted" }
+        : listing.status === "Rented"
+          ? { text: "Rented", tone: "muted" }
+          : listing.status === "Inactive"
+            ? { text: "Inactive", tone: "warn" }
+            : { text: listing.status || "Listing", tone: "muted" };
 
   return (
     <div className="property-detail-page" style={{ fontFamily: "'Inter',sans-serif" }}>
@@ -213,6 +237,36 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       <div className="property-detail-main">
         <h1 className="property-detail-title">{listing.title}</h1>
         <p className="property-detail-loc">📍 {listing.location}</p>
+        <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 600 }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "4px 10px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.02,
+              background:
+                statusLabel.tone === "ok"
+                  ? "#ECFDF5"
+                  : statusLabel.tone === "warn"
+                    ? "#FEF3C7"
+                    : "#F3F4F6",
+              color: statusLabel.tone === "ok" ? "#065F46" : statusLabel.tone === "warn" ? "#92400E" : "#475569",
+              border:
+                statusLabel.tone === "ok"
+                  ? "1px solid #A7F3D0"
+                  : statusLabel.tone === "warn"
+                    ? "1px solid #FDE68A"
+                    : "1px solid #E5E7EB",
+            }}
+          >
+            {statusLabel.text}
+          </span>
+          {listing.listingType ? (
+            <span style={{ marginLeft: 8, color: "var(--muted)", fontWeight: 600 }}>{listing.listingType}</span>
+          ) : null}
+        </p>
         <p className="property-detail-price" suppressHydrationWarning>
           {fmtP(listing.price)}
           {listing.listingType === "Rent" ? <span className="property-detail-price-unit">/month</span> : null}
@@ -265,8 +319,38 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           <h2 id="enquiry-heading" className="section-label property-detail-card-block__title">
             Enquiry
           </h2>
-          {!user ? (
+          {!listingActive ? (
+            <p className="property-detail-guest-note" role="status">
+              This listing is not active ({String(listing.status || "unknown")}). The broker may not monitor new enquiries here—use contact options only if still shown.
+            </p>
+          ) : !user ? (
             <p className="property-detail-guest-note">Sign in once to message the broker — use the bar at the bottom of the screen.</p>
+          ) : enquirySent ? (
+            <div
+              role="status"
+              style={{
+                padding: 14,
+                borderRadius: 12,
+                border: "1px solid #A7F3D0",
+                background: "#ECFDF5",
+                color: "#065F46",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong>Enquiry sent.</strong> The listing agent can reply by phone or email. Track status anytime under{" "}
+              <strong>Account → Enquiries</strong>.
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}
+                  onClick={() => router.push("/dashboard")}
+                >
+                  Open My Enquiries →
+                </button>
+              </div>
+            </div>
           ) : (
             <>
               <textarea
@@ -274,9 +358,16 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
                 rows={4}
                 value={enquiryMsg}
                 onChange={(e) => setEnquiryMsg(e.target.value)}
+                disabled={!listingActive}
                 style={{ width: "100%", marginBottom: 12, resize: "vertical" }}
               />
-              <button type="button" className="btn-primary" onClick={sendEnquiry} disabled={enquiryBusy} style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={sendEnquiry}
+                disabled={enquiryBusy || !listingActive}
+                style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              >
                 {enquiryBusy ? (
                   <>
                     <span className="spin" /> Sending…
@@ -306,9 +397,14 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
                 {listing.agentName || "Agent"}
                 {verifiedBadge ? (
                   <span style={{ fontSize: 10, fontWeight: 800, background: "#059669", color: "#fff", padding: "3px 8px", borderRadius: 999 }}>✅ Verified Agent</span>
-                ) : null}
+                ) : (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>Independent broker</span>
+                )}
               </p>
               <p className="property-detail-broker-meta">{listing.agencyName || "—"}</p>
+              <p className="property-detail-guest-note property-detail-guest-note--tight" style={{ marginTop: 8 }}>
+                Listed on Northing by this contact. Northing does not own the property; confirm details directly with the broker.
+              </p>
             </div>
           </div>
           {user && listing.agentPhone ? (
@@ -328,13 +424,19 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           type="button"
           className="btn-primary property-detail-bottom-cta__btn"
           onClick={() => (user ? contactBroker() : router.push(loginNext))}
-          disabled={Boolean(user && !listing.agentPhone)}
+          disabled={Boolean(user && (!listing.agentPhone || !listingActive))}
         >
           {user ? (
-            <>
-              <span className="northing-show-desktop">Contact broker</span>
-              <span className="northing-show-mobile">📞 Contact broker</span>
-            </>
+            !listingActive ? (
+              "Listing not active"
+            ) : !listing.agentPhone ? (
+              "Phone unavailable"
+            ) : (
+              <>
+                <span className="northing-show-desktop">Contact broker</span>
+                <span className="northing-show-mobile">📞 Contact broker</span>
+              </>
+            )
           ) : (
             "Sign in to unlock contact"
           )}

@@ -24,7 +24,7 @@ import { mapListing } from "@/lib/mapListing";
 import { canCreateListing } from "@/lib/listingEligibility";
 import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
 import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
-import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
+import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 
 export { PROPERTY_BACK_STORAGE_KEY };
@@ -2233,7 +2233,12 @@ export const AgentDash = ({currentUser,showToast}) => {
           </p>
         </div>
         {unverifiedAgent
-          ?<div style={{background:"#F3F4F6",border:"1px solid var(--border)",borderRadius:10,padding:"10px 16px",fontSize:13,color:"var(--muted)",fontWeight:600}}>Your agent account is pending activation.</div>
+          ?<div style={{background:"#F3F4F6",border:"1px solid var(--border)",borderRadius:10,padding:"12px 16px",fontSize:13,color:"var(--muted)",fontWeight:600,maxWidth:420}}>
+            <div>Your agent account is pending Northing activation. You can still complete your agency profile; new listings stay blocked until approved.</div>
+            <button type="button" className="btn-outline" onClick={()=>setTab("profile")} style={{marginTop:10,padding:"8px 14px",borderRadius:10,fontSize:13,fontWeight:700}}>
+              Open Agency profile →
+            </button>
+          </div>
           :canAddMore
           ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
           :<div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -2405,10 +2410,27 @@ export const AgentDash = ({currentUser,showToast}) => {
   );
 };
 
+function enquiryStatusLabel(status) {
+  const s = String(status || "new").toLowerCase();
+  if (s === "replied") return "Replied";
+  if (s === "closed") return "Closed";
+  if (s === "new") return "Sent — awaiting reply";
+  return status || "—";
+}
+
 export const UserDash = ({currentUser,showToast}) => {
   const [saved,setSaved]=useState([]);const [loading,setLoading]=useState(true);const [tab,setTab]=useState("saved");const [modal,setModal]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   const [enquiriesError,setEnquiriesError]=useState(null);
+  useEffect(()=>{
+    try{
+      if(typeof window==="undefined") return;
+      if(sessionStorage.getItem(OPEN_ENQUIRIES_TAB_STORAGE_KEY)==="1"){
+        sessionStorage.removeItem(OPEN_ENQUIRIES_TAB_STORAGE_KEY);
+        setTab("enquiries");
+      }
+    }catch{/* ignore */}
+  },[]);
   useEffect(()=>{
     (async()=>{
       try{
@@ -2471,6 +2493,17 @@ export const UserDash = ({currentUser,showToast}) => {
             Change account type
           </button>
         </p>
+        {!loading && saved.length === 0 && tab === "saved" ? (
+          <div className="card" style={{ marginTop: 16, padding: "14px 16px", background: "var(--primary-light)", border: "1px solid var(--primary-mid)" }}>
+            <p style={{ margin: 0, fontSize: 14, color: "var(--navy)", fontWeight: 600 }}>Next step</p>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--muted)", lineHeight: 1.45 }}>
+              Browse the feed, save favourites, then send enquiries from any listing. Your messages appear under the Enquiries tab.
+            </p>
+            <button type="button" className="btn-primary" style={{ marginTop: 10, padding: "8px 16px", borderRadius: 10, fontSize: 13 }} onClick={() => window.location.assign("/feed")}>
+              Browse listings →
+            </button>
+          </div>
+        ) : null}
       </div>
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--gray)",padding:4,borderRadius:12,border:"1px solid var(--border)",width:"fit-content"}}>
         {[["saved","❤️ Saved"],["enquiries","✉️ Enquiries"],["profile","👤 Profile"]].map(([t,l])=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 20px",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",background:tab===t?"var(--white)":"transparent",color:tab===t?"var(--navy)":"var(--muted)",border:tab===t?"1px solid var(--border)":"none",boxShadow:tab===t?"0 1px 4px rgba(27,58,45,0.08)":"none"}}>{l}</button>)}
@@ -2514,7 +2547,7 @@ export const UserDash = ({currentUser,showToast}) => {
                 <div key={e.id} style={{padding:12,borderRadius:12,border:"1px solid var(--border)",background:"#fff"}}>
                   <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:4}}>
                     <div style={{fontWeight:700,color:"var(--navy)",fontSize:14}}>{e.listings?.title||"Listing enquiry"}</div>
-                    <span className="badge tag">{e.status||"new"}</span>
+                    <span className="badge tag">{enquiryStatusLabel(e.status)}</span>
                   </div>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:6}}>{e.listings?.location||"—"} · {new Date(e.created_at).toLocaleString()}</div>
                   <div style={{fontSize:13,color:"var(--text-body)"}}>{e.message}</div>
@@ -2522,6 +2555,11 @@ export const UserDash = ({currentUser,showToast}) => {
               ))}
             </div>
           )}
+          {!enquiriesLoading && !enquiriesError && enquiries.length > 0 ? (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 14, lineHeight: 1.45 }}>
+              Status updates when the agent marks your enquiry as replied or closed. You’ll also get email updates when configured.
+            </p>
+          ) : null}
         </div>
       )}
       {tab==="profile"&&(

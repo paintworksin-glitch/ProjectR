@@ -167,12 +167,17 @@ export default function DashboardRoutePage() {
         style={{
           minHeight: "60vh",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: 10,
           color: "var(--muted)",
         }}
+        aria-busy="true"
+        aria-live="polite"
       >
-        Loading…
+        <span className="spin" style={{ borderColor: "rgba(26,26,26,0.2)", borderTopColor: "var(--navy)" }} />
+        <span style={{ fontSize: 14 }}>Loading your account…</span>
       </div>
     );
   }
@@ -183,12 +188,16 @@ export default function DashboardRoutePage() {
         style={{
           minHeight: "60vh",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: 10,
           color: "var(--muted)",
         }}
+        aria-busy="true"
       >
-        Loading…
+        <span className="spin" style={{ borderColor: "rgba(26,26,26,0.2)", borderTopColor: "var(--navy)" }} />
+        <span style={{ fontSize: 14 }}>Redirecting…</span>
       </div>
     );
   }
