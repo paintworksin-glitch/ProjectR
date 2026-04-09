@@ -183,6 +183,10 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   const brokerInitial = (listing.agentName || "?").charAt(0).toUpperCase();
   const verifiedBadge = listing.ownerAgentVerified === true;
+  const breadcrumbTitle =
+    (listing.title || "Listing").length > 52
+      ? `${(listing.title || "Listing").slice(0, 49)}…`
+      : listing.title || "Listing";
 
   const statusLabel =
     listing.status === "Active"
@@ -235,6 +239,23 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       <PropertyDetailCarousel photos={listing.photos} title={listing.title} />
 
       <div className="property-detail-main">
+        <nav className="property-detail-breadcrumb" aria-label="Breadcrumb">
+          <button type="button" className="property-detail-breadcrumb__link" onClick={() => router.push("/")}>
+            Home
+          </button>
+          <span className="property-detail-breadcrumb__sep" aria-hidden>
+            /
+          </span>
+          <button type="button" className="property-detail-breadcrumb__link" onClick={() => router.push("/feed")}>
+            Browse
+          </button>
+          <span className="property-detail-breadcrumb__sep" aria-hidden>
+            /
+          </span>
+          <span className="property-detail-breadcrumb__current" title={listing.title || ""}>
+            {breadcrumbTitle}
+          </span>
+        </nav>
         <h1 className="property-detail-title">{listing.title}</h1>
         <p className="property-detail-loc">📍 {listing.location}</p>
         <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 600 }}>
