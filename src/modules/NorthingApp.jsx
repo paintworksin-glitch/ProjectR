@@ -22,6 +22,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { fmtP } from "@/lib/formatPrice";
 import { mapListing } from "@/lib/mapListing";
 import { canCreateListing } from "@/lib/listingEligibility";
+import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
+import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
 import { PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 
 export { PROPERTY_BACK_STORAGE_KEY };
@@ -1244,7 +1246,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       } else {
         const md = user.user_metadata || {};
         const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
-        if (phoneNational && !existing.mobile_number && !existing.phone) {
+        if (phoneNational && phoneNational.length === 10 && !existing.mobile_number && !existing.phone) {
           await supabase
             .from("profiles")
             .update({ phone: phoneNational, mobile_number: phoneNational })
@@ -1327,7 +1329,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     }
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (phoneDigits.length !== 10) {
-      setRegisterFieldErrors({ ...blank, phone: "Enter a valid 10-digit Indian mobile number." });
+      setRegisterFieldErrors({ ...blank, phone: PHONE_INLINE_ERROR });
       return;
     }
     if (form.password.length < 6) {
@@ -1342,20 +1344,19 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     registerSubmitRef.current = true;
     setLoading(true);
     try {
-      const { data: phoneOk, error: phoneRpcErr } = await supabase.rpc("phone_is_available", {
-        p_digits: phoneDigits,
-      });
-      if (phoneRpcErr) {
+      try {
+        const phoneOk = await checkPhoneAvailableRequest(phoneDigits);
+        if (!phoneOk) {
+          setRegisterFieldErrors({
+            ...blank,
+            phone: "This mobile number is already registered. Sign in or use a different number.",
+          });
+          return;
+        }
+      } catch (e) {
         setRegisterFieldErrors({
           ...blank,
-          general: "Could not verify phone number. If this persists, ask your admin to run the latest database migration.",
-        });
-        return;
-      }
-      if (phoneOk === false) {
-        setRegisterFieldErrors({
-          ...blank,
-          phone: "This mobile number is already registered. Sign in or use a different number.",
+          general: e?.message || "Could not verify phone number. Try again in a moment.",
         });
         return;
       }
@@ -2074,6 +2075,7 @@ export const AgentDash = ({currentUser,showToast}) => {
   const logoRef=useRef();
   const [profile,setProfile]=useState({agencyName:currentUser.agencyName||"",phone:currentUser.phone||"",address:currentUser.agentAddress||"",website:currentUser.agentWebsite||"",logoUrl:currentUser.logoUrl||null});
   const [logoLoading,setLogoLoading]=useState(false);const [profileSaving,setProfileSaving]=useState(false);
+  const [profilePhoneError,setProfilePhoneError]=useState("");
   useEffect(()=>{setProfile(p=>({...p,phone:currentUser.phone||p.phone}));},[currentUser.phone]);
   const load=async()=>{
     setLoading(true);
@@ -2172,28 +2174,42 @@ export const AgentDash = ({currentUser,showToast}) => {
     setLogoLoading(false); e.target.value="";
   };
   const saveProfile=async()=>{
+    setProfilePhoneError("");
     setProfileSaving(true);
     try{
-      const rawDigits=String(profile.phone||"").replace(/\D/g,"");
-      const norm10=rawDigits.length>=10?rawDigits.slice(-10):"";
-      if(norm10.length===10){
-        const {data:ok,error:rpcErr}=await supabase.rpc("phone_is_available",{p_digits:norm10,p_exclude:currentUser.id});
-        if(rpcErr) throw rpcErr;
-        if(ok===false){showToast("This mobile number is already used on another account.","error");setProfileSaving(false);return;}
+      const norm10=digits10From(profile.phone);
+      const trimmed=String(profile.phone||"").trim();
+      if(trimmed!==""&&!isEmptyOrTenDigitMobile(profile.phone)){
+        setProfilePhoneError(PHONE_INLINE_ERROR);
+        showToast(PHONE_INLINE_ERROR,"error");
+        setProfileSaving(false);
+        return;
       }
+      if(norm10.length===10){
+        try{
+          const ok=await checkPhoneAvailableRequest(norm10,currentUser.id);
+          if(!ok){showToast("This mobile number is already used on another account.","error");setProfileSaving(false);return;}
+        }catch(e){
+          showToast(e?.message||"Could not verify phone number.","error");
+          setProfileSaving(false);
+          return;
+        }
+      }
+      const phoneOut=norm10.length===10?norm10:null;
       const {error}=await supabase.from("profiles").update({
         agency_name:profile.agencyName,
-        phone:norm10.length===10?norm10:profile.phone,
-        mobile_number:norm10.length===10?norm10:null,
+        phone:phoneOut,
+        mobile_number:phoneOut,
         logo_url:profile.logoUrl,
         address:profile.address,
         website:profile.website,
       }).eq("id",currentUser.id);
       if(error) throw error;
+      setProfile((p)=>({...p,phone:phoneOut||""}));
       showToast("Profile saved ✓","success");
     }catch(err){
       const em=String(err?.message||"");
-      if(em.toLowerCase().includes("duplicate")||em.includes("profiles_mobile_norm")) showToast("That mobile number is already registered.","error");
+      if(em.toLowerCase().includes("duplicate")||em.includes("profiles_mobile_norm")||em.includes("mobile_number_length")) showToast("That mobile number is already registered.","error");
       else showToast("Save failed: "+em,"error");
     }
     setProfileSaving(false);
@@ -2346,12 +2362,28 @@ export const AgentDash = ({currentUser,showToast}) => {
                 </div>
               </div>
             </div>
-            {[["Agency / Firm Name","agencyName","e.g. Sharma Realty"],["Phone","phone","10-digit mobile"],["Office Address","address","Full office address"],["Website","website","https://yoursite.com"]].map(([label,key,placeholder])=>(
+            {[["Agency / Firm Name","agencyName","e.g. Sharma Realty"],["Office Address","address","Full office address"],["Website","website","https://yoursite.com"]].map(([label,key,placeholder])=>(
               <div key={key} style={{marginBottom:14}}>
                 <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>
                 <input className="inp" placeholder={placeholder} value={profile[key]||""} onChange={e=>setProfile(p=>({...p,[key]:e.target.value}))}/>
               </div>
             ))}
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Phone</label>
+              <input
+                className="inp"
+                placeholder="10-digit mobile"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={profile.phone||""}
+                onChange={(e)=>{
+                  setProfilePhoneError("");
+                  setProfile((p)=>({...p,phone:e.target.value.replace(/\D/g,"").slice(0,10)}));
+                }}
+                style={{borderColor:profilePhoneError?"#FCA5A5":"var(--border)"}}
+              />
+              {profilePhoneError?<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>{profilePhoneError}</div>:null}
+            </div>
             <button onClick={saveProfile} disabled={profileSaving} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8,marginTop:8}}>
               {profileSaving?<><span className="spin"/>Saving…</>:"Save Profile →"}
             </button>

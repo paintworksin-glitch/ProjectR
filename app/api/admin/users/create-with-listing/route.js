@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { adminApiErrorMessage, createSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import { PHONE_SERVER_ERROR, parseMobile10StrictOrNull } from "@/lib/phoneDigits";
 
 async function assertMaster() {
   const supabase = await createSupabaseServerClient();
@@ -48,8 +49,13 @@ export async function POST(request) {
       return NextResponse.json({ error: adminApiErrorMessage(e) }, { status: 500 });
     }
 
-    const phone10 = digits10(phone);
-    if (phone10.length === 10) {
+    let phone10 = null;
+    if (String(phone || "").trim()) {
+      try {
+        phone10 = parseMobile10StrictOrNull(phone);
+      } catch {
+        return NextResponse.json({ error: PHONE_SERVER_ERROR }, { status: 400 });
+      }
       const { data: avail, error: phoneErr } = await admin.rpc("phone_is_available", {
         p_digits: phone10,
         p_exclude: null,
@@ -75,8 +81,8 @@ export async function POST(request) {
         id: newUserId,
         name: name || email.split("@")[0],
         email,
-        phone: phone10.length === 10 ? phone10 : phone || null,
-        mobile_number: phone10.length === 10 ? phone10 : phone || null,
+        phone: phone10,
+        mobile_number: phone10,
         role,
       },
       { onConflict: "id" }
@@ -110,7 +116,7 @@ export async function POST(request) {
           highlights: [],
           photos: [],
           agent_name: name || email.split("@")[0],
-          agent_phone: phone || null,
+          agent_phone: phone10,
           agent_email: email,
           details: {},
         })

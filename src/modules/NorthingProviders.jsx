@@ -143,14 +143,15 @@ export default function NorthingProviders({ children }) {
           let { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
           if (!profile) {
             const md = session.user.user_metadata || {};
-            const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
+            const rawP = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : "";
+            const phone10 = rawP.length === 10 ? rawP : null;
             const inserted = await insertProfileSafely({
               id: session.user.id,
               name: md.full_name || md.name || session.user.email?.split("@")[0] || "User",
               email: session.user.email ?? null,
               role: "user",
-              phone: phoneNational,
-              mobile_number: phoneNational,
+              phone: phone10,
+              mobile_number: phone10,
               agency_name: null,
             });
             profile = inserted || null;
