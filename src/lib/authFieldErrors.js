@@ -2,6 +2,12 @@
  * Map Supabase Auth errors to user-facing, field-scoped messages (login / signup).
  */
 
+/** PostgREST / Postgres duplicate row (e.g. profiles already created by DB trigger). */
+export function isPostgresDuplicateKeyError(error) {
+  const m = String(error?.message || error || "").toLowerCase();
+  return m.includes("duplicate key") || m.includes("unique constraint") || m.includes("profiles_pkey");
+}
+
 export function mapSignInError(error) {
   const raw = String(error?.message || error || "");
   const msg = raw.toLowerCase();
@@ -32,6 +38,16 @@ export function mapSignUpError(error) {
   const msg = raw.toLowerCase();
   const out = { name: "", email: "", phone: "", password: "", confirmPassword: "", general: "" };
 
+  if (isPostgresDuplicateKeyError(error)) {
+    const d = msg.includes("mobile") || msg.includes("phone");
+    if (d) {
+      out.phone = "This mobile number is already used on another account.";
+      return out;
+    }
+    out.general =
+      "This email is already registered, or your profile row already exists. Use Sign in, or wait a moment and try again.";
+    return out;
+  }
   if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("user already registered")) {
     out.email = "An account with this email already exists. Sign in instead.";
     return out;

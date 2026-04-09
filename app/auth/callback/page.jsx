@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { isPostgresDuplicateKeyError } from "@/lib/authFieldErrors";
 
 export default async function AuthCallbackPage({ searchParams }) {
   const supabase = await createSupabaseServerClient();
@@ -41,6 +42,10 @@ export default async function AuthCallbackPage({ searchParams }) {
     for (const row of candidates) {
       const { error } = await supabase.from("profiles").insert(row);
       if (!error) {
+        insertError = null;
+        break;
+      }
+      if (isPostgresDuplicateKeyError(error)) {
         insertError = null;
         break;
       }

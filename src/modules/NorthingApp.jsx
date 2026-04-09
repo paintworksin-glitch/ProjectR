@@ -3,7 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useReducer } from "react";
 import { NorthingErrorBoundary as ErrorBoundary } from "@/components/NorthingErrorBoundary";
 import { NorthingRemoteImage } from "@/components/NorthingRemoteImage";
-import { mapSignInError, mapSignUpError, mapResetPasswordEmailError } from "@/lib/authFieldErrors";
+import { isPostgresDuplicateKeyError, mapSignInError, mapSignUpError, mapResetPasswordEmailError } from "@/lib/authFieldErrors";
 import { parseEnquiriesTableError } from "@/lib/enquiriesErrors";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -1165,7 +1165,12 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     general: "",
   });
   const [forgotPasswordError, setForgotPasswordError] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [showRegPw, setShowRegPw] = useState(false);
+  const [showRegPw2, setShowRegPw2] = useState(false);
   const sessionHandledRef = useRef(false);
+  const loginSubmitRef = useRef(false);
+  const registerSubmitRef = useRef(false);
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -1179,6 +1184,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     for (let i = 0; i < 4; i += 1) {
       const { error } = await supabase.from("profiles").insert(candidate);
       if (!error) return;
+      if (isPostgresDuplicateKeyError(error)) return;
       const msg = String(error.message || "").toLowerCase();
       if (msg.includes("mobile_number")) {
         const next = { ...candidate };
@@ -1198,12 +1204,30 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
     }
   };
 
+  /** Trigger may have already inserted `profiles`; update instead of inserting again. */
+  const syncRegistrationProfile = async (userId, { name, email, phoneDigits }) => {
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      phone: phoneDigits,
+      mobile_number: phoneDigits,
+      agency_name: null,
+    };
+    const { data: existing } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
+    if (existing) {
+      const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
+      if (error) throw error;
+      return;
+    }
+    await insertProfileSafely({ id: userId, ...payload, role: "user" });
+  };
+
   const finishSession = async (userId) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user?.id === userId) {
-      const { data: existing } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
+      const { data: existing } = await supabase.from("profiles").select("id, phone, mobile_number").eq("id", userId).maybeSingle();
       if (!existing) {
         const md = user.user_metadata || {};
         const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
@@ -1217,6 +1241,15 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           mobile_number: phoneNational,
           agency_name: null,
         });
+      } else {
+        const md = user.user_metadata || {};
+        const phoneNational = md.phone ? String(md.phone).replace(/\D/g, "").slice(-10) : null;
+        if (phoneNational && !existing.mobile_number && !existing.phone) {
+          await supabase
+            .from("profiles")
+            .update({ phone: phoneNational, mobile_number: phoneNational })
+            .eq("id", userId);
+        }
       }
     }
     const { data: profile, error: pe } = await supabase.from("profiles").select("*").eq("id", userId).single();
@@ -1248,6 +1281,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
   };
 
   const submitLogin = async () => {
+    if (loading || loginSubmitRef.current) return;
     setForgotPasswordError("");
     if (!form.email?.trim() || !form.password) {
       setLoginFieldErrors({
@@ -1258,6 +1292,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       return;
     }
     setLoginFieldErrors({ email: "", password: "", general: "" });
+    loginSubmitRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -1273,11 +1308,14 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         password: m.password || "",
         general: m.general || "",
       });
+    } finally {
+      setLoading(false);
+      loginSubmitRef.current = false;
     }
-    setLoading(false);
   };
 
   const submitRegister = async () => {
+    if (loading || registerSubmitRef.current) return;
     const blank = { name: "", email: "", phone: "", password: "", confirmPassword: "", general: "" };
     if (!form.name?.trim() || !form.email?.trim()) {
       setRegisterFieldErrors({
@@ -1301,6 +1339,7 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
       return;
     }
     setRegisterFieldErrors(blank);
+    registerSubmitRef.current = true;
     setLoading(true);
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -1326,22 +1365,23 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
           onNavigate && onNavigate("login");
           setF("password", "");
           setF("confirmPassword", "");
-          setLoading(false);
           return;
         }
         throw error;
       }
       if (data.session && data.user) {
-        await insertProfileSafely({
-          id: data.user.id,
-          name: form.name.trim(),
-          email: form.email.trim(),
-          role: "user",
-          phone: phoneDigits,
-          mobile_number: phoneDigits,
-          agency_name: null,
-        });
-        await finishSession(data.user.id);
+        try {
+          await syncRegistrationProfile(data.user.id, {
+            name: form.name,
+            email: form.email,
+            phoneDigits,
+          });
+          await finishSession(data.user.id);
+        } catch (syncErr) {
+          await supabase.auth.signOut();
+          sessionHandledRef.current = false;
+          throw syncErr;
+        }
       } else {
         showToast("Check your email to confirm your account, then sign in.", "success");
       }
@@ -1355,8 +1395,10 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
         confirmPassword: m.confirmPassword || "",
         general: m.general || "",
       });
+    } finally {
+      setLoading(false);
+      registerSubmitRef.current = false;
     }
-    setLoading(false);
   };
 
   const googleLogin = async () => {
@@ -1495,20 +1537,46 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
                 <label htmlFor="northing-login-password" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Password
                 </label>
-                <input
-                  id="northing-login-password"
-                  className="inp"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Password"
-                  value={form.password}
-                  onChange={(e) => {
-                    setF("password", e.target.value);
-                    setLoginFieldErrors((er) => ({ ...er, password: "", general: "" }));
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && submitLogin()}
-                  style={{ borderColor: loginFieldErrors.password ? "#FCA5A5" : "var(--border)" }}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    id="northing-login-password"
+                    className="inp"
+                    type={showLoginPw ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(e) => {
+                      setF("password", e.target.value);
+                      setLoginFieldErrors((er) => ({ ...er, password: "", general: "" }));
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && submitLogin()}
+                    style={{
+                      borderColor: loginFieldErrors.password ? "#FCA5A5" : "var(--border)",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      paddingRight: 76,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    aria-label={showLoginPw ? "Hide password" : "Show password"}
+                    onClick={() => setShowLoginPw((s) => !s)}
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {showLoginPw ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {loginFieldErrors.password ? (
                   <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{loginFieldErrors.password}</div>
                 ) : null}
@@ -1616,39 +1684,91 @@ export const LoginPage = ({ onLogin, showToast, onNavigate, initialMode = "login
                 <label htmlFor="northing-reg-password" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Password
                 </label>
-                <input
-                  id="northing-reg-password"
-                  className="inp"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Password"
-                  value={form.password}
-                  onChange={(e) => {
-                    setF("password", e.target.value);
-                    setRegisterFieldErrors((er) => ({ ...er, password: "" }));
-                  }}
-                  style={{ borderColor: registerFieldErrors.password ? "#FCA5A5" : "var(--border)" }}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    id="northing-reg-password"
+                    className="inp"
+                    type={showRegPw ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(e) => {
+                      setF("password", e.target.value);
+                      setRegisterFieldErrors((er) => ({ ...er, password: "" }));
+                    }}
+                    style={{
+                      borderColor: registerFieldErrors.password ? "#FCA5A5" : "var(--border)",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      paddingRight: 76,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    aria-label={showRegPw ? "Hide password" : "Show password"}
+                    onClick={() => setShowRegPw((s) => !s)}
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {showRegPw ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {registerFieldErrors.password ? <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.password}</div> : null}
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label htmlFor="northing-reg-confirm" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Confirm password
                 </label>
-                <input
-                  id="northing-reg-confirm"
-                  className="inp"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Confirm password"
-                  value={form.confirmPassword}
-                  onChange={(e) => {
-                    setF("confirmPassword", e.target.value);
-                    setRegisterFieldErrors((er) => ({ ...er, confirmPassword: "" }));
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && submitRegister()}
-                  style={{ borderColor: registerFieldErrors.confirmPassword ? "#FCA5A5" : "var(--border)" }}
-                />
+                <div style={{ position: "relative", width: "100%" }}>
+                  <input
+                    id="northing-reg-confirm"
+                    className="inp"
+                    type={showRegPw2 ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Confirm password"
+                    value={form.confirmPassword}
+                    onChange={(e) => {
+                      setF("confirmPassword", e.target.value);
+                      setRegisterFieldErrors((er) => ({ ...er, confirmPassword: "" }));
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && submitRegister()}
+                    style={{
+                      borderColor: registerFieldErrors.confirmPassword ? "#FCA5A5" : "var(--border)",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      paddingRight: 76,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    aria-label={showRegPw2 ? "Hide password" : "Show password"}
+                    onClick={() => setShowRegPw2((s) => !s)}
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {showRegPw2 ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {registerFieldErrors.confirmPassword ? (
                   <div style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>{registerFieldErrors.confirmPassword}</div>
                 ) : null}

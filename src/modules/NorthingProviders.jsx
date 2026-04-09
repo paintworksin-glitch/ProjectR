@@ -20,6 +20,7 @@ import {
 } from "./NorthingApp.jsx";
 import { NorthingErrorBoundary as ErrorBoundary } from "@/components/NorthingErrorBoundary";
 import { useNorthing } from "./NorthingContext.jsx";
+import { isPostgresDuplicateKeyError } from "@/lib/authFieldErrors";
 
 function AppChrome({ children, agent }) {
   const pathname = usePathname();
@@ -86,6 +87,10 @@ export default function NorthingProviders({ children }) {
     for (let i = 0; i < 4; i += 1) {
       const { data, error } = await supabase.from("profiles").insert(candidate).select("*").single();
       if (!error) return data;
+      if (isPostgresDuplicateKeyError(error) && candidate.id) {
+        const { data: existing, error: readErr } = await supabase.from("profiles").select("*").eq("id", candidate.id).maybeSingle();
+        if (!readErr && existing) return existing;
+      }
       const msg = String(error.message || "").toLowerCase();
       if (msg.includes("mobile_number")) {
         const next = { ...candidate };
