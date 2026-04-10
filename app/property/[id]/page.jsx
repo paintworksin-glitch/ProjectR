@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import { notFound } from "next/navigation";
 import { fetchListingByIdServer } from "@/lib/fetchListingServer";
 import { buildListingPageMetadata } from "@/lib/listingMetadata";
@@ -47,7 +47,9 @@ export default async function PropertyPage({ params }) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <PropertyPublicPageClient id={params.id} initialListing={listing} />
+      <Suspense fallback={null}>
+        <PropertyPublicPageClient id={params.id} initialListing={listing} />
+      </Suspense>
     </>
   );
 }

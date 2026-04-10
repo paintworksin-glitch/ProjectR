@@ -26,6 +26,10 @@ import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
 import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
 import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
+import { getBrowserSiteOrigin, propertyPageUrl } from "@/lib/publicSiteUrl.js";
+import { ListingVideoUpload } from "@/components/ListingVideoUpload";
+import { IntroVideoUpload } from "@/components/IntroVideoUpload";
+import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
 
 export { PROPERTY_BACK_STORAGE_KEY };
 
@@ -70,10 +74,8 @@ const ShinyText = ({text, color="#b5b5b5", shineColor="#ffffff", speed=2, spread
 };
 
 const getPublicSiteBase = () => {
-  try {
-    const v = process.env.NEXT_PUBLIC_PUBLIC_SITE_URL;
-    if (v && String(v).trim()) return String(v).replace(/\/$/, "");
-  } catch (_) {}
+  const fromEnv = getBrowserSiteOrigin();
+  if (fromEnv) return String(fromEnv).replace(/\/$/, "");
   return typeof window !== "undefined" ? window.location.origin : "";
 };
 /** Default platform wordmark for Northing-only UI (nav, generic PDF header). Never used as a substitute on agent white-label surfaces. */
@@ -514,7 +516,12 @@ const dbToForm = (l) => ({
   bedrooms:l.bedrooms, bathrooms:l.bathrooms, furnishingStatus:l.furnishing_status,
   status:l.status, description:l.description, highlights:l.highlights||[],
   agentName:l.agent_name, agentPhone:l.agent_phone, agentEmail:l.agent_email,
-  agencyName:l.agency_name, photos:l.photos||[]
+  agencyName:l.agency_name, photos:l.photos||[],
+  muxVideoAssetId:l.video_id||null,
+  videoPlaybackId:l.video_playback_id||null,
+  videoStatus:l.video_status||"processing",
+  videoViewCount:l.video_view_count??0,
+  videoFramePhotos:l.details?.videoFramePhotos===true,
 });
 
 const burnWatermark = (file, { logoUrl, brandName } = {}) => new Promise((resolve) => {
@@ -691,7 +698,10 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
             <NorthingRemoteImage src={wlLogo} alt="Agency logo" width={34} height={34} style={{ width: 34, height: 34, objectFit: "contain", display: "block" }} />
           ) : null}
         </div>
-        <div style={{position:"absolute",top:12,right:12}}>
+        <div style={{position:"absolute",top:12,right:12,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+          {listing.videoPlaybackId ? (
+            <span className="badge" style={{background:"#0f172a",color:"#fff",border:"1px solid rgba(255,255,255,0.2)"}}>🎥 Video Tour</span>
+          ) : null}
           <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
         </div>
         <button
@@ -879,6 +889,12 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
     if(dc.length>0) lines.push('Details: ' + dc.join(' | '));
     if(listing.description){lines.push('');lines.push(listing.description);}
     if(highlights.length>0){lines.push('');lines.push('Highlights:');highlights.forEach(h=>lines.push('  - '+h));}
+    const siteBase=getPublicSiteBase();
+    if(siteBase&&listing.id){
+      lines.push('');
+      if(listing.videoPlaybackId){lines.push('🎥 Video Tour: '+propertyPageUrl(siteBase,listing.id,{tab:'video'}));}
+      lines.push('📄 PDF Report: '+propertyPageUrl(siteBase,listing.id,{tab:'pdf'}));
+    }
     lines.push('');
     lines.push('Contact:');
     lines.push('  Agent: *' + (listing.agentName||'') + '*');
@@ -958,7 +974,23 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
   const headerLogoSrc = agentBrand?.logoUrl || null;
   const [pdfLoading,setPdfLoading]=useState(false);
   const [mapSrc,setMapSrc]=useState(null);
+  const [pdfQrDataUrl,setPdfQrDataUrl]=useState(null);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      if(!listing?.videoPlaybackId||!listing?.videoFramePhotos){setPdfQrDataUrl(null);return;}
+      const origin=getBrowserSiteOrigin();
+      if(!origin){setPdfQrDataUrl(null);return;}
+      try{
+        const { default: QRCode } = await import("qrcode");
+        const url = propertyPageUrl(origin, listing.id, { tab: "video" });
+        const dataUrl = await QRCode.toDataURL(url, { width: 128, margin: 1, color: { dark: "#1a1a1a", light: "#ffffffff" } });
+        if(alive) setPdfQrDataUrl(dataUrl);
+      }catch{ if(alive) setPdfQrDataUrl(null); }
+    })();
+    return ()=>{ alive=false; };
+  },[listing?.id,listing?.videoPlaybackId,listing?.videoFramePhotos]);
   const gMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   useEffect(()=>{
     if(!listing?.location||!gMapsKey){setMapSrc(null);return;}
@@ -1040,6 +1072,16 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",borderBottom:"1.5px solid var(--primary-mid)",paddingBottom:7,marginBottom:12}}>Key Highlights</div>
             {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
           </div>}
+
+          {pdfQrDataUrl&&(
+            <div style={{marginBottom:24,display:"flex",gap:20,alignItems:"center",flexWrap:"wrap"}}>
+              <img src={pdfQrDataUrl} alt="" width={120} height={120} style={{borderRadius:10,border:"1px solid #eee",display:"block"}} />
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>Video tour</div>
+                <div style={{fontSize:13,color:"#555",lineHeight:1.5,maxWidth:280}}>Scan to watch video tour</div>
+              </div>
+            </div>
+          )}
 
           {/* ── PHOTOS stacked vertically ── */}
           {listing.photos?.length>0&&(
@@ -1826,7 +1868,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const [aiPick,setAiPick]=useState(null);
   const [scoringIdx,setScoringIdx]=useState(null);
   const [photoMeta,setPhotoMeta]=useState([]); // [{url,score}] parallel to form.photos
-  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",aiDescription:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[]});
+  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",aiDescription:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[],muxVideoAssetId:null,videoPlaybackId:null,videoStatus:null,videoViewCount:0,videoFramePhotos:false});
   const [errs,setErrs]=useState({});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   useEffect(()=>{if(isEdit){const raw=allListings.find(l=>l.id===listingId);if(raw)setForm(dbToForm(raw));}},[listingId,allListings]);
@@ -1893,7 +1935,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     }catch(err){showToast("Photo upload failed: "+err.message,"error");setPhotoLoading(false);}
   };
   const rmPhoto=(i)=>{setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));setPhotoMeta(m=>m.filter((_,idx)=>idx!==i));if(coverIdx>=( form.photos?.length||1)-1)setCoverIdx(0);};
-  const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";if(!form.description||!form.description.trim())e.description="Description is required";if(!form.photos?.length)e.photos="At least 1 photo is required";setErrs(e);return !Object.keys(e).length;};
+  const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";if(!form.description||!form.description.trim())e.description="Description is required";if(isEdit){if(!form.photos?.length&&!form.videoPlaybackId&&form.videoStatus!=="processing")e.photos="Add at least one photo or a video tour.";}else{if(!form.photos?.length)e.photos="At least 1 photo is required";}setErrs(e);return !Object.keys(e).length;};
   const doSave=async()=>{
     setSaving(true);
     try{
@@ -2042,6 +2084,10 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <input type="file" ref={fileRef} multiple accept="image/*" onChange={handlePhotos} style={{display:"none"}}/>
         <button onClick={()=>fileRef.current?.click()} disabled={photoLoading||aiStatus==="analyzing"} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13,borderColor:errs.photos?"#FCA5A5":"var(--border)"}}>📁 {photoLoading?"Uploading…":aiStatus==="analyzing"?"Analysing…":"Choose Photos"}</button>
         {errs.photos&&<div style={{fontSize:11,color:"#DC2626",marginTop:6}}>{errs.photos}</div>}
+      </div>
+      <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
+        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>🎥 Video Tour</h3>
+        <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} />
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
         <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>Status</h3>
@@ -2304,10 +2350,11 @@ export const AgentDash = ({currentUser,showToast}) => {
                   <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--primary)",marginBottom:2}}>{fmtP(l.price)}</div>
                   <h3 style={{fontSize:14,fontWeight:700,color:"var(--navy)",marginBottom:4}}>{l.title}</h3>
                   <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>📍 {l.location}</div>
-                  <div style={{display:"flex",gap:10,fontSize:11,marginBottom:10,padding:"6px 10px",background:"var(--gray)",borderRadius:8}}>
+                  <div style={{display:"flex",gap:10,fontSize:11,marginBottom:10,padding:"6px 10px",background:"var(--gray)",borderRadius:8,flexWrap:"wrap"}}>
                     <span style={{color:"var(--muted)"}}>👁 {l.viewCount||0}</span>
                     <span style={{color:"#25D366",fontWeight:700}}>📲 {l.waCount||0} WA</span>
                     <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
+                    {l.videoPlaybackId ? <span style={{color:"var(--navy)",fontWeight:700}}>🎥 {l.videoViewCount ?? 0}</span> : null}
                   </div>
                   {l.status==="Active"?(
                     <div style={{display:"flex",gap:5,marginBottom:8}}>
@@ -2381,6 +2428,7 @@ export const AgentDash = ({currentUser,showToast}) => {
               />
               {profilePhoneError?<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>{profilePhoneError}</div>:null}
             </div>
+            <IntroVideoUpload userId={currentUser.id} showToast={showToast} />
             <button onClick={saveProfile} disabled={profileSaving} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8,marginTop:8}}>
               {profileSaving?<><span className="spin"/>Saving…</>:"Save Profile →"}
             </button>
@@ -3533,6 +3581,13 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
         </div>
       </div>
       <div style={{maxWidth:960,margin:"0 auto",padding:"36px 24px"}}>
+        {agent.intro_video_playback_id&&agent.intro_video_status==="ready"?(
+          <div className="card" style={{padding:24,marginBottom:28,maxWidth:360,marginLeft:"auto",marginRight:"auto"}}>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:800,color:"var(--navy)",margin:"0 0 12px"}}>Introduction</h2>
+            <NorthingMuxPlayer playbackId={agent.intro_video_playback_id} aspectRatio="9 / 16" onPlay={()=>{fetch("/api/video/view",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({introUserId:agentId})}).catch(()=>{});}} />
+            <p style={{fontSize:12,color:"var(--muted)",marginTop:10,marginBottom:0}}>Autoplay is muted — use the player to unmute.</p>
+          </div>
+        ):null}
         <h2 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:800,color:"var(--navy)",marginBottom:20}}>{listings.length} Active Listing{listings.length!==1?"s":""}</h2>
         {listings.length===0
           ?<div className="card" style={{padding:48,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>🏘️</div><p style={{color:"var(--muted)"}}>No active listings right now.</p></div>

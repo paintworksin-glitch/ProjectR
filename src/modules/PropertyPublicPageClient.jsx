@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
@@ -18,14 +18,17 @@ import {
   useListingAgentBrand,
   track,
 } from "./NorthingApp.jsx";
+import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
 
 /**
  * Public property detail — data from server (SSR + OG); client UI, auth gates, enquiry, save.
  */
 export default function PropertyPublicPageClient({ id, initialListing }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, showToast, refreshSessionUser } = useNorthing();
   const listing = initialListing;
+  const [toolTab, setToolTab] = useState("wa");
 
   const goHome = () => {
     router.push("/");
@@ -81,6 +84,20 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
     setDescExpanded(false);
     setEnquirySent(false);
   }, [id]);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "video" && listing?.videoPlaybackId) setToolTab("video");
+    else if (t === "pdf") setToolTab("pdf");
+    else if (t === "wa") setToolTab("wa");
+  }, [searchParams, listing?.videoPlaybackId]);
+
+  const syncToolTab = (t) => {
+    setToolTab(t);
+    if (listing?.id) {
+      router.replace(`/property/${listing.id}?tab=${encodeURIComponent(t)}`, { scroll: false });
+    }
+  };
 
   useEffect(() => {
     if (listing) window.scrollTo(0, 0);
@@ -327,14 +344,60 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </>
         ) : null}
 
-        <div className="property-detail-actions property-detail-actions--tools">
-          <button type="button" className="btn-outline property-detail-tool-btn" onClick={() => _h.openWA(listing)}>
+        <div
+          className="property-detail-actions property-detail-actions--tools"
+          style={{
+            display: "grid",
+            gridTemplateColumns: listing.videoPlaybackId ? "repeat(3, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
+            gap: 8,
+          }}
+        >
+          <button
+            type="button"
+            className={`property-detail-tool-btn ${toolTab === "wa" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => {
+              syncToolTab("wa");
+              _h.openWA(listing);
+            }}
+          >
             <WALogo size={15} /> WhatsApp card
           </button>
-          <button type="button" className="btn-outline property-detail-tool-btn" onClick={() => _h.openPDF(listing)}>
+          <button
+            type="button"
+            className={`property-detail-tool-btn ${toolTab === "pdf" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => {
+              syncToolTab("pdf");
+              _h.openPDF(listing);
+            }}
+          >
             📄 PDF brochure
           </button>
+          {listing.videoPlaybackId ? (
+            <button
+              type="button"
+              className={`property-detail-tool-btn ${toolTab === "video" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => syncToolTab("video")}
+            >
+              🎥 Video Tour
+            </button>
+          ) : null}
         </div>
+
+        {toolTab === "video" && listing.videoPlaybackId ? (
+          <div style={{ margin: "0 0 24px" }} className="property-detail-video-panel">
+            <NorthingMuxPlayer
+              playbackId={listing.videoPlaybackId}
+              aspectRatio="16 / 9"
+              onPlay={() => {
+                fetch("/api/video/view", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ listingId: listing.id }),
+                }).catch(() => {});
+              }}
+            />
+          </div>
+        ) : null}
 
         <section className="property-detail-card-block" aria-labelledby="enquiry-heading">
           <h2 id="enquiry-heading" className="section-label property-detail-card-block__title">

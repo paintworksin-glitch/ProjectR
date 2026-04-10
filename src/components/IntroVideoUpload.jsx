@@ -1,0 +1,204 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
+
+function formatErr(msg) {
+  const m = String(msg || "");
+  if (/500MB/i.test(m)) return "Video must be under 500MB";
+  if (/format|mp4|mov|webm/i.test(m)) return "Please upload mp4, mov or webm";
+  if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
+  if (/60 seconds|Introduction video/i.test(m)) return "Introduction video must be 60 seconds or less";
+  if (/480|quality too low/i.test(m)) return "Video quality too low. Please upload a clearer video (minimum 480p)";
+  if (/network|connection/i.test(m)) return "Connection error. Please check your internet and try again.";
+  return m || "Upload failed. Please try again.";
+}
+
+export function IntroVideoUpload({ userId, showToast }) {
+  const [playbackId, setPlaybackId] = useState(null);
+  const [status, setStatus] = useState("processing");
+  const [views, setViews] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState(0);
+  const [stage, setStage] = useState("");
+  const [err, setErr] = useState("");
+  const xhrRef = useRef(null);
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("intro_video_playback_id, intro_video_status, intro_video_view_count")
+      .eq("id", userId)
+      .single();
+    if (!data) return;
+    setPlaybackId(data.intro_video_playback_id || null);
+    setStatus(data.intro_video_status || "processing");
+    setViews(data.intro_video_view_count ?? 0);
+  }, [userId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (status !== "processing" || playbackId) return undefined;
+    const id = setInterval(load, 8000);
+    return () => clearInterval(id);
+  }, [status, playbackId, load]);
+
+  const cancel = () => {
+    xhrRef.current?.abort();
+    setBusy(false);
+    setPct(0);
+    setStage("");
+  };
+
+  const upload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErr("");
+    setBusy(true);
+    setPct(0);
+    setStage("Uploading… 0%");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", "intro");
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+      await new Promise((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (ev) => {
+          if (!ev.lengthComputable) return;
+          const p = Math.round((ev.loaded / ev.total) * 45);
+          setPct(p);
+          setStage(`Uploading… ${p}%`);
+        });
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+        });
+        xhr.addEventListener("error", () => reject(new Error("Connection error. Please check your internet and try again.")));
+        xhr.addEventListener("abort", () => reject(new Error("aborted")));
+        xhr.open("POST", "/api/video/upload");
+        xhr.send(fd);
+      });
+      setPct(55);
+      setStage("Processing video…");
+      setStatus("processing");
+      setPlaybackId(null);
+      showToast("Intro video uploaded — processing (usually 2–3 minutes)", "success");
+      await load();
+      setPct(100);
+      setStage("Your video is live ✓");
+    } catch (ex) {
+      if (String(ex?.message) !== "aborted") {
+        let msg = "Upload failed. Please try again.";
+        const raw = String(ex?.message || "");
+        try {
+          const j = JSON.parse(raw);
+          if (j.error) msg = formatErr(j.error);
+        } catch {
+          msg = formatErr(raw);
+        }
+        setErr(msg);
+        showToast(msg, "error");
+      }
+    } finally {
+      setBusy(false);
+      setTimeout(() => {
+        setPct(0);
+        setStage("");
+      }, 3500);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove your introduction video?")) return;
+    try {
+      const res = await fetch("/api/video/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ introVideo: true }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Delete failed");
+      await load();
+      showToast("Introduction video removed", "success");
+    } catch (e) {
+      showToast(e.message || "Delete failed", "error");
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: 1 }}>Introduction Video</h3>
+      <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12, lineHeight: 1.55 }}>
+        Vertical 9:16 · Max 60 seconds · Optional. Shown on your public profile.
+      </p>
+
+      {playbackId && status === "ready" ? (
+        <div style={{ marginBottom: 14 }}>
+          <NorthingMuxPlayer
+            playbackId={playbackId}
+            aspectRatio="9 / 16"
+            style={{ maxWidth: 280, margin: "0 auto" }}
+            onPlay={() => {
+              fetch("/api/video/view", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ introUserId: userId }),
+              }).catch(() => {});
+            }}
+          />
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Views: {views}</p>
+        </div>
+      ) : status === "processing" && !playbackId ? (
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            background: "var(--primary-light)",
+            border: "1px solid var(--primary-mid)",
+            fontSize: 13,
+            marginBottom: 12,
+          }}
+        >
+          Processing your video... usually 2-3 minutes
+        </div>
+      ) : status === "failed" ? (
+        <div style={{ padding: 12, borderRadius: 10, background: "#FEF2F2", color: "#991B1B", fontSize: 13, marginBottom: 12 }}>
+          Video processing failed. Please try uploading again.
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+        <label className="btn-ghost" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, cursor: busy ? "wait" : "pointer" }}>
+          {busy ? "Working…" : playbackId ? "Replace introduction video" : "Add Introduction Video"}
+          <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo" disabled={busy} style={{ display: "none" }} onChange={upload} />
+        </label>
+        {busy && (
+          <button type="button" className="btn-outline" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12 }} onClick={cancel}>
+            Cancel
+          </button>
+        )}
+        {playbackId ? (
+          <button type="button" className="btn-danger" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12 }} onClick={remove} disabled={busy}>
+            Delete video
+          </button>
+        ) : null}
+      </div>
+      {busy && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ height: 8, borderRadius: 999, background: "var(--border)", overflow: "hidden" }}>
+            <div style={{ width: `${pct}%`, height: "100%", background: "var(--primary)", transition: "width 0.2s" }} />
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>{stage}</div>
+        </div>
+      )}
+      {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 8 }}>{err}</div> : null}
+    </div>
+  );
+}

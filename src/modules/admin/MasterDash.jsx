@@ -17,6 +17,7 @@ import { mapListing } from "@/lib/mapListing";
 import { fmtP } from "@/lib/formatPrice";
 import { NorthingRemoteImage } from "@/components/NorthingRemoteImage";
 import { uploadPropertyPhoto } from "@/lib/uploadPropertyPhoto";
+import { muxThumbnailUrl } from "@/lib/muxThumbnailUrl.js";
 import { PropModal, ConfirmModal, WALogo, _h } from "@/modules/NorthingApp.jsx";
 
 const PAGE_SIZE = 10;
@@ -205,6 +206,46 @@ export function MasterDash({ showToast }) {
       setLoading(false);
     }
   }, [showToast]);
+
+  const deleteListingVideoMaster = useCallback(
+    async (listingId) => {
+      if (!window.confirm("Remove this listing’s video from Mux and clear it in the database?")) return;
+      try {
+        const res = await fetch("/api/video/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId, master: true }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || "Failed");
+        showToast("Listing video removed", "success");
+        await load();
+      } catch (e) {
+        showToast(e?.message || "Delete failed", "error");
+      }
+    },
+    [load, showToast]
+  );
+
+  const deleteIntroVideoMaster = useCallback(
+    async (userId) => {
+      if (!window.confirm("Remove this agent’s introduction video?")) return;
+      try {
+        const res = await fetch("/api/video/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ introVideo: true, master: true, targetUserId: userId }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || "Failed");
+        showToast("Intro video removed", "success");
+        await load();
+      } catch (e) {
+        showToast(e?.message || "Delete failed", "error");
+      }
+    },
+    [load, showToast]
+  );
 
   useEffect(() => {
     load();
@@ -857,10 +898,10 @@ export function MasterDash({ showToast }) {
               </div>
               <div className="card admin-table-card" style={{ overflow: "hidden" }}>
                 <div className="master-dash-table-wrap admin-table-wrap" style={{ overflowX: "auto" }}>
-                  <table className="admin-data-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+                  <table className="admin-data-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040 }}>
                     <thead>
                       <tr style={{ background: "var(--navy)" }}>
-                        {["Title", "Agent / seller", "City", "Price", "Status", "Featured", "Created", "Actions"].map((h) => (
+                        {["Title", "Agent / seller", "City", "Price", "Status", "Featured", "Video", "Created", "Actions"].map((h) => (
                           <th
                             key={h}
                             style={{
@@ -907,6 +948,29 @@ export function MasterDash({ showToast }) {
                             </td>
                             <td style={{ padding: "11px 14px" }}>
                               {raw.featured ? badge("featured", "#ECFDF5", "#065F46", "1px solid #A7F3D0") : badge("—", "#F3F4F6", "#6B7280", "1px solid #E5E7EB")}
+                            </td>
+                            <td style={{ padding: "11px 14px", fontSize: 11, color: "var(--muted)", verticalAlign: "top" }}>
+                              {l.videoPlaybackId ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                                  <img
+                                    src={muxThumbnailUrl(l.videoPlaybackId, 1)}
+                                    alt=""
+                                    width={72}
+                                    height={48}
+                                    style={{ borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)", display: "block" }}
+                                  />
+                                  <span>
+                                    {l.videoStatus || "—"} · 🎥 {l.videoViewCount ?? 0}
+                                  </span>
+                                  {raw.video_id ? (
+                                    <button type="button" className="btn-danger" style={{ padding: "4px 8px", fontSize: 10 }} onClick={() => deleteListingVideoMaster(raw.id)}>
+                                      Del video
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                "—"
+                              )}
                             </td>
                             <td style={{ padding: "11px 14px", fontSize: 12, color: "var(--muted)" }}>
                               {raw.created_at ? new Date(raw.created_at).toLocaleString() : "—"}
@@ -1020,11 +1084,12 @@ export function MasterDash({ showToast }) {
                       <col style={{ width: "9%" }} />
                       <col style={{ width: "8%" }} />
                       <col style={{ width: "7%" }} />
-                      <col style={{ width: "20%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "18%" }} />
                     </colgroup>
                     <thead>
                       <tr style={{ background: "var(--navy)" }}>
-                        {["Name", "Email", "Phone", "RERA", "Verification", "Plan", "Listings", "Actions"].map((h) => (
+                        {["Name", "Email", "Phone", "RERA", "Verification", "Plan", "Listings", "Intro video", "Actions"].map((h) => (
                           <th
                             key={h}
                             style={{
@@ -1090,6 +1155,27 @@ export function MasterDash({ showToast }) {
                             </td>
                             <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <span className="badge tag">{nList}</span>
+                            </td>
+                            <td style={{ padding: "12px 14px", verticalAlign: "top", fontSize: 11, color: "var(--muted)" }}>
+                              {a.intro_video_playback_id ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                                  <img
+                                    src={muxThumbnailUrl(a.intro_video_playback_id, 1)}
+                                    alt=""
+                                    width={56}
+                                    height={40}
+                                    style={{ borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)", display: "block" }}
+                                  />
+                                  <span>{a.intro_video_status || "—"} · views {a.intro_video_view_count ?? 0}</span>
+                                  {a.intro_video_id ? (
+                                    <button type="button" className="btn-danger" style={{ padding: "4px 8px", fontSize: 10 }} onClick={() => deleteIntroVideoMaster(a.id)}>
+                                      Del intro
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                "—"
+                              )}
                             </td>
                             <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>

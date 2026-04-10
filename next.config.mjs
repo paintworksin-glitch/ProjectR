@@ -6,8 +6,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://vitals.vercel-insights.com https://api.resend.com",
-  "frame-src 'self' https://www.google.com https://maps.google.com https://www.google.com/maps https://vercel.live",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://vitals.vercel-insights.com https://api.resend.com https://*.mux.com https://stream.mux.com https://image.mux.com",
+  "frame-src 'self' https://www.google.com https://maps.google.com https://www.google.com/maps https://vercel.live https://*.mux.com",
+  "media-src 'self' blob: https://*.mux.com https://stream.mux.com",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",
@@ -23,6 +24,13 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverComponentsExternalPackages: [
+      "@ffmpeg-installer/ffmpeg",
+      "fluent-ffmpeg",
+      "@mux/mux-node",
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },

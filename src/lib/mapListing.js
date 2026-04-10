@@ -3,6 +3,7 @@ const LISTING_DETAIL_KEYS = [
   "toilets", "condition", "builtYear", "modernKitchen", "wcType", "superBuiltUp", "carpetArea",
   "parkingType", "vastuDirection", "totalFloors", "propertyFloor", "maintenance", "societyFormed",
   "ocReceived", "reraRegistered", "reraNumber", "logoUrl", "agentAddress", "agentWebsite", "aiDescription",
+  "videoFramePhotos",
 ];
 
 function pickListingDetails(raw) {
@@ -47,5 +48,10 @@ export function mapListing(l) {
     waCount: l.wa_count || 0,
     pdfCount: l.pdf_count || 0,
     ownerAgentVerified: l._ownerAgentVerified === true,
+    muxVideoAssetId: l.video_id || null,
+    videoPlaybackId: l.video_playback_id || null,
+    videoProvider: l.video_provider || "mux",
+    videoStatus: l.video_status || "processing",
+    videoViewCount: l.video_view_count ?? 0,
   };
 }
