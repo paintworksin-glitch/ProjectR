@@ -21,9 +21,10 @@ export function bufferLooksLikeSupportedVideo(buf) {
  * @param {number} width
  * @param {number} height
  */
+/** Short side ≥360px (vertical phone clips often ~480×848 or 478-wide). */
 export function meetsMinResolution(width, height) {
   if (!width || !height) return false;
-  return Math.min(width, height) >= 480;
+  return Math.min(width, height) >= 360;
 }
 
 /**
@@ -60,8 +61,41 @@ export function parseAndValidateClientVideoMeta(form, opts) {
   }
 
   if (!meetsMinResolution(width, height)) {
-    return { ok: false, error: "Video quality too low. Please upload a clearer video (minimum 480p)" };
+    return { ok: false, error: "Video resolution too low. Short edge should be at least 360px." };
   }
 
+  return { ok: true, durationSec, width, height };
+}
+
+/**
+ * Same rules as parseAndValidateClientVideoMeta for JSON direct-upload API.
+ * @param {Record<string, unknown>} body
+ * @param {{ kind: 'listing' | 'intro' }} opts
+ */
+export function validateVideoMetaJson(body, opts) {
+  const durationSec = Number(body?.durationSec);
+  const width = Number.parseInt(String(body?.videoWidth ?? ""), 10);
+  const height = Number.parseInt(String(body?.videoHeight ?? ""), 10);
+
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    return { ok: false, error: "Could not read video length. Try another file or browser." };
+  }
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 16 || height < 16) {
+    return { ok: false, error: "Could not read video size. Try another file or browser." };
+  }
+  if (durationSec > MAX_REASONABLE_DURATION_SEC) {
+    return { ok: false, error: "Video appears invalid. Please try another file." };
+  }
+  if (durationSec < 5) {
+    return { ok: false, error: "Video must be at least 5 seconds" };
+  }
+  if (opts.kind === "listing") {
+    if (durationSec > 300) return { ok: false, error: "Video must be under 5 minutes" };
+  } else if (durationSec > 60) {
+    return { ok: false, error: "Introduction video must be 60 seconds or less" };
+  }
+  if (!meetsMinResolution(width, height)) {
+    return { ok: false, error: "Video resolution too low. Short edge should be at least 360px." };
+  }
   return { ok: true, durationSec, width, height };
 }

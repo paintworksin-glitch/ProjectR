@@ -228,6 +228,16 @@ const findDups = (form, all, editId) => all.filter(l => {
   return (ts>0.6?2:0)+(ls>0.7?2:0)+(pm?1:0)+(dm?1:0)>=3;
 });
 
+/** DB row: no photos yet but video pipeline active — do not leave as Active without stills */
+function listingNeedsStillsBeforePublic(row) {
+  const ph = Array.isArray(row?.photos) ? row.photos.length : 0;
+  if (ph > 0) return false;
+  const vs = row?.video_status;
+  if (vs === "processing") return true;
+  if (row?.video_playback_id && vs === "ready" && ph === 0) return true;
+  return false;
+}
+
 /** Static Mumbai listing for homepage PDF/WhatsApp samples (not from DB). */
 const HOME_SAMPLE_BROCHURE = {
   id: "samp-mumbai-001",
@@ -1896,8 +1906,9 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       setAiDescBusy(true);
       try{
         const f=dbToForm(raw);
-        const t=await generateListingAiDescription(supabase,f);
-        if(t){setForm(prev=>({...prev,aiDescription:t}));showToast("AI summary generated","success");}
+        const { text, error }=await generateListingAiDescription(supabase,f);
+        if(text){setForm(prev=>({...prev,aiDescription:text}));showToast("AI summary generated","success");}
+        else if(error&&error!=="not_configured")showToast(error,"error");
       }finally{setAiDescBusy(false);}
     })();
   },[isEdit,listingId,allListings,showToast]);
@@ -1984,6 +1995,17 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       throw e;
     }
   };
+  const videoPublishBlockedMessage=()=>{
+    const ph=form.photos?.length||0;
+    if(ph>0)return null;
+    if(pendingVideoFile)return null;
+    if(form.videoStatus==="failed")return "Video processing failed. Remove the video or add photos before publishing.";
+    const hasVideo=form.videoStatus==="processing"||form.videoPlaybackId||form.muxVideoAssetId;
+    if(!hasVideo)return null;
+    if(form.videoStatus==="processing")return "Video is processing. Wait for still images (about 2–3 minutes), then publish.";
+    if(form.videoPlaybackId&&form.videoStatus==="ready"&&ph===0)return "Stills from your video are still attaching. Retry in a few seconds.";
+    return null;
+  };
   const validatePublish=()=>{
     const e={};
     if(!form.title?.trim())e.title="Required";
@@ -1993,6 +2015,8 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     if(!form.price)e.price="Required";
     if(!form.description?.trim())e.description="Description is required";
     if(!hasListingMedia())e.photos="Add at least one photo or a video tour.";
+    const vpb=videoPublishBlockedMessage();
+    if(vpb)e.photos=vpb;
     setErrs(e);
     return !Object.keys(e).length;
   };
@@ -2028,6 +2052,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   };
   const doSave=async()=>{
     setSaving(true);
+    let savedListingId=null;
     try{
       const publishForm={...form,status:publishTarget};
       if(!isEdit){
@@ -2037,6 +2062,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       if(isEdit){
         const {error}=await supabase.from("listings").update(formToDb(publishForm,currentUser.id)).eq("id",listingId);
         if(error) throw error;
+        savedListingId=listingId;
         try{
           await flushPendingVideoUpload(listingId);
         }catch(ve){
@@ -2046,12 +2072,15 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         const row = formToDb(publishForm, currentUser.id);
         const { data: inserted, error } = await supabase.from("listings").insert(row).select("id").single();
         if (error) throw error;
+        savedListingId=inserted.id;
         if (inserted?.id && listingAiConfigured()) {
-          const aiText = await generateListingAiDescription(supabase, publishForm);
+          const { text: aiText, error: aiErr } = await generateListingAiDescription(supabase, publishForm);
           if (aiText) {
             const mergedDetails = { ...(row.details || {}), aiDescription: aiText };
             const { error: patchErr } = await supabase.from("listings").update({ details: mergedDetails }).eq("id", inserted.id);
             if (patchErr) console.warn("AI description save:", patchErr);
+          } else if (aiErr && aiErr !== "not_configured") {
+            console.warn("listing-ai on publish:", aiErr);
           }
         }
         try{
@@ -2065,6 +2094,22 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           onDraftSaved?.(inserted.id);
           setSaving(false);
           return;
+        }
+      }
+      if(savedListingId){
+        const { data: fresh } = await supabase.from("listings").select("*").eq("id", savedListingId).single();
+        if(fresh){
+          if(listingNeedsStillsBeforePublic(fresh)){
+            const { error: draftErr } = await supabase.from("listings").update({ status: "Draft" }).eq("id", savedListingId);
+            if(draftErr) console.warn("draft downgrade", draftErr);
+            const { data: fresh2 } = await supabase.from("listings").select("*").eq("id", savedListingId).single();
+            if(fresh2)setForm(dbToForm(fresh2));
+            showToast("Your video is still preparing still images for PDFs and WhatsApp. Listing saved as draft until photos appear below (usually 2–3 minutes) — then publish again.","info");
+            onDraftSaved?.(savedListingId);
+            setSaving(false);
+            return;
+          }
+          setForm(dbToForm(fresh));
         }
       }
       showToast(isEdit?"Listing updated!":"Listing published!","success");
@@ -2141,11 +2186,15 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
             }
             setAiDescBusy(true);
             try {
-              const t = await generateListingAiDescription(supabase, form);
-              if (t) {
-                set("aiDescription", t);
+              const { text, error } = await generateListingAiDescription(supabase, form);
+              if (text) {
+                set("aiDescription", text);
                 showToast(isEdit ? "Summary ready — save your listing to keep it" : "Summary ready — it will be saved when you publish", "success");
-              } else showToast("Could not generate summary", "error");
+              } else if (error === "not_configured") {
+                showToast("Listing AI is not configured. Set NEXT_PUBLIC_LISTING_AI_URL, deploy the listing-ai function, then redeploy this app.", "error");
+              } else {
+                showToast(error || "Could not generate summary", "error");
+              }
             } finally {
               setAiDescBusy(false);
             }
@@ -2198,6 +2247,22 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>🎥 Video Tour</h3>
+        {(pendingVideoFile||form.videoStatus==="processing"||(form.videoPlaybackId&&(form.photos?.length||0)===0)||(form.videoFramePhotos&&(form.photos?.length||0)>0))?(
+          <div style={{marginBottom:14,padding:"12px 14px",borderRadius:10,background:"var(--primary-light)",border:"1px solid var(--primary-mid)",fontSize:12,color:"var(--navy)",lineHeight:1.55}}>
+            <strong style={{display:"block",marginBottom:6}}>Video → still images (PDF &amp; WhatsApp)</strong>
+            <p style={{margin:"6px 0 0",lineHeight:1.55}}>
+              {(() => {
+                const ph = form.photos?.length || 0;
+                if (pendingVideoFile) return "Selected file uploads when you save draft or publish. Stills appear after encoding (~2–3 min).";
+                if (form.videoStatus === "processing") return "Encoding on Mux… stills will appear in the photo strip when ready. Draft saves anytime; publish waits until images appear.";
+                if (form.videoPlaybackId && form.videoStatus === "ready" && ph === 0) return "Attaching frame stills to this listing — wait a few seconds or refresh.";
+                if (ph > 0 && form.videoFramePhotos) return `${ph} stills from your video are attached. You can publish.`;
+                if (ph > 0) return "Photos are set. You can publish.";
+                return "";
+              })()}
+            </p>
+          </div>
+        ):null}
         <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} pendingVideoFile={pendingVideoFile} onPendingVideoChange={setPendingVideoFile} />
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>

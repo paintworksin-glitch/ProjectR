@@ -12,7 +12,7 @@ function formatErr(msg) {
   if (/format|mp4|mov|webm/i.test(m)) return "Please upload mp4, mov or webm";
   if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
   if (/5 minutes|under 5 min|300/i.test(m)) return "Video must be under 5 minutes";
-  if (/480|quality too low/i.test(m)) return "Video quality too low. Please upload a clearer video (minimum 480p)";
+  if (/360|resolution too low|quality too low|480p/i.test(m)) return "Video resolution too low (short edge at least 360px).";
   if (/read video|video metadata|video length|video size/i.test(m)) return "Could not read this video in your browser. Try another file or browser.";
   if (/network|connection|ECONNRESET/i.test(m)) return "Connection error. Please check your internet and try again.";
   if (/429|Too many uploads/i.test(m)) return "Too many uploads. Try again later.";
@@ -182,7 +182,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
         ) : null}
         {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
         <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
-          MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Min 480p (landscape).
+          MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px.
         </p>
       </div>
     );
@@ -255,7 +255,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
 
       {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
       <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
-        Optional if you already have photos · MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Min 480p. Video-only listings: we add stills from your video for PDFs and WhatsApp after processing.
+        Optional if you already have photos · MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px. Video-only: stills for PDFs/WhatsApp after processing.
       </p>
     </div>
   );

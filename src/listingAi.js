@@ -82,8 +82,13 @@ export async function scorePhotoWithListingAi(supabase, base64, mediaType) {
   return data.scores;
 }
 
+/**
+ * @returns {Promise<{ text: string | null, error: string | null }>}
+ */
 export async function generateListingAiDescription(supabase, form) {
-  if (!listingAiConfigured()) return null;
+  if (!listingAiConfigured()) {
+    return { text: null, error: "not_configured" };
+  }
   const payload = {
     title: form.title,
     location: form.location,
@@ -104,8 +109,15 @@ export async function generateListingAiDescription(supabase, form) {
   });
   if (!ok) {
     console.warn("listing-ai describe:", error);
-    return null;
+    const msg =
+      typeof error === "string" && error.trim()
+        ? error.trim()
+        : "The summary service returned an error. Check Listing AI logs or try again.";
+    return { text: null, error: msg };
   }
   const text = (data?.text || "").trim();
-  return text || null;
+  if (!text) {
+    return { text: null, error: "No summary text was returned. Try again or edit manually." };
+  }
+  return { text, error: null };
 }

@@ -4,14 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
 import { readVideoFileMetadata } from "@/lib/clientVideoMetadata";
+import { uploadIntroVideo } from "@/lib/listingVideoUploadClient";
 
 function formatErr(msg) {
-  const m = String(msg || "");
-  if (/500MB/i.test(m)) return "Video must be under 500MB";
+  const m = String(msg || "").toLowerCase();
+  const raw = String(msg || "");
+  if (/\b413\b|payload too large|entity too large|body exceeded|request body|too large for/i.test(m)) {
+    return "Upload was blocked by the network. Try a smaller file or lower quality.";
+  }
+  if (/500mb/i.test(m)) return "Video must be under 500MB";
   if (/format|mp4|mov|webm/i.test(m)) return "Please upload mp4, mov or webm";
   if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
   if (/60 seconds|Introduction video/i.test(m)) return "Introduction video must be 60 seconds or less";
-  if (/480|quality too low/i.test(m)) return "Video quality too low. Please upload a clearer video (minimum 480p)";
+  if (/360|resolution too low|quality too low|480p/i.test(m)) return "Video resolution too low (short edge at least 360px).";
   if (/read video|video metadata|video length|video size/i.test(m)) return "Could not read this video in your browser. Try another file or browser.";
   if (/network|connection/i.test(m)) return "Connection error. Please check your internet and try again.";
   return m || "Upload failed. Please try again.";
@@ -25,7 +30,7 @@ export function IntroVideoUpload({ userId, showToast }) {
   const [pct, setPct] = useState(0);
   const [stage, setStage] = useState("");
   const [err, setErr] = useState("");
-  const xhrRef = useRef(null);
+  const uploadAbortRef = useRef(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -51,7 +56,7 @@ export function IntroVideoUpload({ userId, showToast }) {
   }, [status, playbackId, load]);
 
   const cancel = () => {
-    xhrRef.current?.abort();
+    uploadAbortRef.current?.abort();
     setBusy(false);
     setPct(0);
     setStage("");
@@ -73,31 +78,17 @@ export function IntroVideoUpload({ userId, showToast }) {
         const msg = formatErr(pe?.message || "");
         setErr(msg);
         showToast(msg, "error");
+        setBusy(false);
         return;
       }
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("kind", "intro");
-      fd.append("durationSec", String(probe.durationSec));
-      fd.append("videoWidth", String(probe.videoWidth));
-      fd.append("videoHeight", String(probe.videoHeight));
-      const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
-      await new Promise((resolve, reject) => {
-        xhr.upload.addEventListener("progress", (ev) => {
-          if (!ev.lengthComputable) return;
-          const p = Math.round((ev.loaded / ev.total) * 45);
+      uploadAbortRef.current = new AbortController();
+      await uploadIntroVideo(file, {
+        signal: uploadAbortRef.current.signal,
+        onUploadProgress: (pct) => {
+          const p = Math.round(pct * 0.45);
           setPct(p);
           setStage(`Uploading… ${p}%`);
-        });
-        xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
-        });
-        xhr.addEventListener("error", () => reject(new Error("Connection error. Please check your internet and try again.")));
-        xhr.addEventListener("abort", () => reject(new Error("aborted")));
-        xhr.open("POST", "/api/video/upload");
-        xhr.send(fd);
+        },
       });
       setPct(55);
       setStage("Processing video…");

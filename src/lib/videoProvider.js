@@ -19,48 +19,59 @@ function getMuxWatermarkImageUrl() {
   return null;
 }
 
+function buildNewAssetSettings(passthrough) {
+  const videoQuality = (process.env.MUX_VIDEO_QUALITY || "plus").trim() || "plus";
+  const watermarkUrl = getMuxWatermarkImageUrl();
+
+  const newAssetSettings = {
+    playback_policies: ["public"],
+    passthrough,
+    video_quality: videoQuality,
+    max_resolution_tier: "1080p",
+  };
+
+  if (watermarkUrl) {
+    newAssetSettings.inputs = [
+      {
+        url: watermarkUrl,
+        overlay_settings: {
+          vertical_align: "bottom",
+          vertical_margin: "2%",
+          horizontal_align: "right",
+          horizontal_margin: "2%",
+          width: "22%",
+          opacity: "62%",
+        },
+      },
+    ];
+  }
+  return newAssetSettings;
+}
+
 export const videoProvider = {
   /**
-   * Create a Mux direct upload, PUT raw bytes, return mux upload id.
-   * Encoding, quality, and image overlay are configured in new_asset_settings (no FFmpeg).
-   * @param {Buffer} buffer raw video bytes
-   * @param {{ passthrough: string, contentType: string, corsOrigin?: string }} metadata
+   * Create a Mux direct upload URL only (browser PUTs the file — avoids Vercel body limits).
+   * @param {{ passthrough: string, corsOrigin?: string }} metadata
+   * @returns {Promise<{ uploadUrl: string, muxUploadId: string }>}
    */
-  async upload(buffer, metadata) {
+  async createDirectUpload(metadata) {
     const mux = getClient();
     const cors = metadata.corsOrigin || "*";
-    const videoQuality = (process.env.MUX_VIDEO_QUALITY || "plus").trim() || "plus";
-    const watermarkUrl = getMuxWatermarkImageUrl();
-
-    const newAssetSettings = {
-      playback_policies: ["public"],
-      passthrough: metadata.passthrough,
-      video_quality: videoQuality,
-      max_resolution_tier: "1080p",
-    };
-
-    if (watermarkUrl) {
-      newAssetSettings.inputs = [
-        {
-          url: watermarkUrl,
-          overlay_settings: {
-            vertical_align: "bottom",
-            vertical_margin: "2%",
-            horizontal_align: "right",
-            horizontal_margin: "2%",
-            width: "22%",
-            opacity: "62%",
-          },
-        },
-      ];
-    }
-
+    const newAssetSettings = buildNewAssetSettings(metadata.passthrough);
     const upload = await mux.video.uploads.create({
       cors_origin: cors,
       new_asset_settings: newAssetSettings,
     });
+    return { uploadUrl: upload.url, muxUploadId: upload.id };
+  },
 
-    const { url: uploadUrl, id: uploadId } = upload;
+  /**
+   * Create upload and PUT from server (small files only; prefer createDirectUpload on Vercel).
+   * @param {Buffer} buffer raw video bytes
+   * @param {{ passthrough: string, contentType: string, corsOrigin?: string }} metadata
+   */
+  async upload(buffer, metadata) {
+    const { uploadUrl, muxUploadId } = await this.createDirectUpload(metadata);
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
       body: buffer,
@@ -74,7 +85,7 @@ export const videoProvider = {
       throw new Error(`Mux upload failed: ${putRes.status} ${t}`);
     }
     return {
-      muxUploadId: uploadId,
+      muxUploadId,
       status: "processing",
     };
   },
