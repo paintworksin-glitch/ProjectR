@@ -12,6 +12,7 @@ import {
   _h,
   PDFModal,
   WACardModal,
+  VideoShareCardModal,
   PropertyDetailCarousel,
   WALogo,
   useViewerBrandProfile,
@@ -323,18 +324,6 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </div>
         ) : null}
 
-        {listing.aiDescription ? (
-          <div className="property-detail-ai" aria-labelledby="property-ai-heading">
-            <h2 id="property-ai-heading" className="property-detail-ai-title">
-              AI summary
-            </h2>
-            <p className="property-detail-ai-text">{listing.aiDescription}</p>
-            <p className="property-detail-ai-note">
-              This text is auto-generated for readability. Always confirm details with the broker.
-            </p>
-          </div>
-        ) : null}
-
         {desc ? (
           <>
             <p className="property-detail-desc">{descShown}</p>
@@ -346,42 +335,60 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </>
         ) : null}
 
-        <div
-          className="property-detail-actions property-detail-actions--tools"
-          style={{
-            display: "grid",
-            gridTemplateColumns: listing.videoPlaybackId ? "repeat(3, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))",
-            gap: 8,
-          }}
-        >
+        <div className="property-detail-tool-tabs" role="toolbar" aria-label="Listing tools">
           <button
             type="button"
-            className={`property-detail-tool-btn ${toolTab === "wa" ? "btn-primary" : "btn-outline"}`}
+            aria-pressed={toolTab === "wa"}
+            className={`property-detail-tool-tab ${toolTab === "wa" ? "property-detail-tool-tab--active" : ""}`}
             onClick={() => {
               syncToolTab("wa");
               _h.openWA(listing);
             }}
           >
-            <WALogo size={15} /> WhatsApp card
+            <span className="property-detail-tool-tab__icon" aria-hidden>
+              <WALogo size={14} />
+            </span>
+            <span className="property-detail-tool-tab__label">WhatsApp</span>
           </button>
           <button
             type="button"
-            className={`property-detail-tool-btn ${toolTab === "pdf" ? "btn-primary" : "btn-outline"}`}
+            aria-pressed={toolTab === "pdf"}
+            className={`property-detail-tool-tab ${toolTab === "pdf" ? "property-detail-tool-tab--active" : ""}`}
             onClick={() => {
               syncToolTab("pdf");
               _h.openPDF(listing);
             }}
           >
-            📄 PDF brochure
+            <span className="property-detail-tool-tab__icon" aria-hidden>
+              📄
+            </span>
+            <span className="property-detail-tool-tab__label">PDF</span>
           </button>
           {listing.videoPlaybackId ? (
-            <button
-              type="button"
-              className={`property-detail-tool-btn ${toolTab === "video" ? "btn-primary" : "btn-outline"}`}
-              onClick={() => syncToolTab("video")}
-            >
-              🎥 Video Tour
-            </button>
+            <>
+              <button
+                type="button"
+                aria-pressed={toolTab === "video"}
+                className={`property-detail-tool-tab ${toolTab === "video" ? "property-detail-tool-tab--active" : ""}`}
+                onClick={() => syncToolTab("video")}
+              >
+                <span className="property-detail-tool-tab__icon" aria-hidden>
+                  🎥
+                </span>
+                <span className="property-detail-tool-tab__label">Tour</span>
+              </button>
+              <button
+                type="button"
+                className="property-detail-tool-tab"
+                onClick={() => setVideoShareOpen(true)}
+                aria-label="Open video share card for WhatsApp"
+              >
+                <span className="property-detail-tool-tab__icon" aria-hidden>
+                  ↗
+                </span>
+                <span className="property-detail-tool-tab__label">Video card</span>
+              </button>
+            </>
           ) : null}
         </div>
 
@@ -390,6 +397,10 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             <NorthingMuxPlayer
               playbackId={listing.videoPlaybackId}
               aspectRatio="16 / 9"
+              watermark={{
+                logoUrl: agentBrand?.logoUrl || null,
+                phone: listing.agentPhone || null,
+              }}
               onPlay={() => {
                 fetch("/api/video/view", {
                   method: "POST",
@@ -531,6 +542,9 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
       {waListing ? <WACardModal listing={waListing} onClose={() => setWaListing(null)} currentUser={viewerBrand} /> : null}
       {pdfListing ? <PDFModal listing={pdfListing} onClose={() => setPdfListing(null)} currentUser={viewerBrand} /> : null}
+      {videoShareOpen && listing.videoPlaybackId ? (
+        <VideoShareCardModal listing={listing} onClose={() => setVideoShareOpen(false)} currentUser={viewerBrand} />
+      ) : null}
     </div>
   );
 }

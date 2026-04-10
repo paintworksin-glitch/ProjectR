@@ -28,6 +28,7 @@ import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib
 import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 import { getBrowserSiteOrigin, propertyPageUrl } from "@/lib/publicSiteUrl.js";
+import { muxThumbnailUrl } from "@/lib/muxThumbnailUrl.js";
 import { ListingVideoUpload } from "@/components/ListingVideoUpload";
 import { IntroVideoUpload } from "@/components/IntroVideoUpload";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
@@ -975,6 +976,324 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
           {downloading?"⏳ Working…":<><WALogo size={14}/>Share on WhatsApp</>}
         </button>
         <button type="button" className="wa-card-modal-btn wa-card-modal-btn--close" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+/** WhatsApp-style card focused on tour video + description (public listing page). */
+export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
+  const agentBrand = useListingAgentBrand(listing, currentUser);
+  const wlLogo = agentBrand?.logoUrl || null;
+  const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  useEffect(() => {
+    if (listing?.id && listing?.videoPlaybackId) track(listing.id, "video_share_card");
+  }, [listing?.id, listing?.videoPlaybackId]);
+  if (!listing?.videoPlaybackId) return null;
+
+  const loadH2C = () =>
+    new Promise((res, rej) => {
+      if (window.html2canvas) {
+        res(window.html2canvas);
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s.onload = () => res(window.html2canvas);
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+
+  const captureCard = async () => {
+    const h2c = await loadH2C();
+    const card = document.getElementById("video-share-card");
+    if (!card) throw new Error("Card not found");
+    if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
+    await waitForImagesInElement(card);
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 2 : 2;
+    const scale = Math.min(5, Math.max(4, dpr * 2));
+    const raw = await h2c(card, {
+      scale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: false,
+      imageTimeout: 25000,
+      removeContainer: true,
+      foreignObjectRendering: false,
+      onclone: (_doc, clone) => {
+        clone.style.webkitFontSmoothing = "antialiased";
+        const nodes = [clone, ...clone.querySelectorAll("*")];
+        nodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          const st = node.style;
+          if (st.backdropFilter || st.webkitBackdropFilter) {
+            st.backdropFilter = "none";
+            st.webkitBackdropFilter = "none";
+            if (!st.backgroundColor || st.backgroundColor === "transparent") st.backgroundColor = "rgba(0,0,0,0.52)";
+          }
+        });
+      },
+    });
+    return normalizeWaCardCanvas(raw);
+  };
+
+  const downloadImage = async () => {
+    setDownloading(true);
+    try {
+      const canvas = await captureCard();
+      const name = `Northing-video-${(listing.title || "property").replace(/\s+/g, "-").toLowerCase()}.png`;
+      if (canvas.toBlob) {
+        await new Promise((res, rej) => {
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              rej();
+              return;
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.download = name;
+            a.href = url;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 3000);
+            res();
+          }, "image/png");
+        });
+      } else {
+        const a = document.createElement("a");
+        a.download = name;
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+      }
+    } catch {
+      window.alert("Download failed — try screenshotting the card manually.");
+    }
+    setDownloading(false);
+  };
+
+  const buildText = () => {
+    const lines = [];
+    lines.push("*" + listing.title + "*");
+    lines.push("📍 " + listing.location);
+    lines.push("");
+    const desc = (listing.description || "").trim();
+    if (desc) {
+      const short = desc.length > 520 ? desc.slice(0, 517).trim() + "…" : desc;
+      lines.push(short);
+      lines.push("");
+    }
+    const siteBase = getPublicSiteBase();
+    if (siteBase && listing.id) {
+      lines.push("🎥 Watch the tour:");
+      lines.push(propertyPageUrl(siteBase, listing.id, { tab: "video" }));
+    }
+    lines.push("");
+    lines.push("Contact:");
+    lines.push("  " + (listing.agentName || "Agent"));
+    if (listing.agentPhone) lines.push("  📞 " + listing.agentPhone);
+    lines.push("");
+    lines.push("_Powered by Northing_");
+    return lines.join("\n");
+  };
+
+  const shareOnWA = async () => {
+    setDownloading(true);
+    try {
+      const canvas = await captureCard();
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], "Northing-video-card.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: listing.title, text: buildText() });
+        } else {
+          const a = document.createElement("a");
+          a.download = "Northing-video-card.png";
+          a.href = canvas.toDataURL();
+          a.click();
+          setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`, "_blank"), 800);
+        }
+      }, "image/png");
+    } catch {
+      window.alert("Share failed — try downloading the image instead.");
+    }
+    setDownloading(false);
+  };
+
+  const copyText = () => {
+    navigator.clipboard
+      ?.writeText(buildText())
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      })
+      .catch(() => {});
+  };
+
+  const thumbSrc = muxThumbnailUrl(listing.videoPlaybackId, 1);
+  const cardW = 420;
+  const cardH = 420;
+
+  return (
+    <div
+      className="afd northing-modal-overlay wa-modal-overlay"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,5,2,0.75)",
+        zIndex: 3000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        backdropFilter: "blur(8px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="asl wa-card-modal-inner"
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxHeight: "95vh", overflow: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, margin: "0 0 4px", textAlign: "center", maxWidth: cardW }}>
+          Share video + description (WhatsApp card)
+        </p>
+        <div
+          id="video-share-card"
+          style={{
+            width: cardW,
+            height: cardH,
+            borderRadius: 20,
+            overflow: "hidden",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
+            position: "relative",
+            flexShrink: 0,
+            background: "#1a1410",
+          }}
+        >
+          <NorthingRemoteImage
+            src={thumbSrc}
+            alt=""
+            fill
+            style={{ objectFit: "cover" }}
+            placeholderEmoji="🎬"
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.1) 40%,rgba(10,5,2,0.88) 72%,rgba(10,5,2,1) 100%)",
+            }}
+          />
+          <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+            <span
+              style={{
+                background: "var(--primary)",
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 800,
+                padding: "5px 12px",
+                borderRadius: 20,
+                letterSpacing: "0.5px",
+                flexShrink: 0,
+              }}
+            >
+              VIDEO TOUR
+            </span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 6,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  background: "rgba(0,0,0,0.5)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 10,
+                  padding: "5px 10px",
+                  minHeight: 28,
+                  minWidth: wlLogo ? 40 : 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {wlLogo ? (
+                  <NorthingRemoteImage src={wlLogo} alt="" width={120} height={26} style={{ height: 26, maxWidth: 120, width: "auto", objectFit: "contain", display: "block" }} />
+                ) : null}
+              </div>
+              {listing.agentPhone ? (
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{listing.agentPhone}</span>
+              ) : null}
+            </div>
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "42%",
+              transform: "translate(-50%,-50%)",
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.95)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+            }}
+            aria-hidden
+          >
+            ▶
+          </div>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "18px 18px 16px" }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#fff", marginBottom: 6, lineHeight: 1.25 }}>{listing.title}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>📍 {listing.location}</div>
+            {(listing.description || "").trim() ? (
+              <div
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "rgba(255,255,255,0.82)",
+                  maxHeight: 72,
+                  overflow: "hidden",
+                  marginBottom: 12,
+                }}
+              >
+                {(listing.description || "").trim().slice(0, 180)}
+                {(listing.description || "").trim().length > 180 ? "…" : ""}
+              </div>
+            ) : null}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.12)", marginBottom: 10 }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <NorthingWaChipLockup />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>LISTED ON NORTHING</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={copyText}>
+          {copied ? "✓ Caption copied" : "📋 Copy text for WhatsApp"}
+        </button>
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={downloadImage} disabled={downloading}>
+          {downloading ? "Processing…" : "⬇ Download card"}
+        </button>
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--share" onClick={shareOnWA} disabled={downloading}>
+          {downloading ? "⏳ Working…" : (
+            <>
+              <WALogo size={14} />
+              Share on WhatsApp
+            </>
+          )}
+        </button>
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--close" onClick={onClose}>
+          Close
+        </button>
       </div>
     </div>
   );
