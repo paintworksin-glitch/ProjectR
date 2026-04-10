@@ -504,11 +504,12 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
               </p>
             </div>
           </div>
-          {user && listing.agentPhone ? (
+          {user && listing.agentPhone != null && String(listing.agentPhone).trim() !== "" ? (
             <p className="property-detail-broker-phone">
-              📞 <a href={`tel:${listing.agentPhone.replace(/\s/g, "")}`}>{listing.agentPhone}</a>
+              📞{" "}
+              <a href={`tel:${String(listing.agentPhone).replace(/\s/g, "")}`}>{String(listing.agentPhone)}</a>
             </p>
-          ) : listing.agentPhone ? (
+          ) : listing.agentPhone != null && String(listing.agentPhone).trim() !== "" ? (
             <p className="property-detail-guest-note property-detail-guest-note--tight">Phone number unlocks after sign in (same sign-in as enquiry).</p>
           ) : (
             <p className="property-detail-broker-meta property-detail-broker-meta--spaced">Phone on request</p>

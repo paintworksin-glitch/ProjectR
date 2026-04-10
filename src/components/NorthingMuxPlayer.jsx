@@ -1,12 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
 const MuxPlayer = dynamic(() => import("@mux/mux-player-react").then((m) => m.default), { ssr: false });
 
 /**
  * Optional on-video overlay: agent logo + phone on top (logo slot empty if missing), Northing mark bottom-right.
  * Does not change playback; pointer-events none so controls stay usable.
+ *
+ * MuxPlayer is `ssr: false`; rendering it during SSR would not match the client tree and can crash hydration.
+ * We show a stable placeholder until after mount, then render the player.
  */
 export function NorthingMuxPlayer({
   playbackId,
@@ -16,7 +20,28 @@ export function NorthingMuxPlayer({
   style,
   ...rest
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!playbackId) return null;
+
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          aspectRatio,
+          borderRadius: 12,
+          minHeight: 200,
+          background: "linear-gradient(160deg, #0f0f0f 0%, #262626 55%, #141414 100%)",
+        }}
+        aria-hidden
+      />
+    );
+  }
+
   const player = (
     <MuxPlayer
       playbackId={playbackId}
@@ -48,8 +73,8 @@ export function NorthingMuxPlayer({
           <div className="northing-mux-watermark-logo-slot">
             {logoUrl ? <img src={logoUrl} alt="" className="northing-mux-watermark-logo" /> : null}
           </div>
-          {phone ? (
-            <span className="northing-mux-watermark-phone">{phone}</span>
+          {phone != null && String(phone).trim() !== "" ? (
+            <span className="northing-mux-watermark-phone">{String(phone)}</span>
           ) : (
             <span className="northing-mux-watermark-phone northing-mux-watermark-phone--empty" />
           )}
