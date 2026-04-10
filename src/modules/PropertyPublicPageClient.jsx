@@ -57,6 +57,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   const [enquirySent, setEnquirySent] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [savedLocal, setSavedLocal] = useState(null);
+  const [videoShareOpen, setVideoShareOpen] = useState(false);
 
   const viewerBrand = useViewerBrandProfile();
   const agentBrand = useListingAgentBrand(listing, null);
