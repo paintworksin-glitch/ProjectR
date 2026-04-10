@@ -2,40 +2,71 @@
  * Video provider abstraction — all app/server code uses this module, not @mux/mux-node directly
  * (except mux.js bootstrap). Swap implementation here to change providers.
  */
-import { createReadStream } from "fs";
-import { stat } from "fs/promises";
 import { createMuxClient } from "./mux.js";
 import { muxThumbnailUrl } from "./muxThumbnailUrl.js";
+import { getServerSiteOrigin } from "./publicSiteUrl.js";
 
 function getClient() {
   return createMuxClient();
 }
 
+/** Mux overlays use a PNG/JPG URL (not raw text). Optional override for staging/CDN. */
+function getMuxWatermarkImageUrl() {
+  const explicit = process.env.MUX_WATERMARK_IMAGE_URL?.trim();
+  if (explicit) return explicit;
+  const origin = getServerSiteOrigin();
+  if (origin) return `${origin}/mux-watermark/northing-in.png`;
+  return null;
+}
+
 export const videoProvider = {
   /**
-   * Create a Mux direct upload, stream processed file to it, return mux upload id + asset id when available.
-   * @param {string} filePath absolute path to processed mp4
-   * @param {{ passthrough: string, corsOrigin?: string }} metadata
+   * Create a Mux direct upload, PUT raw bytes, return mux upload id.
+   * Encoding, quality, and image overlay are configured in new_asset_settings (no FFmpeg).
+   * @param {Buffer} buffer raw video bytes
+   * @param {{ passthrough: string, contentType: string, corsOrigin?: string }} metadata
    */
-  async upload(filePath, metadata) {
+  async upload(buffer, metadata) {
     const mux = getClient();
     const cors = metadata.corsOrigin || "*";
+    const videoQuality = (process.env.MUX_VIDEO_QUALITY || "plus").trim() || "plus";
+    const watermarkUrl = getMuxWatermarkImageUrl();
+
+    const newAssetSettings = {
+      playback_policies: ["public"],
+      passthrough: metadata.passthrough,
+      video_quality: videoQuality,
+      max_resolution_tier: "1080p",
+    };
+
+    if (watermarkUrl) {
+      newAssetSettings.inputs = [
+        {
+          url: watermarkUrl,
+          overlay_settings: {
+            vertical_align: "bottom",
+            vertical_margin: "2%",
+            horizontal_align: "right",
+            horizontal_margin: "2%",
+            width: "22%",
+            opacity: "62%",
+          },
+        },
+      ];
+    }
+
     const upload = await mux.video.uploads.create({
       cors_origin: cors,
-      new_asset_settings: {
-        playback_policies: ["public"],
-        passthrough: metadata.passthrough,
-      },
+      new_asset_settings: newAssetSettings,
     });
+
     const { url: uploadUrl, id: uploadId } = upload;
-    const st = await stat(filePath);
-    const body = createReadStream(filePath);
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
-      body,
+      body: buffer,
       headers: {
-        "Content-Type": "video/mp4",
-        "Content-Length": String(st.size),
+        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Content-Length": String(buffer.length),
       },
     });
     if (!putRes.ok) {

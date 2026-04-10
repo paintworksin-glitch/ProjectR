@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { writeFile, unlink, mkdtemp } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { videoProvider } from "@/lib/videoProvider";
-import { probeVideo, meetsMinResolution, transcodeWithWatermark } from "@/lib/processVideoWithFfmpeg";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import { bufferLooksLikeSupportedVideo, parseAndValidateClientVideoMeta } from "@/lib/videoUploadValidation";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -26,9 +23,6 @@ function err(status, message) {
 }
 
 export async function POST(request) {
-  let workDir = null;
-  let inPath = null;
-  let outPath = null;
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -52,6 +46,9 @@ export async function POST(request) {
       return err(400, "listingId is required for property videos. Save the listing once, then add a video tour from Edit.");
     }
 
+    const meta = parseAndValidateClientVideoMeta(form, { kind });
+    if (!meta.ok) return err(400, meta.error);
+
     const mime = (file.type || "").toLowerCase();
     if (!ALLOWED.has(mime)) {
       return err(400, "Please upload mp4, mov or webm");
@@ -61,36 +58,8 @@ export async function POST(request) {
     if (buf.length > MAX_BYTES) return err(400, "Video must be under 500MB");
     if (buf.length < 1024) return err(400, "Upload failed. Please try again.");
 
-    workDir = await mkdtemp(join(tmpdir(), "nt-vid-"));
-    inPath = join(workDir, "in.bin");
-    outPath = join(workDir, "out.mp4");
-    await writeFile(inPath, buf);
-
-    let meta;
-    try {
-      meta = await probeVideo(inPath);
-    } catch {
-      return err(400, "Video processing failed. Please try uploading again.");
-    }
-
-    const { durationSec, width, height } = meta;
-    if (!durationSec || durationSec < 5) return err(400, "Video must be at least 5 seconds");
-
-    if (kind === "listing") {
-      if (durationSec > 300) return err(400, "Video must be under 5 minutes");
-    } else if (durationSec > 60) {
-      return err(400, "Introduction video must be 60 seconds or less");
-    }
-
-    if (!meetsMinResolution(width, height)) {
-      return err(400, "Video quality too low. Please upload a clearer video (minimum 480p)");
-    }
-
-    try {
-      await transcodeWithWatermark(inPath, outPath, { mode: kind === "intro" ? "intro" : "listing" });
-    } catch (e) {
-      console.error("ffmpeg transcode", e);
-      return err(400, "Video processing failed. Please try uploading again.");
+    if (!bufferLooksLikeSupportedVideo(buf)) {
+      return err(400, "File does not look like a supported video. Please upload mp4, mov, webm or avi.");
     }
 
     const admin = createSupabaseAdminClient();
@@ -118,7 +87,7 @@ export async function POST(request) {
 
       let muxUploadId;
       try {
-        const up = await videoProvider.upload(outPath, { passthrough });
+        const up = await videoProvider.upload(buf, { passthrough, contentType: mime });
         muxUploadId = up.muxUploadId;
       } catch (e) {
         console.error("mux upload", e);
@@ -164,7 +133,7 @@ export async function POST(request) {
 
     let muxUploadId;
     try {
-      const up = await videoProvider.upload(outPath, { passthrough });
+      const up = await videoProvider.upload(buf, { passthrough, contentType: mime });
       muxUploadId = up.muxUploadId;
     } catch (e) {
       console.error("mux upload intro", e);
@@ -194,12 +163,5 @@ export async function POST(request) {
       return err(503, "Connection error. Please check your internet and try again.");
     }
     return err(500, "Upload failed. Please try again.");
-  } finally {
-    try {
-      if (inPath) await unlink(inPath).catch(() => {});
-      if (outPath) await unlink(outPath).catch(() => {});
-    } catch {
-      /* ignore */
-    }
   }
 }

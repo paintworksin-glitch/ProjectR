@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
+import { readVideoFileMetadata } from "@/lib/clientVideoMetadata";
 
 function formatErr(msg) {
   const m = String(msg || "");
@@ -11,6 +12,7 @@ function formatErr(msg) {
   if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
   if (/60 seconds|Introduction video/i.test(m)) return "Introduction video must be 60 seconds or less";
   if (/480|quality too low/i.test(m)) return "Video quality too low. Please upload a clearer video (minimum 480p)";
+  if (/read video|video metadata|video length|video size/i.test(m)) return "Could not read this video in your browser. Try another file or browser.";
   if (/network|connection/i.test(m)) return "Connection error. Please check your internet and try again.";
   return m || "Upload failed. Please try again.";
 }
@@ -64,9 +66,21 @@ export function IntroVideoUpload({ userId, showToast }) {
     setPct(0);
     setStage("Uploading… 0%");
     try {
+      let probe;
+      try {
+        probe = await readVideoFileMetadata(file);
+      } catch (pe) {
+        const msg = formatErr(pe?.message || "");
+        setErr(msg);
+        showToast(msg, "error");
+        return;
+      }
       const fd = new FormData();
       fd.append("file", file);
       fd.append("kind", "intro");
+      fd.append("durationSec", String(probe.durationSec));
+      fd.append("videoWidth", String(probe.videoWidth));
+      fd.append("videoHeight", String(probe.videoHeight));
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
       await new Promise((resolve, reject) => {

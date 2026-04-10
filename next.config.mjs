@@ -25,11 +25,7 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverComponentsExternalPackages: [
-      "@ffmpeg-installer/ffmpeg",
-      "fluent-ffmpeg",
-      "@mux/mux-node",
-    ],
+    serverComponentsExternalPackages: ["@mux/mux-node"],
   },
   images: {
     remotePatterns: [

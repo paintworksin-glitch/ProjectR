@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
+import { readVideoFileMetadata } from "@/lib/clientVideoMetadata";
 
 function formatErr(msg) {
   const m = String(msg || "");
@@ -11,6 +12,7 @@ function formatErr(msg) {
   if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
   if (/5 minutes|under 5 min|300/i.test(m)) return "Video must be under 5 minutes";
   if (/480|quality too low/i.test(m)) return "Video quality too low. Please upload a clearer video (minimum 480p)";
+  if (/read video|video metadata|video length|video size/i.test(m)) return "Could not read this video in your browser. Try another file or browser.";
   if (/network|connection|ECONNRESET/i.test(m)) return "Connection error. Please check your internet and try again.";
   if (/429|Too many uploads/i.test(m)) return "Too many uploads. Try again later.";
   return m || "Upload failed. Please try again.";
@@ -68,10 +70,22 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
     setPct(0);
     setStage("Uploading… 0%");
     try {
+      let probe;
+      try {
+        probe = await readVideoFileMetadata(file);
+      } catch (pe) {
+        const msg = formatErr(pe?.message || "");
+        setErr(msg);
+        showToast(msg, "error");
+        return;
+      }
       const fd = new FormData();
       fd.append("file", file);
       fd.append("kind", "listing");
       fd.append("listingId", listingId);
+      fd.append("durationSec", String(probe.durationSec));
+      fd.append("videoWidth", String(probe.videoWidth));
+      fd.append("videoHeight", String(probe.videoHeight));
 
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
