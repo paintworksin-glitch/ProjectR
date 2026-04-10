@@ -22,6 +22,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { fmtP } from "@/lib/formatPrice";
 import { mapListing } from "@/lib/mapListing";
 import { canCreateListing } from "@/lib/listingEligibility";
+import { uploadListingTourVideo } from "@/lib/listingVideoUploadClient";
 import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
 import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
 import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
@@ -1861,17 +1862,45 @@ const FI=({label,k,form,set,type="text",placeholder="",err,span})=>(<div style={
 const FS=({label,k,form,set,opts,fmtLabel})=>(<div style={{marginBottom:13}}>{label&&<label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--muted)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{label}</label>}<select value={form[k]||""} onChange={e=>set(k,e.target.value)} className="inp"><option value="">Select…</option>{opts.map(o=><option key={o} value={o}>{fmtLabel?fmtLabel(o):o}</option>)}</select></div>);
 const FormSec=({title,children})=>(<div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}><h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>{title}</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>{children}</div></div>);
 
-const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved}) => {
+const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved,onDraftSaved}) => {
   const isEdit=!!listingId; const fileRef=useRef(); const [hl,setHl]=useState(""); const [dupModal,setDupModal]=useState(null); const [saving,setSaving]=useState(false); const [photoLoading,setPhotoLoading]=useState(false); const [aiDescBusy,setAiDescBusy]=useState(false);
   const [aiStatus,setAiStatus]=useState("idle"); // idle | analyzing | done
   const [coverIdx,setCoverIdx]=useState(0);
   const [aiPick,setAiPick]=useState(null);
   const [scoringIdx,setScoringIdx]=useState(null);
   const [photoMeta,setPhotoMeta]=useState([]); // [{url,score}] parallel to form.photos
+  const [publishTarget,setPublishTarget]=useState("Active"); // status when publishing (chips)
+  const autoAiTriedRef=useRef(false);
+  const [pendingVideoFile,setPendingVideoFile]=useState(null);
   const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",aiDescription:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[],muxVideoAssetId:null,videoPlaybackId:null,videoStatus:null,videoViewCount:0,videoFramePhotos:false});
   const [errs,setErrs]=useState({});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
-  useEffect(()=>{if(isEdit){const raw=allListings.find(l=>l.id===listingId);if(raw)setForm(dbToForm(raw));}},[listingId,allListings]);
+  useEffect(()=>{
+    if(!isEdit){setPublishTarget("Active");return;}
+    const raw=allListings.find(l=>l.id===listingId);
+    if(!raw)return;
+    setForm(dbToForm(raw));
+    const s=raw.status;
+    if(s==="Active"||s==="Rented"||s==="Sold")setPublishTarget(s);
+    else setPublishTarget("Active");
+  },[listingId,allListings,isEdit]);
+  useEffect(()=>{
+    if(!listingAiConfigured()||autoAiTriedRef.current||!isEdit||!listingId)return;
+    const raw=allListings.find(l=>l.id===listingId);
+    if(!raw)return;
+    if(raw.details?.aiDescription)return;
+    const d=String(raw.description||"").trim();
+    if(d.length<25)return;
+    autoAiTriedRef.current=true;
+    (async()=>{
+      setAiDescBusy(true);
+      try{
+        const f=dbToForm(raw);
+        const t=await generateListingAiDescription(supabase,f);
+        if(t){setForm(prev=>({...prev,aiDescription:t}));showToast("AI summary generated","success");}
+      }finally{setAiDescBusy(false);}
+    })();
+  },[isEdit,listingId,allListings,showToast]);
   const addHl=()=>{if(hl.trim()){set("highlights",[...(form.highlights||[]),hl.trim()]);setHl("");}};
   const rmHl=(i)=>set("highlights",form.highlights.filter((_,idx)=>idx!==i));
   const handlePhotos=async(e)=>{
@@ -1901,7 +1930,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         setAiStatus("idle");
         setAiPick(null);
         setCoverIdx(0);
-        showToast("Photos uploaded ✓ (set NEXT_PUBLIC_LISTING_AI_URL + listing-ai function for AI cover pick)","success");
+        showToast("Photos uploaded ✓","success");
         return;
       }
       // 2. Silently score all unscored photos
@@ -1935,39 +1964,122 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     }catch(err){showToast("Photo upload failed: "+err.message,"error");setPhotoLoading(false);}
   };
   const rmPhoto=(i)=>{setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));setPhotoMeta(m=>m.filter((_,idx)=>idx!==i));if(coverIdx>=( form.photos?.length||1)-1)setCoverIdx(0);};
-  const validate=()=>{const e={};if(!form.title)e.title="Required";if(!form.location)e.location="Required";if(!form.propertyType)e.propertyType="Required";if(!form.listingType)e.listingType="Required";if(!form.price)e.price="Required";if(!form.description||!form.description.trim())e.description="Description is required";if(isEdit){if(!form.photos?.length&&!form.videoPlaybackId&&form.videoStatus!=="processing")e.photos="Add at least one photo or a video tour.";}else{if(!form.photos?.length)e.photos="At least 1 photo is required";}setErrs(e);return !Object.keys(e).length;};
+  const hasListingMedia=()=>{
+    if(pendingVideoFile)return true;
+    if((form.photos?.length||0)>0)return true;
+    if(form.videoPlaybackId)return true;
+    if(form.videoStatus==="processing")return true;
+    return false;
+  };
+  const flushPendingVideoUpload=async(targetId)=>{
+    if(!pendingVideoFile||!targetId)return;
+    const file=pendingVideoFile;
+    try{
+      setPendingVideoFile(null);
+      await uploadListingTourVideo(targetId,file);
+      const {data:row,error:reErr}=await supabase.from("listings").select("*").eq("id",targetId).single();
+      if(!reErr&&row)setForm(dbToForm(row));
+    }catch(e){
+      setPendingVideoFile(file);
+      throw e;
+    }
+  };
+  const validatePublish=()=>{
+    const e={};
+    if(!form.title?.trim())e.title="Required";
+    if(!form.location)e.location="Required";
+    if(!form.propertyType)e.propertyType="Required";
+    if(!form.listingType)e.listingType="Required";
+    if(!form.price)e.price="Required";
+    if(!form.description?.trim())e.description="Description is required";
+    if(!hasListingMedia())e.photos="Add at least one photo or a video tour.";
+    setErrs(e);
+    return !Object.keys(e).length;
+  };
+  const validateDraft=()=>{setErrs({});return true;};
+  const doSaveDraft=async()=>{
+    setSaving(true);
+    try{
+      const dbRow=formToDb({...form,status:"Draft"},currentUser.id);
+      if(!isEdit){
+        const gate=await canCreateListing(supabase,currentUser.id,{ignoreSellerActiveCap:true});
+        if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
+        const {data:inserted,error}=await supabase.from("listings").insert(dbRow).select("id").single();
+        if(error)throw error;
+        try{
+          await flushPendingVideoUpload(inserted.id);
+        }catch(ve){
+          showToast(ve?.message==="aborted"?"Video upload cancelled":(ve?.message||"Video upload failed"),"error");
+        }
+        showToast("Draft saved — continue anytime from your dashboard","success");
+        onDraftSaved?.(inserted.id);
+      }else{
+        const {error}=await supabase.from("listings").update(dbRow).eq("id",listingId);
+        if(error)throw error;
+        try{
+          await flushPendingVideoUpload(listingId);
+        }catch(ve){
+          showToast(ve?.message==="aborted"?"Video upload cancelled":(ve?.message||"Video upload failed"),"error");
+        }
+        showToast("Draft saved","success");
+      }
+    }catch(err){showToast("Save failed: "+err.message,"error");}
+    setSaving(false);
+  };
   const doSave=async()=>{
     setSaving(true);
     try{
+      const publishForm={...form,status:publishTarget};
       if(!isEdit){
         const gate=await canCreateListing(supabase,currentUser.id);
         if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
       }
       if(isEdit){
-        const {error}=await supabase.from("listings").update(formToDb(form,currentUser.id)).eq("id",listingId);
+        const {error}=await supabase.from("listings").update(formToDb(publishForm,currentUser.id)).eq("id",listingId);
         if(error) throw error;
+        try{
+          await flushPendingVideoUpload(listingId);
+        }catch(ve){
+          showToast(ve?.message==="aborted"?"Video upload cancelled":(`Saved, but video failed: ${ve?.message||"error"}`),"error");
+        }
       } else {
-        const row = formToDb(form, currentUser.id);
+        const row = formToDb(publishForm, currentUser.id);
         const { data: inserted, error } = await supabase.from("listings").insert(row).select("id").single();
         if (error) throw error;
         if (inserted?.id && listingAiConfigured()) {
-          const aiText = await generateListingAiDescription(supabase, form);
+          const aiText = await generateListingAiDescription(supabase, publishForm);
           if (aiText) {
             const mergedDetails = { ...(row.details || {}), aiDescription: aiText };
             const { error: patchErr } = await supabase.from("listings").update({ details: mergedDetails }).eq("id", inserted.id);
             if (patchErr) console.warn("AI description save:", patchErr);
           }
         }
+        try{
+          await flushPendingVideoUpload(inserted.id);
+        }catch(ve){
+          if(ve?.message==="aborted"){
+            setSaving(false);
+            return;
+          }
+          showToast(`Published, but video upload failed: ${ve?.message||"error"}`,"error");
+          onDraftSaved?.(inserted.id);
+          setSaving(false);
+          return;
+        }
       }
-      showToast(isEdit?"Listing updated!":"Listing created!","success");
+      showToast(isEdit?"Listing updated!":"Listing published!","success");
       onSaved();
     }catch(err){showToast("Save failed: "+err.message,"error");}
     setSaving(false);
   };
+  const handleSaveDraft=async()=>{
+    if(!validateDraft())return;
+    await doSaveDraft();
+  };
   const handleSave=async()=>{
-    if(!validate()){showToast("Please fill required fields","error");return;}
+    if(!validatePublish()){showToast("Please fill required fields","error");return;}
     if(!isEdit){
-      const dups=findDups(form,allListings.map(mapListing),null);
+      const dups=findDups({...form,status:publishTarget},allListings.map(mapListing),null);
       if(dups.length>0){setDupModal(dups);return;}
     }
     await doSave();
@@ -2013,36 +2125,34 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 10px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ AI property summary</h3>
-        <p style={{margin:"0 0 14px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Shown on the public property page. New listings get a draft automatically when <code style={{fontSize:12,background:"var(--cream)",padding:"2px 6px",borderRadius:4}}>NEXT_PUBLIC_LISTING_AI_URL</code> points at your deployed listing-ai edge function.</p>
+        <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Optional extra blurb for the public page. Uses your listing fields when Listing AI is enabled for this site.</p>
         {form.aiDescription ? (
           <textarea value={form.aiDescription} onChange={(e) => set("aiDescription", e.target.value)} className="inp" rows={5} style={{resize:"vertical",marginBottom:12,fontSize:14,lineHeight:1.55}} placeholder="AI-generated summary…" />
-        ) : (
-          <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)"}}>No summary yet. Generate one below, or publish a new listing with the API key configured.</p>
-        )}
-        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
-          <button
-            type="button"
-            className="btn-green"
-            style={{padding:"10px 18px",borderRadius:10,fontSize:13,opacity:listingAiConfigured()?1:0.55}}
-            disabled={aiDescBusy || !listingAiConfigured()}
-            onClick={async () => {
-              if (!listingAiConfigured()) { showToast("Set NEXT_PUBLIC_LISTING_AI_URL and deploy the listing-ai Supabase function", "error"); return; }
-              setAiDescBusy(true);
-              try {
-                const t = await generateListingAiDescription(supabase, form);
-                if (t) {
-                  set("aiDescription", t);
-                  showToast(isEdit ? "Summary ready — tap Save to update the listing" : "Summary ready — it will be saved when you create the listing", "success");
-                } else showToast("Could not generate summary", "error");
-              } finally {
-                setAiDescBusy(false);
-              }
-            }}
-          >
-            {aiDescBusy ? "Generating…" : form.aiDescription ? "Regenerate" : "Generate now"}
-          </button>
-          {!listingAiConfigured() ? <span style={{fontSize:12,color:"var(--muted)"}}>Listing AI URL not configured</span> : null}
-        </div>
+        ) : null}
+        <button
+          type="button"
+          className="btn-green"
+          style={{padding:"10px 18px",borderRadius:10,fontSize:13}}
+          disabled={aiDescBusy}
+          onClick={async () => {
+            if (!listingAiConfigured()) {
+              showToast("Listing AI is not configured. Set NEXT_PUBLIC_LISTING_AI_URL, deploy the listing-ai function, then redeploy this app.", "error");
+              return;
+            }
+            setAiDescBusy(true);
+            try {
+              const t = await generateListingAiDescription(supabase, form);
+              if (t) {
+                set("aiDescription", t);
+                showToast(isEdit ? "Summary ready — save your listing to keep it" : "Summary ready — it will be saved when you publish", "success");
+              } else showToast("Could not generate summary", "error");
+            } finally {
+              setAiDescBusy(false);
+            }
+          }}
+        >
+          {aiDescBusy ? "Generating…" : form.aiDescription ? "Regenerate summary" : "Generate summary"}
+        </button>
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ Key Highlights</h3>
@@ -2056,11 +2166,12 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <FI label="Email" k="agentEmail" form={form} set={set} type="email"/>
       </FormSec>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span>📸 Photos * (min 1, max 10)</span>
+        <h3 style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>📸 Photos or video</span>
           {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>AI picking best cover…</span>}
           {aiStatus==="done"&&<span style={{fontSize:11,color:"#059669",fontWeight:600,textTransform:"none",letterSpacing:0}}>✨ Best cover auto-selected</span>}
         </h3>
+        <p style={{margin:"0 0 12px",fontSize:12,color:"var(--muted)",lineHeight:1.5}}>Upload up to 10 photos here, or use <strong>Video Tour</strong> below — <strong>one of them is required</strong> to publish.</p>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
         {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:12}}>
           {form.photos.map((p,i)=>{
@@ -2087,15 +2198,17 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>🎥 Video Tour</h3>
-        <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} />
+        <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} pendingVideoFile={pendingVideoFile} onPendingVideoChange={setPendingVideoFile} />
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
-        <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>Status</h3>
-        <div style={{display:"flex",gap:8}}>{["Active","Rented","Sold"].map(s=><button key={s} onClick={()=>set("status",s)} style={{padding:"8px 18px",borderRadius:9,border:`2px solid ${form.status===s?"var(--green)":"var(--border)"}`,background:form.status===s?"var(--green-light)":"var(--white)",color:form.status===s?"var(--green2)":"var(--muted)",fontWeight:700,fontSize:13,cursor:"pointer"}}>{s}</button>)}</div>
+        <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>When published</h3>
+        {form.status==="Draft"?<p style={{margin:"0 0 10px",fontSize:12,color:"var(--muted)",lineHeight:1.5}}>This listing is a <strong>draft</strong> (not on the public site). Choose the status to use when you publish.</p>:null}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Active","Rented","Sold"].map(s=><button key={s} type="button" onClick={()=>setPublishTarget(s)} style={{padding:"8px 18px",borderRadius:9,border:`2px solid ${publishTarget===s?"var(--green)":"var(--border)"}`,background:publishTarget===s?"var(--green-light)":"var(--white)",color:publishTarget===s?"var(--green2)":"var(--muted)",fontWeight:700,fontSize:13,cursor:"pointer"}}>{s}</button>)}</div>
       </div>
-      <div style={{display:"flex",gap:12,justifyContent:"flex-end"}}>
+      <div style={{display:"flex",gap:12,justifyContent:"flex-end",flexWrap:"wrap"}}>
         <button onClick={onBack} className="btn-ghost" style={{padding:"12px 24px",borderRadius:10,fontSize:14}}>Cancel</button>
-        <button onClick={handleSave} disabled={saving||photoLoading} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8}}>{saving?<><span className="spin"/>Saving…</>:(isEdit?"Save Changes":"Create Listing")}</button>
+        <button type="button" onClick={handleSaveDraft} disabled={saving||photoLoading} className="btn-outline" style={{padding:"12px 22px",borderRadius:10,fontSize:14}}>{saving?"Saving…":"Save draft"}</button>
+        <button type="button" onClick={handleSave} disabled={saving||photoLoading} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8}}>{saving?<><span className="spin"/>Saving…</>:(isEdit?(form.status==="Draft"?"Publish listing":"Save changes"):"Publish listing")}</button>
       </div>
     </div>
   );
@@ -2105,7 +2218,7 @@ export const AgentDash = ({currentUser,showToast}) => {
   const isSeller=currentUser.role==="seller";
   const isAgent=currentUser.role==="agent";
   const [profRow,setProfRow]=useState(null);
-  const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
+  const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [view,setView]=useState("grid");const [editId,setEditId]=useState(null);const [createFlowListingId,setCreateFlowListingId]=useState(null);const [modal,setModal]=useState(null);const [deleteTarget,setDeleteTarget]=useState(null);const [tab,setTab]=useState("listings");const [statusChanging,setStatusChanging]=useState(null);
   const [enquiries,setEnquiries]=useState([]);const [enquiriesLoading,setEnquiriesLoading]=useState(false);
   const [enquiriesError,setEnquiriesError]=useState(null);
   const [enquiryStatusUpdating,setEnquiryStatusUpdating]=useState(null);
@@ -2253,9 +2366,9 @@ export const AgentDash = ({currentUser,showToast}) => {
     setProfileSaving(false);
   };
   const enrichedUser={...currentUser,...profile};
-  if(editId!==undefined&&editId!==null) return <ListingForm currentUser={enrichedUser} listingId={editId} allListings={listings} showToast={showToast} onBack={()=>setEditId(null)} onSaved={()=>{setEditId(null);load();}}/>;
-  if(view==="create") return <ListingForm currentUser={enrichedUser} listingId={null} allListings={listings} showToast={showToast} onBack={()=>setView("grid")} onSaved={()=>{setView("grid");load();}}/>;
-  const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Rented",listings.filter(l=>l.status==="Rented").length,"🏠"],["Sold",listings.filter(l=>l.status==="Sold").length,"🏆"]];
+  if(editId!==undefined&&editId!==null) return <ListingForm currentUser={enrichedUser} listingId={editId} allListings={listings} showToast={showToast} onBack={()=>setEditId(null)} onSaved={()=>{setEditId(null);load();}} onDraftSaved={()=>load()}/>;
+  if(view==="create") return <ListingForm currentUser={enrichedUser} listingId={createFlowListingId} allListings={listings} showToast={showToast} onBack={()=>{setView("grid");setCreateFlowListingId(null);}} onSaved={()=>{setView("grid");setCreateFlowListingId(null);load();}} onDraftSaved={(id)=>{setCreateFlowListingId(id);load();}}/>;
+  const stats=[["Total",listings.length,"📊"],["Active",listings.filter(l=>l.status==="Active").length,"✅"],["Draft",listings.filter(l=>l.status==="Draft").length,"📋"],["Rented",listings.filter(l=>l.status==="Rented").length,"🏠"],["Sold",listings.filter(l=>l.status==="Sold").length,"🏆"]];
   const unverifiedAgent=isAgent&&profRow&&!profRow.agent_verified;
   const lockedVerifiedAgent=isAgent&&currentUser.agentVerified===true;
   const activeCount=listings.filter(l=>l.status==="Active").length;
@@ -2286,7 +2399,7 @@ export const AgentDash = ({currentUser,showToast}) => {
             </button>
           </div>
           :canAddMore
-          ?<button onClick={()=>setView("create")} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
+          ?<button onClick={()=>{setCreateFlowListingId(null);setView("create");}} className="btn-green" style={{padding:"11px 22px",borderRadius:11,fontSize:14}}>+ New Listing</button>
           :<div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
             <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:10,padding:"10px 16px",fontSize:13,color:"#92400E",fontWeight:600}}>⚠️ Listing limit reached</div>
             <button type="button" className="btn-outline" disabled={upgradeRequesting} onClick={requestUpgrade} style={{padding:"9px 14px",borderRadius:10,fontSize:12}}>
@@ -2326,7 +2439,7 @@ export const AgentDash = ({currentUser,showToast}) => {
         </div>
       )}
       {tab==="listings"&&<>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}} className="gr">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:16,marginBottom:24}} className="gr">
           {stats.map(([label,val,icon])=>(
             <div key={label} className="card" style={{padding:"20px 22px"}}>
               <div style={{fontSize:24,marginBottom:8}}>{icon}</div>
@@ -2336,7 +2449,7 @@ export const AgentDash = ({currentUser,showToast}) => {
           ))}
         </div>
         {loading?<div style={{textAlign:"center",padding:48,color:"var(--muted)"}}>Loading…</div>:listings.length===0
-          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>{unverifiedAgent?"Your agent account must be approved before you can add listings.":"Create your first listing and start marketing it instantly."}</p>{unverifiedAgent?null:<button onClick={()=>setView("create")} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button>}</div>
+          ?<div className="card" style={{padding:56,textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🏠</div><h3 style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"var(--navy)",marginBottom:8}}>No listings yet</h3><p style={{color:"var(--muted)",marginBottom:20,fontSize:14}}>{unverifiedAgent?"Your agent account must be approved before you can add listings.":"Create your first listing and start marketing it instantly."}</p>{unverifiedAgent?null:<button onClick={()=>{setCreateFlowListingId(null);setView("create");}} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14}}>+ Create First Listing</button>}</div>
           :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:20}} className="gr">
             {listings.map(raw=>{const l=mapListing(raw);return(
               <div key={l.id} className="card" style={{overflow:"hidden"}}>
@@ -2356,7 +2469,12 @@ export const AgentDash = ({currentUser,showToast}) => {
                     <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
                     {l.videoPlaybackId ? <span style={{color:"var(--navy)",fontWeight:700}}>🎥 {l.videoViewCount ?? 0}</span> : null}
                   </div>
-                  {l.status==="Active"?(
+                  {l.status==="Draft"?(
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:11,color:"var(--muted)",marginBottom:6,lineHeight:1.4}}>Draft — not on the public site. Add photos or a video tour, then publish.</div>
+                      <button onClick={()=>setEditId(l.id)} className="btn-primary" style={{width:"100%",padding:"8px",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Continue editing</button>
+                    </div>
+                  ):l.status==="Active"?(
                     <div style={{display:"flex",gap:5,marginBottom:8}}>
                       <button onClick={()=>quickStatus(l.id,"Sold")} disabled={statusChanging===l.id} style={{flex:1,padding:"6px 2px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",color:"#7C3AED",fontFamily:"inherit"}}>🏆 Sold</button>
                       <button onClick={()=>quickStatus(l.id,"Rented")} disabled={statusChanging===l.id} style={{flex:1,padding:"6px 2px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:"#FFFBEB",border:"1px solid #FDE68A",color:"#D97706",fontFamily:"inherit"}}>🔑 Rented</button>

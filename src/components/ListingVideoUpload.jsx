@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
 import { readVideoFileMetadata } from "@/lib/clientVideoMetadata";
+import { uploadListingTourVideo } from "@/lib/listingVideoUploadClient";
 
 function formatErr(msg) {
   const m = String(msg || "");
@@ -18,12 +19,12 @@ function formatErr(msg) {
   return m || "Upload failed. Please try again.";
 }
 
-export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit }) {
+export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit, pendingVideoFile, onPendingVideoChange }) {
   const [pct, setPct] = useState(0);
   const [stage, setStage] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const xhrRef = useRef(null);
+  const uploadAbortRef = useRef(null);
 
   const refreshForm = useCallback(async () => {
     if (!listingId) return;
@@ -52,7 +53,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
 
   const cancel = () => {
     try {
-      xhrRef.current?.abort();
+      uploadAbortRef.current?.abort();
     } catch {
       /* ignore */
     }
@@ -70,40 +71,14 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
     setPct(0);
     setStage("Uploading… 0%");
     try {
-      let probe;
-      try {
-        probe = await readVideoFileMetadata(file);
-      } catch (pe) {
-        const msg = formatErr(pe?.message || "");
-        setErr(msg);
-        showToast(msg, "error");
-        return;
-      }
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("kind", "listing");
-      fd.append("listingId", listingId);
-      fd.append("durationSec", String(probe.durationSec));
-      fd.append("videoWidth", String(probe.videoWidth));
-      fd.append("videoHeight", String(probe.videoHeight));
-
-      const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
-      await new Promise((resolve, reject) => {
-        xhr.upload.addEventListener("progress", (ev) => {
-          if (!ev.lengthComputable) return;
-          const p = Math.round((ev.loaded / ev.total) * 45);
-          setPct(p);
-          setStage(`Uploading… ${p}%`);
-        });
-        xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
-        });
-        xhr.addEventListener("error", () => reject(new Error("Connection error. Please check your internet and try again.")));
-        xhr.addEventListener("abort", () => reject(new Error("aborted")));
-        xhr.open("POST", "/api/video/upload");
-        xhr.send(fd);
+      await readVideoFileMetadata(file);
+      uploadAbortRef.current = new AbortController();
+      await uploadListingTourVideo(listingId, file, {
+        signal: uploadAbortRef.current.signal,
+        onUploadProgress: (p) => {
+          setPct(Math.round(p * 0.45));
+          setStage(`Uploading… ${Math.round(p * 0.45)}%`);
+        },
       });
 
       setPct(50);
@@ -139,6 +114,22 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
     }
   };
 
+  const pickPending = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErr("");
+    try {
+      await readVideoFileMetadata(file);
+      onPendingVideoChange?.(file);
+      showToast("Video selected — it uploads when you save draft or publish", "success");
+    } catch (pe) {
+      const msg = formatErr(pe?.message || "");
+      setErr(msg);
+      showToast(msg, "error");
+    }
+  };
+
   const remove = async () => {
     if (!listingId) return;
     if (!window.confirm("Remove this video tour from the listing?")) return;
@@ -159,9 +150,41 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
 
   if (!isEdit) {
     return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.55 }}>
-        Save this listing once, then open <strong>Edit</strong> to add an optional <strong>Video Tour</strong> (max 5 minutes, landscape). Photos stay unchanged; video frames are only used if you have no photos.
-      </p>
+      <div>
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--muted)", lineHeight: 1.55 }}>
+          Choose a video now or after you save a draft. <strong>Either photos or a video</strong> is required to publish. Video-only: we use frames for PDFs and WhatsApp after processing.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 10 }}>
+          <label className="btn-ghost" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>
+            📁 Choose video tour
+            <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/avi" style={{ display: "none" }} onChange={pickPending} />
+          </label>
+          {pendingVideoFile ? (
+            <button type="button" className="btn-outline" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12 }} onClick={() => onPendingVideoChange?.(null)}>
+              Clear video
+            </button>
+          ) : null}
+        </div>
+        {pendingVideoFile ? (
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--navy)",
+              padding: "10px 12px",
+              background: "var(--primary-light)",
+              borderRadius: 10,
+              border: "1px solid var(--primary-mid)",
+              marginBottom: 8,
+            }}
+          >
+            Selected: <strong>{pendingVideoFile.name}</strong> — uploads when you tap <strong>Save draft</strong> or <strong>Publish listing</strong>.
+          </div>
+        ) : null}
+        {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
+          MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Min 480p (landscape).
+        </p>
+      </div>
     );
   }
 
@@ -232,7 +255,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
 
       {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
       <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
-        Optional · MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Min 480p. If you have no photos, we add stills from your video after processing.
+        Optional if you already have photos · MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Min 480p. Video-only listings: we add stills from your video for PDFs and WhatsApp after processing.
       </p>
     </div>
   );

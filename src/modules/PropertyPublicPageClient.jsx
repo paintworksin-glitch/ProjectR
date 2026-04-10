@@ -212,9 +212,11 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
         ? { text: "Sold", tone: "muted" }
         : listing.status === "Rented"
           ? { text: "Rented", tone: "muted" }
-          : listing.status === "Inactive"
-            ? { text: "Inactive", tone: "warn" }
-            : { text: listing.status || "Listing", tone: "muted" };
+          : listing.status === "Draft"
+            ? { text: "Draft — not published", tone: "warn" }
+            : listing.status === "Inactive"
+              ? { text: "Inactive", tone: "warn" }
+              : { text: listing.status || "Listing", tone: "muted" };
 
   return (
     <div className="property-detail-page" style={{ fontFamily: "'Inter',sans-serif" }}>

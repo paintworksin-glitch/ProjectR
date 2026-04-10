@@ -258,6 +258,7 @@ export function MasterDash({ showToast }) {
   const stats = useMemo(() => {
     const act = listingsRaw.filter((l) => l.status === "Active").length;
     const inact = listingsRaw.filter((l) => l.status === "Inactive").length;
+    const draft = listingsRaw.filter((l) => l.status === "Draft").length;
     const buyers = profiles.filter((p) => p.role === "user").length;
     const sellers = profiles.filter((p) => p.role === "seller").length;
     const ag = profiles.filter((p) => p.role === "agent").length;
@@ -266,6 +267,7 @@ export function MasterDash({ showToast }) {
       totalListings: listingsRaw.length,
       activeListings: act,
       inactiveListings: inact,
+      draftListings: draft,
       buyers,
       sellers,
       agents: ag,
@@ -690,7 +692,7 @@ export function MasterDash({ showToast }) {
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.6 }}>Listings</div>
           <div style={{ fontFamily: "'Fraunces',serif", fontSize: 28, fontWeight: 800, color: "var(--navy)", marginTop: 6 }}>{stats.totalListings}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-            Active {stats.activeListings} · Inactive {stats.inactiveListings}
+            Active {stats.activeListings} · Inactive {stats.inactiveListings} · Draft {stats.draftListings}
           </div>
         </div>
         <div className="card" style={{ padding: "20px 22px" }}>
@@ -942,9 +944,10 @@ export function MasterDash({ showToast }) {
                             <td style={{ padding: "11px 14px" }}>
                               {st === "Active" && badge("active", "#EFF6FF", "#1D4ED8", "1px solid #BFDBFE")}
                               {st === "Inactive" && badge("inactive", "#F3F4F6", "#6B7280", "1px solid #E5E7EB")}
+                              {st === "Draft" && badge("draft", "#FEF3C7", "#92400E", "1px solid #FDE68A")}
                               {st === "Rented" && badge("rented", "#FFFBEB", "#D97706", "1px solid #FDE68A")}
                               {st === "Sold" && badge("sold", "#F5F3FF", "#7C3AED", "1px solid #DDD6FE")}
-                              {!["Active", "Inactive", "Rented", "Sold"].includes(st) && badge(st || "—", "#F3F4F6", "#374151", "1px solid #E5E7EB")}
+                              {!["Active", "Inactive", "Draft", "Rented", "Sold"].includes(st) && badge(st || "—", "#F3F4F6", "#374151", "1px solid #E5E7EB")}
                             </td>
                             <td style={{ padding: "11px 14px" }}>
                               {raw.featured ? badge("featured", "#ECFDF5", "#065F46", "1px solid #A7F3D0") : badge("—", "#F3F4F6", "#6B7280", "1px solid #E5E7EB")}

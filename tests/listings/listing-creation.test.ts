@@ -69,6 +69,13 @@ test.describe("Listings - Creation", () => {
     expect(gate.ok).toBe(false);
   });
 
+  test("Seller at Active cap may still save a draft (ignoreSellerActiveCap)", async () => {
+    const gate = await canCreateListing(makeEligibilitySupabase({ role: "seller" }, 2), "user-1", {
+      ignoreSellerActiveCap: true,
+    });
+    expect(gate.ok).toBe(true);
+  });
+
   test.skip("Seller can create listing", async () => {});
   test.skip("All required fields validated", async () => {});
   test.skip("Photos upload correctly", async () => {});

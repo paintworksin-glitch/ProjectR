@@ -2,7 +2,10 @@
  * Server/client: who may create a new listing (role, verification, seller cap).
  * Uses JWT user id from getUser() so eligibility always matches the active session (avoids stale context).
  */
-export async function canCreateListing(supabase, userIdHint) {
+/**
+ * @param {{ ignoreSellerActiveCap?: boolean }} [options] - Set for draft-only inserts so sellers at 2 Active can still save a draft.
+ */
+export async function canCreateListing(supabase, userIdHint, options = {}) {
   const {
     data: { user },
     error: authErr,
@@ -60,7 +63,7 @@ export async function canCreateListing(supabase, userIdHint) {
     };
   }
 
-  if (p.role === "seller") {
+  if (p.role === "seller" && !options.ignoreSellerActiveCap) {
     const { count, error: cErr } = await supabase
       .from("listings")
       .select("*", { count: "exact", head: true })
