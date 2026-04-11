@@ -903,7 +903,8 @@ export function MasterDash({ showToast }) {
                   <table className="admin-data-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040 }}>
                     <thead>
                       <tr style={{ background: "var(--navy)" }}>
-                        {["Title", "Agent / seller", "City", "Price", "Status", "Featured", "Video", "Created", "Actions"].map((h) => (
+                        {/* VIDEO TOUR - temporarily hidden: column "Video" removed from header */}
+                        {["Title", "Agent / seller", "City", "Price", "Status", "Featured", "Created", "Actions"].map((h) => (
                           <th
                             key={h}
                             style={{
@@ -952,6 +953,8 @@ export function MasterDash({ showToast }) {
                             <td style={{ padding: "11px 14px" }}>
                               {raw.featured ? badge("featured", "#ECFDF5", "#065F46", "1px solid #A7F3D0") : badge("—", "#F3F4F6", "#6B7280", "1px solid #E5E7EB")}
                             </td>
+                            {/* VIDEO TOUR - temporarily hidden */}
+                            {false && (
                             <td style={{ padding: "11px 14px", fontSize: 11, color: "var(--muted)", verticalAlign: "top" }}>
                               {l.videoPlaybackId ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
@@ -975,6 +978,7 @@ export function MasterDash({ showToast }) {
                                 "—"
                               )}
                             </td>
+                            )}
                             <td style={{ padding: "11px 14px", fontSize: 12, color: "var(--muted)" }}>
                               {raw.created_at ? new Date(raw.created_at).toLocaleString() : "—"}
                             </td>
@@ -1087,12 +1091,13 @@ export function MasterDash({ showToast }) {
                       <col style={{ width: "9%" }} />
                       <col style={{ width: "8%" }} />
                       <col style={{ width: "7%" }} />
-                      <col style={{ width: "12%" }} />
+                      {/* VIDEO TOUR - temporarily hidden: <col style={{ width: "12%" }} /> */}
                       <col style={{ width: "18%" }} />
                     </colgroup>
                     <thead>
                       <tr style={{ background: "var(--navy)" }}>
-                        {["Name", "Email", "Phone", "RERA", "Verification", "Plan", "Listings", "Intro video", "Actions"].map((h) => (
+                        {/* VIDEO TOUR - temporarily hidden: column "Intro video" removed from header */}
+                        {["Name", "Email", "Phone", "RERA", "Verification", "Plan", "Listings", "Actions"].map((h) => (
                           <th
                             key={h}
                             style={{
@@ -1159,6 +1164,8 @@ export function MasterDash({ showToast }) {
                             <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <span className="badge tag">{nList}</span>
                             </td>
+                            {/* VIDEO TOUR - temporarily hidden */}
+                            {false && (
                             <td style={{ padding: "12px 14px", verticalAlign: "top", fontSize: 11, color: "var(--muted)" }}>
                               {a.intro_video_playback_id ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
@@ -1180,6 +1187,7 @@ export function MasterDash({ showToast }) {
                                 "—"
                               )}
                             </td>
+                            )}
                             <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                 {!ver ? (

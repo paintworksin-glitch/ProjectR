@@ -733,7 +733,8 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
           ) : null}
         </div>
         <div style={{position:"absolute",top:12,right:12,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
-          {listing.videoPlaybackId ? (
+          {/* VIDEO TOUR - temporarily hidden */}
+          {false && listing.videoPlaybackId ? (
             <span className="badge" style={{background:"#0f172a",color:"#fff",border:"1px solid rgba(255,255,255,0.2)"}}>🎥 Video Tour</span>
           ) : null}
           <span className="badge" style={{background:statusBg,color:statusColor,border:`1px solid ${listing.status==="Active"?"#A7F3D0":listing.status==="Rented"?"#FDE68A":"#DDD6FE"}`}}>{listing.status}</span>
@@ -766,11 +767,12 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
           {listing.sizesqft&&<span>📐 {listing.sizesqft} sqft</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:listing.videoPlaybackId?"repeat(4,1fr)":"repeat(3,1fr)",gap:6}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
           <button type="button" onClick={(e)=>{e.stopPropagation();onView(listing);}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button type="button" onClick={(e)=>{e.stopPropagation();showWACard(listing);}} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
           <button type="button" onClick={(e)=>{e.stopPropagation();showPDF(listing);}} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
-          {listing.videoPlaybackId ? (
+          {/* VIDEO TOUR - temporarily hidden */}
+          {false && listing.videoPlaybackId ? (
             <a href={propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" })} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,textAlign:"center",textDecoration:"none",color:"var(--navy)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center"}}>🎥</a>
           ) : null}
         </div>
@@ -805,7 +807,8 @@ export const PropModal = ({listing,onClose}) => {
             <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
               <button type="button" onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp</button>
               <button type="button" onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF</button>
-              {listing.videoPlaybackId ? (
+              {/* VIDEO TOUR - temporarily hidden */}
+              {false && listing.videoPlaybackId ? (
                 <a href={propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" })} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#0f172a",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}>🎥 Video</a>
               ) : null}
               <button type="button" onClick={() => _h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing kit</button>
@@ -931,7 +934,9 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
     const siteBase=getPublicSiteBase();
     if(siteBase&&listing.id){
       lines.push('');
+      /* VIDEO TOUR - temporarily hidden
       if(listing.videoPlaybackId){lines.push('🎥 Video Tour: '+propertyPageUrl(siteBase,listing.id,{tab:'video'}));}
+      */
       lines.push('📄 PDF Report: '+propertyPageUrl(siteBase,listing.id,{tab:'pdf'}));
     }
     lines.push('');
@@ -1123,7 +1128,8 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
           </div>}
 
-          {listing.videoPlaybackId && (!listing.photos || listing.photos.length === 0) && pdfQrDataUrl ? (
+          {/* VIDEO TOUR - temporarily hidden */}
+          {false && listing.videoPlaybackId && (!listing.photos || listing.photos.length === 0) && pdfQrDataUrl ? (
             <div style={{ marginBottom: 24, padding: "28px 24px", border: "2px solid #e2e8f0", borderRadius: 16, textAlign: "center", background: "#fafafa" }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "var(--navy)", marginBottom: 8 }}>🎥 Video tour available</div>
               <div style={{ fontSize: 14, color: "#64748b", marginBottom: 20, lineHeight: 1.55, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>Scan to watch the property walkthrough</div>
@@ -2216,7 +2222,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>AI picking best cover…</span>}
           {aiStatus==="done"&&<span style={{fontSize:11,color:"#059669",fontWeight:600,textTransform:"none",letterSpacing:0}}>✨ Best cover auto-selected</span>}
         </h3>
-        <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)",lineHeight:1.55}}>Up to 10 images. You need photos or a video tour to publish.</p>
+        <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)",lineHeight:1.55}}>Up to 10 images. You need at least one photo to publish.</p>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
         {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:12}}>
           {form.photos.map((p,i)=>{
@@ -2241,10 +2247,13 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <button onClick={()=>fileRef.current?.click()} disabled={photoLoading||aiStatus==="analyzing"} className="btn-ghost" style={{padding:"10px 20px",borderRadius:10,fontSize:13,borderColor:errs.photos?"#FCA5A5":"var(--border)"}}>📁 {photoLoading?"Uploading…":aiStatus==="analyzing"?"Analysing…":"Choose Photos"}</button>
         {errs.photos&&<div style={{fontSize:11,color:"#DC2626",marginTop:6}}>{errs.photos}</div>}
       </div>
+      {/* VIDEO TOUR - temporarily hidden */}
+      {false && (
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>Video tour</h3>
         <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} pendingVideoFile={pendingVideoFile} onPendingVideoChange={setPendingVideoFile} />
       </div>
+      )}
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>
         <h3 style={{margin:"0 0 12px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1}}>When published</h3>
         {form.status==="Draft"?<p style={{margin:"0 0 10px",fontSize:12,color:"var(--muted)",lineHeight:1.5}}>This listing is a <strong>draft</strong> (not on the public site). Choose the status to use when you publish.</p>:null}
@@ -2519,11 +2528,12 @@ export const AgentDash = ({currentUser,showToast}) => {
                     <span style={{color:"var(--muted)"}}>👁 {l.viewCount||0}</span>
                     <span style={{color:"#25D366",fontWeight:700}}>📲 {l.waCount||0} WA</span>
                     <span style={{color:"var(--muted)"}}>📄 {l.pdfCount||0} PDF</span>
-                    {l.videoPlaybackId ? <span style={{color:"var(--navy)",fontWeight:700}}>🎥 {l.videoViewCount ?? 0}</span> : null}
+                    {/* VIDEO TOUR - temporarily hidden */}
+                    {false && l.videoPlaybackId ? <span style={{color:"var(--navy)",fontWeight:700}}>🎥 {l.videoViewCount ?? 0}</span> : null}
                   </div>
                   {l.status==="Draft"?(
                     <div style={{marginBottom:8}}>
-                      <div style={{fontSize:11,color:"var(--muted)",marginBottom:6,lineHeight:1.4}}>Draft — not on the public site. Add photos or a video tour, then publish.</div>
+                      <div style={{fontSize:11,color:"var(--muted)",marginBottom:6,lineHeight:1.4}}>Draft — not on the public site. Add at least one photo, then publish.</div>
                       <button onClick={()=>setEditId(l.id)} className="btn-primary" style={{width:"100%",padding:"8px",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Continue editing</button>
                     </div>
                   ):l.status==="Active"?(
@@ -2598,7 +2608,8 @@ export const AgentDash = ({currentUser,showToast}) => {
               />
               {profilePhoneError?<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>{profilePhoneError}</div>:null}
             </div>
-            <IntroVideoUpload userId={currentUser.id} showToast={showToast} />
+            {/* VIDEO TOUR - temporarily hidden */}
+            {false && <IntroVideoUpload userId={currentUser.id} showToast={showToast} />}
             <button onClick={saveProfile} disabled={profileSaving} className="btn-primary" style={{padding:"12px 28px",borderRadius:10,fontSize:14,display:"flex",alignItems:"center",gap:8,marginTop:8}}>
               {profileSaving?<><span className="spin"/>Saving…</>:"Save Profile →"}
             </button>
@@ -3751,7 +3762,8 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
         </div>
       </div>
       <div style={{maxWidth:960,margin:"0 auto",padding:"36px 24px"}}>
-        {agent.intro_video_playback_id&&agent.intro_video_status!=="failed"?(
+        {/* VIDEO TOUR - temporarily hidden */}
+        {false && agent.intro_video_playback_id&&agent.intro_video_status!=="failed"?(
           <div className="card" style={{padding:24,marginBottom:28,maxWidth:360,marginLeft:"auto",marginRight:"auto"}}>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:800,color:"var(--navy)",margin:"0 0 12px"}}>Introduction</h2>
             <NorthingMuxPlayer playbackId={agent.intro_video_playback_id} aspectRatio="9 / 16" onPlay={()=>{fetch("/api/video/view",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({introUserId:agentId})}).catch(()=>{});}} />

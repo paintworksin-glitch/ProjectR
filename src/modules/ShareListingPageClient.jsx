@@ -49,6 +49,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
 
   if (!listing) return null;
   const loginNext = `/login?next=${encodeURIComponent(`/share/${listing.id}`)}`;
+  /* VIDEO TOUR - temporarily hidden
   let videoTourUrl = fullListingUrl;
   try {
     const u = new URL(fullListingUrl);
@@ -57,6 +58,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
   } catch {
     videoTourUrl = `${String(fullListingUrl).replace(/\/?$/, "")}?tab=video`;
   }
+  */
 
   const fields = [
     ["Type", listing.propertyType],
@@ -301,6 +303,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
             <button type="button" onClick={() => _h.openPDF(listing)} className="btn-outline" style={{ padding: "11px 18px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
               PDF
             </button>
+            {/* VIDEO TOUR - temporarily hidden
             {listing.videoPlaybackId ? (
               <a
                 href={videoTourUrl}
@@ -323,6 +326,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
                 🎥 Video
               </a>
             ) : null}
+            */}
             <button
               type="button"
               onClick={() => _h.openKit(listing)}

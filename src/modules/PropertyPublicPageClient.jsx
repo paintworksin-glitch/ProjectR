@@ -81,7 +81,8 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
       (listing?.videoPlaybackId && String(listing.videoPlaybackId).trim()) ||
       (listing?.muxVideoAssetId && String(listing.muxVideoAssetId).trim()) ||
       null;
-    if (t === "video" && uid) setToolTab("video");
+    /* VIDEO TOUR - temporarily hidden: if (t === "video" && uid) setToolTab("video"); */
+    if (t === "video" && uid) setToolTab("wa");
     else if (t === "pdf") setToolTab("pdf");
     else if (t === "wa") setToolTab("wa");
   }, [searchParams, listing?.videoPlaybackId, listing?.muxVideoAssetId]);
@@ -334,7 +335,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </>
         ) : null}
 
-        <div className="property-detail-tool-tabs" role="toolbar" aria-label="WhatsApp, PDF, and video">
+        <div className="property-detail-tool-tabs" role="toolbar" aria-label="WhatsApp and PDF">
           <button
             type="button"
             aria-pressed={toolTab === "wa"}
@@ -363,7 +364,8 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             </span>
             <span className="property-detail-tool-tab__label">PDF</span>
           </button>
-          {streamTourUid ? (
+          {/* VIDEO TOUR - temporarily hidden */}
+          {false && streamTourUid ? (
             <button
               type="button"
               aria-pressed={toolTab === "video"}
@@ -378,7 +380,8 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           ) : null}
         </div>
 
-        {toolTab === "video" && streamTourUid ? (
+        {/* VIDEO TOUR - temporarily hidden */}
+        {false && toolTab === "video" && streamTourUid ? (
           <div className="property-detail-video-panel">
             <NorthingMuxPlayer
               playbackId={streamTourUid}
