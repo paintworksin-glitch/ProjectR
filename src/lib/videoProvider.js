@@ -32,8 +32,13 @@ function buildNewAssetSettings(passthrough) {
     static_renditions: [{ resolution: "720p" }],
   };
 
+  /**
+   * Direct upload: first input must omit url (Mux uses the uploaded file as primary).
+   * Watermark is a second input with overlay_settings — a single PNG-only inputs[] breaks ingest.
+   */
   if (watermarkUrl) {
     newAssetSettings.inputs = [
+      {},
       {
         url: watermarkUrl,
         overlay_settings: {

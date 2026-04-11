@@ -1,4 +1,5 @@
 import { fmtP } from "./formatPrice";
+import { muxThumbnailUrl } from "./muxThumbnailUrl.js";
 
 /** Absolute URL for OG/Twitter when photo may be a site-relative path. */
 export function absoluteOgImageUrl(url) {
@@ -40,7 +41,12 @@ export function buildListingPageMetadata(listing) {
   const keys = keyDetailsLine(listing);
   const description = [typeStr, priceStr, keys].filter(Boolean).join(" · ");
 
-  const ogImage = absoluteOgImageUrl(listing.photos?.[0]);
+  /** WhatsApp / iMessage / social previews: prefer a frame from the video tour when present (same idea as the HD JPG download). */
+  const videoOg =
+    listing.videoPlaybackId && String(listing.videoPlaybackId).trim()
+      ? muxThumbnailUrl(String(listing.videoPlaybackId).trim(), 2, 1200)
+      : "";
+  const ogImage = videoOg || absoluteOgImageUrl(listing.photos?.[0]);
 
   return {
     title: pageTitle,
