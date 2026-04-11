@@ -116,4 +116,24 @@ export const videoProvider = {
       return null;
     }
   },
+
+  /**
+   * Ask Mux to generate a 720p MP4 if none was requested at upload (or encoding was never kicked).
+   * Safe to call repeatedly; duplicates are ignored.
+   */
+  async ensure720pStaticRendition(assetId) {
+    if (!assetId) return { ok: false, reason: "no_asset" };
+    const mux = getClient();
+    try {
+      await mux.video.assets.createStaticRendition(assetId, { resolution: "720p" });
+      return { ok: true, requested: true };
+    } catch (e) {
+      const status = e?.status ?? e?.response?.status;
+      const body = String(e?.message ?? e ?? "");
+      if (status === 409 || /already|exist|duplicate|in progress|conflict/i.test(body)) {
+        return { ok: true, requested: false };
+      }
+      return { ok: true, requested: false, note: body.slice(0, 200) };
+    }
+  },
 };

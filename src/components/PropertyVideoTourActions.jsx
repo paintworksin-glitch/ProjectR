@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { muxTourMp4ApiPath } from "@/lib/muxTourMp4Fetch.js";
+import { muxTourMp4ApiPath, muxTourThumbnailDownloadApiPath } from "@/lib/muxTourMp4Fetch.js";
 import { buildVideoTourShareText } from "@/lib/videoTourShareText.js";
 import { WALogo } from "@/modules/NorthingApp.jsx";
 
@@ -32,6 +32,20 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+async function ensureListingMp4(listingId, playbackId, signal) {
+  if (!listingId) return;
+  try {
+    await fetch("/api/video/ensure-mp4", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId, playbackId }),
+      signal,
+    });
+  } catch {
+    /* non-fatal */
+  }
+}
+
 /**
  * Premium action bar below the Mux player: download MP4 + share to WhatsApp with caption.
  */
@@ -39,6 +53,7 @@ export function PropertyVideoTourActions({ listing }) {
   const [waBusy, setWaBusy] = useState(false);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [downloadError, setDownloadError] = useState("");
+  const [downloadInfo, setDownloadInfo] = useState("");
   const downloadPollAbortRef = useRef(null);
   const downloadReadyTimerRef = useRef(null);
 
@@ -52,18 +67,38 @@ export function PropertyVideoTourActions({ listing }) {
 
   if (!listing?.videoPlaybackId) return null;
 
-  const downloadBusy = downloadPhase === "preparing" || downloadPhase === "ready";
+  const downloadBusy = downloadPhase === "saving_preview" || downloadPhase === "preparing" || downloadPhase === "ready";
 
   const downloadVideo = async () => {
     if (downloadBusy) return;
     setDownloadError("");
-    const name = `${tourFileBaseName(listing)}.mp4`;
-    const probeUrl = muxTourMp4ApiPath(listing.videoPlaybackId, name, { probe: "1" });
-    const href = muxTourMp4ApiPath(listing.videoPlaybackId, name);
+    setDownloadInfo("");
+
+    const base = tourFileBaseName(listing);
+    const mp4Name = `${base}.mp4`;
+    const previewName = `${base}-hd-preview.jpg`;
+    const probeUrl = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name, { probe: "1" });
+    const mp4Href = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name);
+    const thumbHref = muxTourThumbnailDownloadApiPath(listing.videoPlaybackId, previewName, { w: 1920, time: 1 });
 
     const ac = new AbortController();
     downloadPollAbortRef.current = ac;
+    setDownloadPhase("saving_preview");
+
+    const thumbA = document.createElement("a");
+    thumbA.href = thumbHref;
+    thumbA.download = previewName;
+    thumbA.rel = "noopener";
+    document.body.appendChild(thumbA);
+    thumbA.click();
+    thumbA.remove();
+
+    await ensureListingMp4(listing.id, listing.videoPlaybackId, ac.signal);
+
+    if (ac.signal.aborted) return;
     setDownloadPhase("preparing");
+    setDownloadInfo("An HD JPG from this tour is saving now (instant, like a photo). The full MP4 downloads next when encoding finishes.");
+
     const started = Date.now();
 
     try {
@@ -72,10 +107,11 @@ export function PropertyVideoTourActions({ listing }) {
         const probe = await fetch(probeUrl, { signal: ac.signal, cache: "no-store" });
         if (probe.ok) {
           downloadPollAbortRef.current = null;
+          setDownloadInfo("");
           setDownloadPhase("ready");
           const a = document.createElement("a");
-          a.href = href;
-          a.download = name;
+          a.href = mp4Href;
+          a.download = mp4Name;
           a.rel = "noopener";
           document.body.appendChild(a);
           a.click();
@@ -94,7 +130,7 @@ export function PropertyVideoTourActions({ listing }) {
         }
         await sleep(DOWNLOAD_POLL_MS);
       }
-      setDownloadError("The file is still being prepared. Try again in a few minutes — the player above works now.");
+      setDownloadError("The MP4 is still encoding on Mux (the player above uses a faster stream). Try again in a few minutes.");
       setDownloadPhase("idle");
     } catch (e) {
       if (e?.name === "AbortError") return;
@@ -106,6 +142,7 @@ export function PropertyVideoTourActions({ listing }) {
   const shareOnWhatsApp = async () => {
     setWaBusy(true);
     try {
+      await ensureListingMp4(listing.id, listing.videoPlaybackId, undefined);
       const outName = `${tourFileBaseName(listing)}.mp4`;
       const href = muxTourMp4ApiPath(listing.videoPlaybackId, outName);
       const res = await fetch(href);
@@ -141,12 +178,20 @@ export function PropertyVideoTourActions({ listing }) {
   };
 
   const downloadLabel =
-    downloadPhase === "preparing" ? "Preparing file…" : downloadPhase === "ready" ? "Ready to download" : "Download video";
+    downloadPhase === "saving_preview"
+      ? "Saving HD preview…"
+      : downloadPhase === "preparing"
+        ? "Preparing MP4…"
+        : downloadPhase === "ready"
+          ? "Ready to download"
+          : "Download tour";
 
   return (
     <div className="property-detail-video-actions" aria-label="Video tour actions">
       <p className="property-detail-video-actions__eyebrow">Save or share</p>
-      <p className="property-detail-video-actions__sub">Download the tour file or send it with a ready-to-send message.</p>
+      <p className="property-detail-video-actions__sub">
+        Get an HD still from the tour instantly, then the full video file — streaming is always fastest; MP4 encoding can take a minute.
+      </p>
       <div className="property-detail-video-actions__row">
         <button
           type="button"
@@ -166,6 +211,7 @@ export function PropertyVideoTourActions({ listing }) {
           {waBusy ? "Working…" : "Share on WhatsApp"}
         </button>
       </div>
+      {downloadInfo ? <p className="property-detail-video-actions__hint">{downloadInfo}</p> : null}
       {downloadError ? <p className="property-detail-video-actions__hint property-detail-video-actions__hint--error">{downloadError}</p> : null}
     </div>
   );

@@ -4,8 +4,12 @@ export function muxImageOrigin() {
   return raw.replace(/\/$/, "");
 }
 
-export function muxThumbnailUrl(playbackId, timeSec = 1) {
+export function muxThumbnailUrl(playbackId, timeSec = 1, widthPx) {
   if (!playbackId) return "";
   const t = Number(timeSec) || 0;
-  return `${muxImageOrigin()}/${encodeURIComponent(playbackId)}/thumbnail.jpg?time=${encodeURIComponent(String(t))}`;
+  const u = new URL(`${muxImageOrigin()}/${encodeURIComponent(playbackId)}/thumbnail.jpg`);
+  u.searchParams.set("time", String(t));
+  const w = Number(widthPx);
+  if (w > 0 && w <= 4096) u.searchParams.set("width", String(Math.floor(w)));
+  return u.toString();
 }

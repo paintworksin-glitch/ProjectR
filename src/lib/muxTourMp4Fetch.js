@@ -29,6 +29,18 @@ export function muxTourMp4ApiPath(playbackId, filename, extra = {}) {
   return `/api/video/mp4?${params}`;
 }
 
+/** Same-origin HD frame from Mux Image API — ready as soon as the tour plays (instant “download”). */
+export function muxTourThumbnailDownloadApiPath(playbackId, filename, extra = {}) {
+  const params = new URLSearchParams({
+    playbackId: String(playbackId),
+    filename: filename || "northing-tour-preview.jpg",
+  });
+  Object.entries(extra).forEach(([k, v]) => {
+    if (v != null && v !== "") params.set(k, String(v));
+  });
+  return `/api/video/thumbnail-download?${params}`;
+}
+
 /**
  * @param {string} playbackId
  * @param {AbortSignal} [signal]
