@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { muxTourMp4ApiPath, muxTourThumbnailDownloadApiPath } from "@/lib/muxTourMp4Fetch.js";
+import { muxTourMp4ApiPath } from "@/lib/muxTourMp4Fetch.js";
 import { buildVideoTourShareText } from "@/lib/videoTourShareText.js";
 import { WALogo } from "@/modules/NorthingApp.jsx";
 
@@ -67,37 +67,25 @@ export function PropertyVideoTourActions({ listing }) {
 
   if (!listing?.videoPlaybackId) return null;
 
-  const downloadBusy = downloadPhase === "saving_preview" || downloadPhase === "preparing" || downloadPhase === "ready";
+  const downloadBusy = downloadPhase === "preparing" || downloadPhase === "ready";
 
   const downloadVideo = async () => {
     if (downloadBusy) return;
     setDownloadError("");
     setDownloadInfo("");
 
-    const base = tourFileBaseName(listing);
-    const mp4Name = `${base}.mp4`;
-    const previewName = `${base}-hd-preview.jpg`;
+    const mp4Name = `${tourFileBaseName(listing)}.mp4`;
     const probeUrl = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name, { probe: "1" });
     const mp4Href = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name);
-    const thumbHref = muxTourThumbnailDownloadApiPath(listing.videoPlaybackId, previewName, { w: 1920, time: 1 });
 
     const ac = new AbortController();
     downloadPollAbortRef.current = ac;
-    setDownloadPhase("saving_preview");
-
-    const thumbA = document.createElement("a");
-    thumbA.href = thumbHref;
-    thumbA.download = previewName;
-    thumbA.rel = "noopener";
-    document.body.appendChild(thumbA);
-    thumbA.click();
-    thumbA.remove();
+    setDownloadPhase("preparing");
+    setDownloadInfo("Preparing the downloadable MP4 — the player above streams sooner than the file is ready.");
 
     await ensureListingMp4(listing.id, listing.videoPlaybackId, ac.signal);
 
     if (ac.signal.aborted) return;
-    setDownloadPhase("preparing");
-    setDownloadInfo("An HD JPG from this tour is saving now (instant, like a photo). The full MP4 downloads next when encoding finishes.");
 
     const started = Date.now();
 
@@ -124,16 +112,19 @@ export function PropertyVideoTourActions({ listing }) {
           return;
         }
         if (probe.status !== 404) {
+          setDownloadInfo("");
           setDownloadError("Could not prepare the download. Try again in a moment.");
           setDownloadPhase("idle");
           return;
         }
         await sleep(DOWNLOAD_POLL_MS);
       }
+      setDownloadInfo("");
       setDownloadError("The MP4 is still encoding on Mux (the player above uses a faster stream). Try again in a few minutes.");
       setDownloadPhase("idle");
     } catch (e) {
       if (e?.name === "AbortError") return;
+      setDownloadInfo("");
       setDownloadError("Could not prepare the download. Check your connection and try again.");
       setDownloadPhase("idle");
     }
@@ -178,20 +169,12 @@ export function PropertyVideoTourActions({ listing }) {
   };
 
   const downloadLabel =
-    downloadPhase === "saving_preview"
-      ? "Saving HD preview…"
-      : downloadPhase === "preparing"
-        ? "Preparing MP4…"
-        : downloadPhase === "ready"
-          ? "Ready to download"
-          : "Download tour";
+    downloadPhase === "preparing" ? "Preparing MP4…" : downloadPhase === "ready" ? "Ready to download" : "Download tour";
 
   return (
     <div className="property-detail-video-actions" aria-label="Video tour actions">
       <p className="property-detail-video-actions__eyebrow">Save or share</p>
-      <p className="property-detail-video-actions__sub">
-        Get an HD still from the tour instantly, then the full video file — streaming is always fastest; MP4 encoding can take a minute.
-      </p>
+      <p className="property-detail-video-actions__sub">Download the tour video file or send it with a ready-to-send message. MP4 encoding can take a short while after upload.</p>
       <div className="property-detail-video-actions__row">
         <button
           type="button"
