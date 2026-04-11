@@ -39,7 +39,7 @@ function buildNewAssetSettings(passthrough, watermarkImageUrl) {
           horizontal_margin: "0px",
           width: "100%",
           height: "15%",
-          opacity: "1.0",
+          opacity: 1,
         },
       },
     ];

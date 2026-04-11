@@ -3,6 +3,8 @@
  * Duration/dimensions come from the client (HTMLVideoElement); we sanity-check and verify container magic bytes.
  */
 
+import { MAX_VIDEO_UPLOAD_BYTES } from "@/lib/videoUploadLimits.js";
+
 const MAX_REASONABLE_DURATION_SEC = 6 * 60 * 60; // reject absurd spoof values
 
 /**
@@ -36,9 +38,17 @@ export function parseAndValidateClientVideoMeta(form, opts) {
   const rawD = form.get("durationSec");
   const rawW = form.get("videoWidth");
   const rawH = form.get("videoHeight");
+  const rawSize = form.get("fileSizeBytes");
   const durationSec = typeof rawD === "string" ? Number.parseFloat(rawD) : Number.NaN;
   const width = typeof rawW === "string" ? Number.parseInt(rawW, 10) : Number.NaN;
   const height = typeof rawH === "string" ? Number.parseInt(rawH, 10) : Number.NaN;
+  const fileSizeBytes = typeof rawSize === "string" ? Number.parseInt(rawSize, 10) : Number.NaN;
+
+  if (Number.isFinite(fileSizeBytes) && fileSizeBytes > 0) {
+    if (fileSizeBytes > MAX_VIDEO_UPLOAD_BYTES) {
+      return { ok: false, error: "Video must be under 500MB" };
+    }
+  }
 
   if (!Number.isFinite(durationSec) || durationSec <= 0) {
     return { ok: false, error: "Could not read video length. Try another file or browser." };
@@ -76,6 +86,13 @@ export function validateVideoMetaJson(body, opts) {
   const durationSec = Number(body?.durationSec);
   const width = Number.parseInt(String(body?.videoWidth ?? ""), 10);
   const height = Number.parseInt(String(body?.videoHeight ?? ""), 10);
+  const fileSizeBytes = Number(body?.fileSizeBytes);
+
+  if (Number.isFinite(fileSizeBytes) && fileSizeBytes > 0) {
+    if (fileSizeBytes > MAX_VIDEO_UPLOAD_BYTES) {
+      return { ok: false, error: "Video must be under 500MB" };
+    }
+  }
 
   if (!Number.isFinite(durationSec) || durationSec <= 0) {
     return { ok: false, error: "Could not read video length. Try another file or browser." };

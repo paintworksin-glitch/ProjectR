@@ -6,13 +6,12 @@ import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseA
 import { bufferLooksLikeSupportedVideo, parseAndValidateClientVideoMeta } from "@/lib/videoUploadValidation";
 import { getAgentMuxWatermarkImageUrl, getEffectiveMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
 import { muxErrorForClient, muxErrorForLog } from "@/lib/muxClientError.js";
+import { MAX_VIDEO_UPLOAD_BYTES } from "@/lib/videoUploadLimits.js";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const TAG = "video-upload";
-
-const MAX_BYTES = 500 * 1024 * 1024;
 const ALLOWED = new Set([
   "video/mp4",
   "video/quicktime",
@@ -100,7 +99,7 @@ export async function POST(request) {
     const buf = Buffer.from(await file.arrayBuffer());
     console.log(`[${TAG}] buffer`, { bytes: buf.length, mime });
 
-    if (buf.length > MAX_BYTES) return err(400, "Video must be under 500MB");
+    if (buf.length > MAX_VIDEO_UPLOAD_BYTES) return err(400, "Video must be under 500MB");
     if (buf.length < 1024) return err(400, "Upload failed. Please try again.");
 
     if (!bufferLooksLikeSupportedVideo(buf)) {

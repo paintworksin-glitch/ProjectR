@@ -5,22 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
 import { readVideoFileMetadata } from "@/lib/clientVideoMetadata";
 import { uploadIntroVideo } from "@/lib/listingVideoUploadClient";
-
-function formatErr(msg) {
-  const m = String(msg || "").toLowerCase();
-  const raw = String(msg || "");
-  if (/\b413\b|payload too large|entity too large|body exceeded|request body|too large for/i.test(m)) {
-    return "Upload was blocked by the network. Try a smaller file or lower quality.";
-  }
-  if (/500mb/i.test(m)) return "Video must be under 500MB";
-  if (/format|mp4|mov|webm/i.test(m)) return "Please upload mp4, mov or webm";
-  if (/5 seconds|least 5/i.test(m)) return "Video must be at least 5 seconds";
-  if (/60 seconds|Introduction video/i.test(m)) return "Introduction video must be 60 seconds or less";
-  if (/360|resolution too low|quality too low|480p/i.test(m)) return "Video resolution too low (short edge at least 360px).";
-  if (/read video|video metadata|video length|video size/i.test(m)) return "Could not read this video in your browser. Try another file or browser.";
-  if (/network|connection/i.test(m)) return "Connection error. Please check your internet and try again.";
-  return m || "Upload failed. Please try again.";
-}
+import { formatVideoUploadError } from "@/lib/videoUploadUserMessages.js";
 
 export function IntroVideoUpload({ userId, showToast }) {
   const [playbackId, setPlaybackId] = useState(null);
@@ -75,7 +60,7 @@ export function IntroVideoUpload({ userId, showToast }) {
       try {
         probe = await readVideoFileMetadata(file);
       } catch (pe) {
-        const msg = formatErr(pe?.message || "");
+        const msg = formatVideoUploadError(pe?.message || "");
         setErr(msg);
         showToast(msg, "error");
         setBusy(false);
@@ -104,9 +89,9 @@ export function IntroVideoUpload({ userId, showToast }) {
         const raw = String(ex?.message || "");
         try {
           const j = JSON.parse(raw);
-          if (j.error) msg = formatErr(j.error);
+          if (j.error) msg = formatVideoUploadError(j.error);
         } catch {
-          msg = formatErr(raw);
+          msg = formatVideoUploadError(raw);
         }
         setErr(msg);
         showToast(msg, "error");
