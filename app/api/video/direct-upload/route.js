@@ -144,12 +144,17 @@ export async function POST(request) {
 
       let muxUploadId;
       let uploadUrl;
+      let watermarkSkipped = false;
       try {
         console.log(`[${TAG}] calling Mux createDirectUpload (listing)`);
         const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wmAgent });
         muxUploadId = up.muxUploadId;
         uploadUrl = up.uploadUrl;
-        console.log(`[${TAG}] Mux direct upload created`, { muxUploadId });
+        watermarkSkipped = Boolean(up.watermarkSkipped);
+        if (watermarkSkipped) {
+          console.warn(`[${TAG}] Mux upload created without watermark (overlay failed; retried bare)`, { muxUploadId });
+        }
+        console.log(`[${TAG}] Mux direct upload created`, { muxUploadId, watermarkSkipped });
       } catch (e) {
         console.error(`[${TAG}] Mux createDirectUpload failed (listing)`, muxErrorForLog(e));
         const clientMsg = muxErrorForClient(e);
@@ -181,6 +186,7 @@ export async function POST(request) {
         muxUploadId,
         status: "processing",
         message: "PUT your file to uploadUrl, then wait for processing.",
+        ...(watermarkSkipped ? { watermarkSkipped: true } : {}),
       });
     }
 
@@ -209,12 +215,17 @@ export async function POST(request) {
 
     let muxUploadId;
     let uploadUrl;
+    let introWatermarkSkipped = false;
     try {
       console.log(`[${TAG}] calling Mux createDirectUpload (intro)`);
       const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wmAgent });
       muxUploadId = up.muxUploadId;
       uploadUrl = up.uploadUrl;
-      console.log(`[${TAG}] Mux direct upload created (intro)`, { muxUploadId });
+      introWatermarkSkipped = Boolean(up.watermarkSkipped);
+      if (introWatermarkSkipped) {
+        console.warn(`[${TAG}] Mux upload created without watermark (intro)`, { muxUploadId });
+      }
+      console.log(`[${TAG}] Mux direct upload created (intro)`, { muxUploadId, watermarkSkipped: introWatermarkSkipped });
     } catch (e) {
       console.error(`[${TAG}] Mux createDirectUpload failed (intro)`, muxErrorForLog(e));
       const clientMsg = muxErrorForClient(e);
@@ -240,6 +251,7 @@ export async function POST(request) {
       muxUploadId,
       status: "processing",
       message: "PUT your file to uploadUrl.",
+      ...(introWatermarkSkipped ? { watermarkSkipped: true } : {}),
     });
   } catch (e) {
     console.error(`[${TAG}] unhandled error`, muxErrorForLog(e));

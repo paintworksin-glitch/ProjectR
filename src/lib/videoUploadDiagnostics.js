@@ -3,12 +3,27 @@ import { muxErrorForClient } from "@/lib/muxClientError.js";
 import { getMuxAssetOrigin } from "@/lib/publicSiteUrl.js";
 import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseAdmin.js";
 import { getEffectiveMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
+import { muxDirectUploadBaseNewAssetSettings, muxDirectUploadNewAssetSettings } from "@/lib/videoProvider.js";
 
 const DEFAULT_TEST_AGENT_ID = "00000000-0000-4000-8000-000000000000";
 
 /**
  * @param {{ agentId?: string, watermarkFetchMs?: number }} [opts]
- * @returns {Promise<{ mux: string, supabase: string, watermark: string }>}
+ * @returns {Promise<{
+ *   mux: string,
+ *   supabase: string,
+ *   watermark: string,
+ *   muxDirectUpload: {
+ *     withoutWatermark: { ok: boolean, muxUploadId?: string, error?: string },
+ *     withWatermark: {
+ *       ok: boolean,
+ *       watermarkUrl: string | null,
+ *       muxUploadId?: string,
+ *       error?: string,
+ *       skipped?: string,
+ *     },
+ *   },
+ * }>}
  */
 export async function runVideoUploadDiagnostics(opts = {}) {
   const agentId = (opts.agentId && String(opts.agentId).trim()) || DEFAULT_TEST_AGENT_ID;
@@ -17,8 +32,73 @@ export async function runVideoUploadDiagnostics(opts = {}) {
   const mux = await checkMux();
   const supabase = await checkSupabase();
   const watermark = await checkWatermark(agentId, timeoutMs);
+  const muxDirectUpload = await probeMuxDirectUploadCreates(agentId);
 
-  return { mux, supabase, watermark };
+  return { mux, supabase, watermark, muxDirectUpload };
+}
+
+/**
+ * 1) Create direct upload with no overlay. 2) If (1) ok, create again with watermark inputs.
+ */
+async function probeMuxDirectUploadCreates(agentId) {
+  const id = (process.env.MUX_TOKEN_ID || "").trim();
+  const sec = (process.env.MUX_TOKEN_SECRET || "").trim();
+  const cors = "*";
+  const passthrough = JSON.stringify({ probe: "video-diagnostics", t: Date.now() });
+
+  /** @type {{ ok: boolean, muxUploadId?: string, error?: string }} */
+  const withoutWatermark = { ok: false };
+  /** @type {{ ok: boolean, watermarkUrl: string | null, muxUploadId?: string, error?: string, skipped?: string }} */
+  const withWatermark = { ok: false, watermarkUrl: null };
+
+  if (!id || !sec) {
+    withoutWatermark.error = "MUX_TOKEN_ID or MUX_TOKEN_SECRET is not set";
+    withWatermark.skipped = "Mux credentials missing";
+    return { withoutWatermark, withWatermark };
+  }
+
+  try {
+    const mux = createMuxClient();
+    const minimal = muxDirectUploadBaseNewAssetSettings(passthrough);
+    try {
+      const up = await mux.video.uploads.create({ cors_origin: cors, new_asset_settings: minimal });
+      withoutWatermark.ok = true;
+      withoutWatermark.muxUploadId = up.id;
+    } catch (e) {
+      withoutWatermark.error = muxErrorForClient(e);
+    }
+
+    if (!withoutWatermark.ok) {
+      withWatermark.skipped = "without-watermark create failed";
+      const wm = getEffectiveMuxWatermarkImageUrl(agentId);
+      withWatermark.watermarkUrl = wm || null;
+      return { withoutWatermark, withWatermark };
+    }
+
+    const wmUrl = getEffectiveMuxWatermarkImageUrl(agentId);
+    withWatermark.watermarkUrl = wmUrl || null;
+    if (!wmUrl) {
+      withWatermark.skipped = "no watermark URL to test";
+      return { withoutWatermark, withWatermark };
+    }
+
+    const withSettings = muxDirectUploadNewAssetSettings(
+      JSON.stringify({ probe: "video-diagnostics-wm", t: Date.now() }),
+      wmUrl,
+    );
+    try {
+      const up2 = await mux.video.uploads.create({ cors_origin: cors, new_asset_settings: withSettings });
+      withWatermark.ok = true;
+      withWatermark.muxUploadId = up2.id;
+    } catch (e) {
+      withWatermark.error = muxErrorForClient(e);
+    }
+    return { withoutWatermark, withWatermark };
+  } catch (e) {
+    withoutWatermark.error = withoutWatermark.error || muxErrorForClient(e);
+    withWatermark.skipped = "probe error";
+    return { withoutWatermark, withWatermark };
+  }
 }
 
 async function checkMux() {

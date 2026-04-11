@@ -4,7 +4,8 @@ import { runVideoUploadDiagnostics } from "@/lib/videoUploadDiagnostics.js";
 export const runtime = "nodejs";
 
 /**
- * GET /api/video/test — Mux creds, Supabase service role, watermark URL reachability.
+ * GET /api/video/test — Mux creds, Supabase service role, watermark URL fetch,
+ * and muxDirectUpload: create direct upload without overlay, then with watermark (if step 1 ok).
  * Optional: ?agentId=uuid (defaults to all-zero test UUID).
  * If VIDEO_DIAG_SECRET is set, require ?secret=… matching that value.
  */
@@ -29,6 +30,10 @@ export async function GET(request) {
         mux: String(e?.message || e),
         supabase: "skipped (unhandled error)",
         watermark: "skipped (unhandled error)",
+        muxDirectUpload: {
+          withoutWatermark: { ok: false, error: "skipped" },
+          withWatermark: { ok: false, watermarkUrl: null, skipped: "unhandled error" },
+        },
       },
       { status: 500 },
     );
