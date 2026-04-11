@@ -29,7 +29,7 @@ import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./nor
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 import { getBrowserSiteOrigin, propertyPageUrl } from "@/lib/publicSiteUrl.js";
 import { muxThumbnailUrl } from "@/lib/muxThumbnailUrl.js";
-import { fetchMuxTourMp4Blob, probeMuxTourMp4Availability } from "@/lib/muxTourMp4Fetch.js";
+import { fetchMuxTourMp4Blob } from "@/lib/muxTourMp4Fetch.js";
 import { ListingVideoUpload } from "@/components/ListingVideoUpload";
 import { IntroVideoUpload } from "@/components/IntroVideoUpload";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
@@ -988,35 +988,12 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
   const wlLogo = agentBrand?.logoUrl || null;
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  /** checking | ready | preparing | unknown */
-  const [mp4Probe, setMp4Probe] = useState("checking");
   useEffect(() => {
     if (listing?.id && listing?.videoPlaybackId) track(listing.id, "video_share_card");
   }, [listing?.id, listing?.videoPlaybackId]);
-  useEffect(() => {
-    const pid = listing?.videoPlaybackId;
-    if (!pid) {
-      setMp4Probe("checking");
-      return;
-    }
-    const ac = new AbortController();
-    let cancelled = false;
-    setMp4Probe("checking");
-    (async () => {
-      try {
-        const r = await probeMuxTourMp4Availability(pid, ac.signal);
-        if (cancelled) return;
-        setMp4Probe(r.status === "ready" ? "ready" : "preparing");
-      } catch (e) {
-        if (!cancelled && e?.name !== "AbortError") setMp4Probe("unknown");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      ac.abort();
-    };
-  }, [listing?.videoPlaybackId]);
   if (!listing?.videoPlaybackId) return null;
+
+  const streamingTourUrl = listing.id ? propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" }) : "";
 
   const tourDownloadBaseName = () =>
     `northing-tour-${(listing.title || "property")
@@ -1039,7 +1016,7 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
     } catch (e) {
       if (e?.message === "MUX_MP4_UNAVAILABLE") {
         window.alert(
-          "The downloadable video file is not ready yet (Mux may still be encoding the MP4), or this tour was uploaded before MP4 downloads were enabled. Wait a minute and try again, or use Copy text for WhatsApp."
+          "The downloadable file is not ready yet — streaming on the property page uses a different format and is often available sooner. Use “Open streaming tour” below, try again in a minute, or use Copy text for WhatsApp."
         );
       } else {
         window.alert("Could not download the video. Check your connection and try again.");
@@ -1094,7 +1071,7 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
     } catch (e) {
       if (e?.message === "MUX_MP4_UNAVAILABLE") {
         window.alert(
-          "The video file is not available to share yet (encoding may still be in progress), or this tour predates MP4 downloads. Try again shortly or use Copy text for WhatsApp."
+          "The file for attaching in WhatsApp is not ready yet. Use “Open streaming tour” to play it now, try Share again in a minute, or use Copy text for WhatsApp."
         );
       } else {
         window.alert("Could not share the video. Try Download video, then attach it in WhatsApp with the copied text.");
@@ -1138,21 +1115,26 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxHeight: "95vh", overflow: "auto" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, margin: "0 0 4px", textAlign: "center", maxWidth: cardW }}>
-          Preview — download or share the real tour video with your message
+        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
+          Preview — download or share the tour as a single video file with your message
         </p>
-        {mp4Probe === "checking" ? (
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>Checking downloadable file…</p>
-        ) : null}
-        {mp4Probe === "preparing" ? (
-          <p style={{ color: "rgba(253, 224, 71, 0.95)", fontSize: 12, lineHeight: 1.45, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
-            MP4 is still preparing (Mux may be encoding it). Wait a minute and try Download video again, or use Copy text for WhatsApp.
-          </p>
-        ) : null}
-        {mp4Probe === "unknown" ? (
-          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.45, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
-            Could not verify the file from your network. If download fails, wait briefly and retry, or use Copy text.
-          </p>
+        {streamingTourUrl ? (
+          <a
+            href={streamingTourUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              color: "rgba(147, 197, 253, 0.95)",
+              fontSize: 12,
+              fontWeight: 600,
+              margin: "0 0 8px",
+              textAlign: "center",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            Open streaming tour (plays immediately)
+          </a>
         ) : null}
         <div
           id="video-share-card"

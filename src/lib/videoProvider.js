@@ -28,8 +28,8 @@ function buildNewAssetSettings(passthrough) {
     passthrough,
     video_quality: videoQuality,
     max_resolution_tier: "1080p",
-    /** Enables https://stream.mux.com/{id}/highest.mp4 for download / WhatsApp share (ready after static rendition encodes). */
-    static_renditions: [{ resolution: "highest" }],
+    /** 720p MP4 encodes faster than full “highest” for download / WhatsApp share (separate job from HLS streaming). */
+    static_renditions: [{ resolution: "720p" }],
   };
 
   if (watermarkUrl) {
