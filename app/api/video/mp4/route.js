@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findMuxMp4Url, isLikelyMuxPlaybackId } from "@/lib/muxMp4Resolve.js";
+import { findMuxMp4Url, isLikelyMuxPlaybackId, resolveMuxTourVideoDownload } from "@/lib/muxMp4Resolve.js";
 
 export const runtime = "nodejs";
 /** Large tours may take a while to stream through the app (Hobby ~60s). */
@@ -27,9 +27,9 @@ export async function GET(request) {
   }
 
   if (probe === "1") {
-    const muxUrl = await findMuxMp4Url(playbackId);
-    if (!muxUrl) return NextResponse.json({ ok: false }, { status: 404 });
-    return NextResponse.json({ ok: true });
+    const resolved = await resolveMuxTourVideoDownload(playbackId);
+    if (!resolved) return NextResponse.json({ ok: false }, { status: 404 });
+    return NextResponse.json({ ok: true, source: resolved.source });
   }
 
   const muxUrl = await findMuxMp4Url(playbackId);

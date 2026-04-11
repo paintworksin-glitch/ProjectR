@@ -6,42 +6,9 @@ function rankMp4CandidateName(name) {
   return idx === -1 ? 999 : idx;
 }
 
-/**
- * Use Mux Video API to find a **ready** static MP4 filename (source of truth).
- * Avoids relying on CDN probes alone (which can 404 briefly after Mux reports ready).
- */
-export async function findMuxMp4UrlViaMuxApi(playbackId) {
-  let mux;
-  try {
-    mux = createMuxClient();
-  } catch {
-    return null;
-  }
-  try {
-    const pb = await mux.video.playbackIds.retrieve(playbackId);
-    if (pb?.object?.type !== "asset" || !pb.object?.id) return null;
-    const asset = await mux.video.assets.retrieve(pb.object.id);
-    const files = asset?.static_renditions?.files;
-    if (!Array.isArray(files) || files.length === 0) return null;
-    const ready = files
-      .filter((f) => f && f.status === "ready" && f.ext === "mp4" && typeof f.name === "string")
-      .sort((a, b) => rankMp4CandidateName(a.name) - rankMp4CandidateName(b.name));
-    if (!ready.length) return null;
-    return muxTourMp4Url(playbackId, ready[0].name);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Find first working Mux static MP4 URL (server-side; no CORS).
- * Prefer Mux API (ready renditions), then small Range GET — some CDNs mishandle HEAD.
- */
-export async function findMuxMp4Url(playbackId) {
-  const fromApi = await findMuxMp4UrlViaMuxApi(playbackId);
-  if (fromApi) return fromApi;
-
-  for (const name of MUX_MP4_CANDIDATES) {
+/** First candidate that responds to Range/HEAD on stream.mux.com (parallel). */
+async function probeMuxStaticCandidatesParallel(playbackId) {
+  const checks = MUX_MP4_CANDIDATES.map(async (name) => {
     const url = muxTourMp4Url(playbackId, name);
     try {
       const r = await fetch(url, {
@@ -60,8 +27,90 @@ export async function findMuxMp4Url(playbackId) {
     } catch {
       /* next */
     }
+    return null;
+  });
+  const hits = await Promise.all(checks);
+  return hits.find(Boolean) || null;
+}
+
+/**
+ * Temporary signed master MP4 URL (24h) when static renditions are missing or still preparing.
+ */
+async function resolveMuxMasterTemporaryDownloadUrl(mux, assetId) {
+  try {
+    let asset = await mux.video.assets.retrieve(assetId);
+    if (asset.master?.status === "ready" && asset.master?.url) {
+      return asset.master.url;
+    }
+    if (asset.master_access === "none") {
+      await mux.video.assets.updateMasterAccess(assetId, { master_access: "temporary" });
+      asset = await mux.video.assets.retrieve(assetId);
+    }
+    if (asset.master?.status === "ready" && asset.master?.url) {
+      return asset.master.url;
+    }
+    return null;
+  } catch {
+    return null;
   }
+}
+
+/**
+ * Resolves a URL the server can fetch to stream a full MP4 to the browser.
+ * Order: Mux API static files → legacy / CDN names → temporary master access.
+ */
+export async function resolveMuxTourVideoDownload(playbackId) {
+  let mux;
+  try {
+    mux = createMuxClient();
+  } catch {
+    mux = null;
+  }
+
+  if (mux) {
+    try {
+      const pb = await mux.video.playbackIds.retrieve(playbackId);
+      if (pb?.object?.type === "asset" && pb.object.id) {
+        const assetId = pb.object.id;
+        const asset = await mux.video.assets.retrieve(assetId);
+        const files = asset?.static_renditions?.files;
+        const sr = asset?.static_renditions;
+
+        if (Array.isArray(files) && files.length > 0) {
+          const ready = files
+            .filter((f) => f && f.status === "ready" && f.ext === "mp4" && typeof f.name === "string")
+            .sort((a, b) => rankMp4CandidateName(a.name) - rankMp4CandidateName(b.name));
+          if (ready.length) {
+            return { url: muxTourMp4Url(playbackId, ready[0].name), source: "static" };
+          }
+        }
+
+        const legacyMp4 =
+          asset.mp4_support && asset.mp4_support !== "none"
+            ? true
+            : sr?.status === "ready" && (!Array.isArray(files) || files.length === 0);
+        if (legacyMp4) {
+          const hit = await probeMuxStaticCandidatesParallel(playbackId);
+          if (hit) return { url: hit, source: "static" };
+        }
+
+        const masterUrl = await resolveMuxMasterTemporaryDownloadUrl(mux, assetId);
+        if (masterUrl) return { url: masterUrl, source: "master" };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const hit = await probeMuxStaticCandidatesParallel(playbackId);
+  if (hit) return { url: hit, source: "static" };
   return null;
+}
+
+/** Backwards-compatible: returns any downloadable video URL (static CDN or master). */
+export async function findMuxMp4Url(playbackId) {
+  const r = await resolveMuxTourVideoDownload(playbackId);
+  return r?.url ?? null;
 }
 
 /** Mux playback IDs are usually alphanumeric; allow common variants. */
