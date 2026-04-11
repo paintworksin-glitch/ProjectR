@@ -18,6 +18,18 @@ export function getServerSiteOrigin() {
   return normalizeSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || "");
 }
 
+/**
+ * Origin Mux (and other servers) use to fetch overlay images from this deployment.
+ * Prefer canonical site URL from env; on Vercel use VERCEL_URL when the public URL env is unset.
+ */
+export function getMuxAssetOrigin() {
+  const canonical = getServerSiteOrigin();
+  if (canonical) return canonical;
+  const vu = (process.env.VERCEL_URL || "").trim().replace(/^https?:\/\//i, "");
+  if (vu) return `https://${vu}`;
+  return "";
+}
+
 /** Client: prefer env; fallback to window.location.origin for local dev */
 export function getBrowserSiteOrigin() {
   const fromEnv = normalizeSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || "");

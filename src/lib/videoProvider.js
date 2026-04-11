@@ -4,24 +4,15 @@
  */
 import { createMuxClient } from "./mux.js";
 import { muxThumbnailUrl } from "./muxThumbnailUrl.js";
-import { getServerSiteOrigin } from "./publicSiteUrl.js";
+import { getStaticMuxWatermarkImageUrl } from "./watermarkUrl.js";
 
 function getClient() {
   return createMuxClient();
 }
 
-/** Mux overlays use a PNG/JPG URL (not raw text). Optional override for staging/CDN. */
-function getMuxWatermarkImageUrl() {
-  const explicit = process.env.MUX_WATERMARK_IMAGE_URL?.trim();
-  if (explicit) return explicit;
-  const origin = getServerSiteOrigin();
-  if (origin) return `${origin}/mux-watermark/northing-in.png`;
-  return null;
-}
-
 function buildNewAssetSettings(passthrough, watermarkImageUrl) {
   const videoQuality = (process.env.MUX_VIDEO_QUALITY || "plus").trim() || "plus";
-  const watermarkUrl = (watermarkImageUrl && String(watermarkImageUrl).trim()) || getMuxWatermarkImageUrl();
+  const watermarkUrl = (watermarkImageUrl && String(watermarkImageUrl).trim()) || getStaticMuxWatermarkImageUrl();
 
   const newAssetSettings = {
     playback_policies: ["public"],
@@ -43,11 +34,12 @@ function buildNewAssetSettings(passthrough, watermarkImageUrl) {
         url: watermarkUrl,
         overlay_settings: {
           vertical_align: "bottom",
-          vertical_margin: "0%",
-          horizontal_align: "center",
-          horizontal_margin: "0%",
+          vertical_margin: "0px",
+          horizontal_align: "left",
+          horizontal_margin: "0px",
           width: "100%",
-          opacity: "100%",
+          height: "15%",
+          opacity: "1.0",
         },
       },
     ];
