@@ -8,18 +8,9 @@ import { G } from "./globalStyles.js";
 import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { supabase } from "@/lib/supabaseClient";
 import { useNorthing } from "./NorthingContext.jsx";
-import {
-  _h,
-  PDFModal,
-  WACardModal,
-  VideoShareCardModal,
-  PropertyDetailCarousel,
-  WALogo,
-  useViewerBrandProfile,
-  useListingAgentBrand,
-  track,
-} from "./NorthingApp.jsx";
+import { _h, PDFModal, WACardModal, PropertyDetailCarousel, WALogo, useViewerBrandProfile, useListingAgentBrand, track } from "./NorthingApp.jsx";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
+import { PropertyVideoTourActions } from "@/components/PropertyVideoTourActions.jsx";
 
 /**
  * Public property detail — data from server (SSR + OG); client UI, auth gates, enquiry, save.
@@ -57,8 +48,6 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   const [enquirySent, setEnquirySent] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [savedLocal, setSavedLocal] = useState(null);
-  const [videoShareOpen, setVideoShareOpen] = useState(false);
-
   const viewerBrand = useViewerBrandProfile();
   const agentBrand = useListingAgentBrand(listing, null);
 
@@ -72,7 +61,6 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   useEffect(() => {
     _h.openWA = (l) => setWaListing(l);
     _h.openPDF = (l) => setPdfListing(l);
-    _h.openKit = () => {};
   }, []);
 
   useEffect(() => {
@@ -336,7 +324,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           </>
         ) : null}
 
-        <div className="property-detail-tool-tabs" role="toolbar" aria-label="Listing tools">
+        <div className="property-detail-tool-tabs" role="toolbar" aria-label="WhatsApp, PDF, and video">
           <button
             type="button"
             aria-pressed={toolTab === "wa"}
@@ -366,35 +354,22 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             <span className="property-detail-tool-tab__label">PDF</span>
           </button>
           {listing.videoPlaybackId ? (
-            <>
-              <button
-                type="button"
-                aria-pressed={toolTab === "video"}
-                className={`property-detail-tool-tab ${toolTab === "video" ? "property-detail-tool-tab--active" : ""}`}
-                onClick={() => syncToolTab("video")}
-              >
-                <span className="property-detail-tool-tab__icon" aria-hidden>
-                  🎥
-                </span>
-                <span className="property-detail-tool-tab__label">Tour</span>
-              </button>
-              <button
-                type="button"
-                className="property-detail-tool-tab"
-                onClick={() => setVideoShareOpen(true)}
-                aria-label="Open video share card for WhatsApp"
-              >
-                <span className="property-detail-tool-tab__icon" aria-hidden>
-                  ↗
-                </span>
-                <span className="property-detail-tool-tab__label">Video card</span>
-              </button>
-            </>
+            <button
+              type="button"
+              aria-pressed={toolTab === "video"}
+              className={`property-detail-tool-tab ${toolTab === "video" ? "property-detail-tool-tab--active" : ""}`}
+              onClick={() => syncToolTab("video")}
+            >
+              <span className="property-detail-tool-tab__icon" aria-hidden>
+                🎥
+              </span>
+              <span className="property-detail-tool-tab__label">Video</span>
+            </button>
           ) : null}
         </div>
 
         {toolTab === "video" && listing.videoPlaybackId ? (
-          <div style={{ margin: "0 0 24px" }} className="property-detail-video-panel">
+          <div className="property-detail-video-panel">
             <NorthingMuxPlayer
               playbackId={listing.videoPlaybackId}
               aspectRatio="16 / 9"
@@ -410,6 +385,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
                 }).catch(() => {});
               }}
             />
+            <PropertyVideoTourActions listing={listing} />
           </div>
         ) : null}
 
@@ -544,9 +520,6 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
       {waListing ? <WACardModal listing={waListing} onClose={() => setWaListing(null)} currentUser={viewerBrand} /> : null}
       {pdfListing ? <PDFModal listing={pdfListing} onClose={() => setPdfListing(null)} currentUser={viewerBrand} /> : null}
-      {videoShareOpen && listing.videoPlaybackId ? (
-        <VideoShareCardModal listing={listing} onClose={() => setVideoShareOpen(false)} currentUser={viewerBrand} />
-      ) : null}
     </div>
   );
 }

@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { fmtP } from "@/lib/formatPrice";
 import { G } from "./globalStyles.js";
-import {
-  _h,
-  PDFModal,
-  WACardModal,
-  MarketingKitModal,
-  WALogo,
-  useViewerBrandProfile,
-  track,
-} from "./NorthingApp.jsx";
+import { _h, PDFModal, WACardModal, MarketingKitModal, WALogo, useViewerBrandProfile, track } from "./NorthingApp.jsx";
 import { supabase } from "@/lib/supabaseClient";
 
 /**
@@ -57,6 +49,14 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
 
   if (!listing) return null;
   const loginNext = `/login?next=${encodeURIComponent(`/share/${listing.id}`)}`;
+  let videoTourUrl = fullListingUrl;
+  try {
+    const u = new URL(fullListingUrl);
+    u.searchParams.set("tab", "video");
+    videoTourUrl = u.toString();
+  } catch {
+    videoTourUrl = `${String(fullListingUrl).replace(/\/?$/, "")}?tab=video`;
+  }
 
   const fields = [
     ["Type", listing.propertyType],
@@ -286,7 +286,7 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
                 fontFamily: "inherit",
               }}
             >
-              WhatsApp Card
+              WhatsApp
             </button>
             {listing.agentPhone && !sessionUser ? (
               <button
@@ -299,8 +299,30 @@ export default function ShareListingPageClient({ initialListing, fullListingUrl 
               </button>
             ) : null}
             <button type="button" onClick={() => _h.openPDF(listing)} className="btn-outline" style={{ padding: "11px 18px", borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
-              PDF report
+              PDF
             </button>
+            {listing.videoPlaybackId ? (
+              <a
+                href={videoTourUrl}
+                style={{
+                  padding: "11px 18px",
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  background: "#0f172a",
+                  color: "#fff",
+                  border: "none",
+                  fontFamily: "inherit",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                🎥 Video
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => _h.openKit(listing)}

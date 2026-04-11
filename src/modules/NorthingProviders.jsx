@@ -297,9 +297,7 @@ export default function NorthingProviders({ children }) {
         )}
         {waListing && <WACardModal listing={waListing} onClose={() => setWaListing(null)} currentUser={user} />}
         {pdfListing && <PDFModal listing={pdfListing} onClose={() => setPdfListing(null)} currentUser={user} />}
-        {kitListing && (
-          <MarketingKitModal listing={kitListing} onClose={() => setKitListing(null)} currentUser={user} />
-        )}
+        {kitListing && <MarketingKitModal listing={kitListing} onClose={() => setKitListing(null)} currentUser={user} />}
         {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </NorthingContext.Provider>

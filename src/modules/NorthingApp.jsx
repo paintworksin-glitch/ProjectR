@@ -12,11 +12,7 @@ import PrivacyPolicyPage from "../PrivacyPolicyPage.jsx";
 import TermsOfServicePage from "../TermsOfServicePage.jsx";
 import AboutPage from "../AboutPage.jsx";
 import { HomeHeroIllustration, SkylineHeroBackdrop, SkylineRibbon } from "../SkylineIllustration.jsx";
-import {
-  listingAiConfigured,
-  scorePhotoWithListingAi,
-  generateListingAiDescription,
-} from "../listingAi.js";
+import { listingAiConfigured, scorePhotoWithListingAi } from "../listingAi.js";
 import { G } from "./globalStyles.js";
 import { supabase } from "@/lib/supabaseClient";
 import { fmtP } from "@/lib/formatPrice";
@@ -28,8 +24,6 @@ import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib
 import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./northingConstants.js";
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 import { getBrowserSiteOrigin, propertyPageUrl } from "@/lib/publicSiteUrl.js";
-import { muxThumbnailUrl } from "@/lib/muxThumbnailUrl.js";
-import { fetchMuxTourMp4Blob } from "@/lib/muxTourMp4Fetch.js";
 import { ListingVideoUpload } from "@/components/ListingVideoUpload";
 import { IntroVideoUpload } from "@/components/IntroVideoUpload";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
@@ -504,27 +498,35 @@ const downloadHtmlElementAsPngById = async (elementId, filename) => {
   }
 };
 
-const formToDb = (form, agentId) => ({
-  agent_id: agentId, title: form.title, location: form.location,
-  property_type: form.propertyType, listing_type: form.listingType,
-  price: Number(form.price) || 0, size_sqft: Number(form.sizesqft) || null,
-  bedrooms: Number(form.bedrooms) || 0, bathrooms: Number(form.bathrooms) || 0,
-  furnishing_status: form.furnishingStatus, status: form.status || "Active",
-  description: form.description, highlights: form.highlights || [],
-  agent_name: form.agentName, agent_phone: form.agentPhone,
-  agent_email: form.agentEmail, agency_name: form.agencyName,
-  photos: form.photos || [],
-  details: { toilets:form.toilets, condition:form.condition, builtYear:form.builtYear,
-    modernKitchen:form.modernKitchen, wcType:form.wcType, superBuiltUp:form.superBuiltUp,
-    carpetArea:form.carpetArea, parkingType:form.parkingType, vastuDirection:form.vastuDirection,
-    totalFloors:form.totalFloors, propertyFloor:form.propertyFloor, maintenance:form.maintenance,
-    societyFormed:form.societyFormed, ocReceived:form.ocReceived,
-    reraRegistered:form.reraRegistered, reraNumber:form.reraNumber,
-    logoUrl:form.logoUrl||null, agentAddress:form.agentAddress||null, agentWebsite:form.agentWebsite||null,
-    aiDescription: form.aiDescription && String(form.aiDescription).trim() ? String(form.aiDescription).trim() : null }
-});
-const dbToForm = (l) => ({
-  ...l.details, title:l.title, location:l.location, propertyType:l.property_type,
+const formToDb = (form, agentId, existingDetails) => {
+  const aiDescription =
+    existingDetails?.aiDescription != null && String(existingDetails.aiDescription).trim()
+      ? String(existingDetails.aiDescription).trim()
+      : null;
+  return {
+    agent_id: agentId, title: form.title, location: form.location,
+    property_type: form.propertyType, listing_type: form.listingType,
+    price: Number(form.price) || 0, size_sqft: Number(form.sizesqft) || null,
+    bedrooms: Number(form.bedrooms) || 0, bathrooms: Number(form.bathrooms) || 0,
+    furnishing_status: form.furnishingStatus, status: form.status || "Active",
+    description: form.description, highlights: form.highlights || [],
+    agent_name: form.agentName, agent_phone: form.agentPhone,
+    agent_email: form.agentEmail, agency_name: form.agencyName,
+    photos: form.photos || [],
+    details: { toilets:form.toilets, condition:form.condition, builtYear:form.builtYear,
+      modernKitchen:form.modernKitchen, wcType:form.wcType, superBuiltUp:form.superBuiltUp,
+      carpetArea:form.carpetArea, parkingType:form.parkingType, vastuDirection:form.vastuDirection,
+      totalFloors:form.totalFloors, propertyFloor:form.propertyFloor, maintenance:form.maintenance,
+      societyFormed:form.societyFormed, ocReceived:form.ocReceived,
+      reraRegistered:form.reraRegistered, reraNumber:form.reraNumber,
+      logoUrl:form.logoUrl||null, agentAddress:form.agentAddress||null, agentWebsite:form.agentWebsite||null,
+      aiDescription }
+  };
+};
+const dbToForm = (l) => {
+  const { aiDescription: _omitAiDesc, ...detailsRest } = l.details && typeof l.details === "object" ? l.details : {};
+  return {
+  ...detailsRest, title:l.title, location:l.location, propertyType:l.property_type,
   listingType:l.listing_type, price:l.price, sizesqft:l.size_sqft,
   bedrooms:l.bedrooms, bathrooms:l.bathrooms, furnishingStatus:l.furnishing_status,
   status:l.status, description:l.description, highlights:l.highlights||[],
@@ -535,7 +537,8 @@ const dbToForm = (l) => ({
   videoStatus:l.video_status||"processing",
   videoViewCount:l.video_view_count??0,
   videoFramePhotos:l.details?.videoFramePhotos===true,
-});
+};
+};
 
 const burnWatermark = (file, { logoUrl, brandName } = {}) => new Promise((resolve) => {
   const img = new Image();
@@ -607,12 +610,33 @@ export const _h = { openWA: () => {}, openPDF: () => {}, openKit: () => {} };
 const showWACard = (l) => _h.openWA(l);
 const showPDF    = (l) => _h.openPDF(l);
 
+const VISITOR_ID_STORAGE_KEY = "northing_visitor_id";
+
+/** Stable anonymous id for shareevents (browser only). */
+function getVisitorId() {
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    let id = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `v_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+      localStorage.setItem(VISITOR_ID_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 export const track = async (listingId, type, platform = 'web', brokerId = null) => {
   if (!listingId) return;
+  if (typeof window === "undefined" || !window.localStorage) return;
   const key = `tracked_${listingId}_${type}`;
   if (localStorage.getItem(key)) return;
   localStorage.setItem(key, '1');
-  const visitorId = getVisitorId();
+  const visitorId = getVisitorId() ?? `once_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   await supabase.from('shareevents').insert({
     listing_id: listingId,
     broker_id: brokerId,
@@ -745,10 +769,13 @@ const PropCard = ({listing,currentUser,savedIds,onSave,onView,onLoginRedirect}) 
           {listing.bathrooms>0&&<span>🚿 {listing.bathrooms} Baths</span>}
           {listing.sizesqft&&<span>📐 {listing.sizesqft} sqft</span>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+        <div style={{display:"grid",gridTemplateColumns:listing.videoPlaybackId?"repeat(4,1fr)":"repeat(3,1fr)",gap:6}}>
           <button type="button" onClick={(e)=>{e.stopPropagation();onView(listing);}} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11}}>View</button>
           <button type="button" onClick={(e)=>{e.stopPropagation();showWACard(listing);}} style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:"#25D366",border:"none",color:"#fff",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}><WALogo size={12}/>WA</button>
           <button type="button" onClick={(e)=>{e.stopPropagation();showPDF(listing);}} className="btn-primary" style={{padding:"8px",borderRadius:9,fontSize:11,border:"none"}}>📄 PDF</button>
+          {listing.videoPlaybackId ? (
+            <a href={propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" })} target="_blank" rel="noreferrer" onClick={(e)=>e.stopPropagation()} className="btn-ghost" style={{padding:"8px",borderRadius:9,fontSize:11,fontWeight:700,textAlign:"center",textDecoration:"none",color:"var(--navy)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center"}}>🎥</a>
+          ) : null}
         </div>
       </div>
     </div>
@@ -779,10 +806,12 @@ export const PropModal = ({listing,onClose}) => {
             <div style={{fontWeight:700,fontSize:15}}>👤 {listing.agentName} <span style={{fontWeight:400,color:"var(--muted)"}}>· {listing.agencyName}</span></div>
             {listing.agentPhone&&<div style={{color:"var(--muted)"}}>📞 <a href={`tel:${listing.agentPhone}`} style={{color:"var(--green2)",fontWeight:600}}>{listing.agentPhone}</a></div>}
             <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
-              {listing.agentPhone&&<a href={`https://wa.me/${listing.agentPhone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#25D366",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}><WALogo size={15}/>WhatsApp Agent</a>}
-              <button onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp Card</button>
-              <button onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF Report</button>
-              <button onClick={()=>_h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing Kit</button>
+              <button type="button" onClick={()=>showWACard(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#128C7E",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}><WALogo size={15}/>WhatsApp</button>
+              <button type="button" onClick={()=>showPDF(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--navy)",color:"#fff",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit"}}>📄 PDF</button>
+              {listing.videoPlaybackId ? (
+                <a href={propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" })} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,background:"#0f172a",color:"#fff",padding:"10px 16px",borderRadius:9,textDecoration:"none",fontWeight:700,fontSize:13}}>🎥 Video</a>
+              ) : null}
+              <button type="button" onClick={() => _h.openKit(listing)} style={{display:"inline-flex",alignItems:"center",gap:7,background:"var(--primary-light)",color:"var(--primary)",padding:"10px 16px",borderRadius:9,fontWeight:700,fontSize:13,border:"1px solid var(--primary-mid)",cursor:"pointer",fontFamily:"inherit"}}>📦 Marketing kit</button>
             </div>
           </div>
         </div>
@@ -977,302 +1006,6 @@ export const WACardModal = ({listing,onClose,currentUser}) => {
           {downloading?"⏳ Working…":<><WALogo size={14}/>Share on WhatsApp</>}
         </button>
         <button type="button" className="wa-card-modal-btn wa-card-modal-btn--close" onClick={onClose}>Close</button>
-      </div>
-    </div>
-  );
-};
-
-/** WhatsApp-style card focused on tour video + description (public listing page). */
-export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
-  const agentBrand = useListingAgentBrand(listing, currentUser);
-  const wlLogo = agentBrand?.logoUrl || null;
-  const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  useEffect(() => {
-    if (listing?.id && listing?.videoPlaybackId) track(listing.id, "video_share_card");
-  }, [listing?.id, listing?.videoPlaybackId]);
-  if (!listing?.videoPlaybackId) return null;
-
-  const streamingTourUrl = listing.id ? propertyPageUrl(getPublicSiteBase(), listing.id, { tab: "video" }) : "";
-
-  const tourDownloadBaseName = () =>
-    `northing-tour-${(listing.title || "property")
-      .replace(/\s+/g, "-")
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "")
-      .slice(0, 72) || "property"}`;
-
-  const downloadVideo = async () => {
-    setDownloading(true);
-    try {
-      const { blob } = await fetchMuxTourMp4Blob(listing.videoPlaybackId);
-      const name = `${tourDownloadBaseName()}.mp4`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.download = name;
-      a.href = url;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    } catch (e) {
-      if (e?.message === "MUX_MP4_UNAVAILABLE") {
-        window.alert(
-          "The downloadable file is not ready yet — streaming on the property page uses a different format and is often available sooner. Use “Open streaming tour” below, try again in a minute, or use Copy text for WhatsApp."
-        );
-      } else {
-        window.alert("Could not download the video. Check your connection and try again.");
-      }
-    }
-    setDownloading(false);
-  };
-
-  const buildText = () => {
-    const lines = [];
-    lines.push("*" + listing.title + "*");
-    lines.push("📍 " + listing.location);
-    lines.push("");
-    const desc = (listing.description || "").trim();
-    if (desc) {
-      const short = desc.length > 520 ? desc.slice(0, 517).trim() + "…" : desc;
-      lines.push(short);
-      lines.push("");
-    }
-    const siteBase = getPublicSiteBase();
-    if (siteBase && listing.id) {
-      lines.push("🎥 Watch the tour:");
-      lines.push(propertyPageUrl(siteBase, listing.id, { tab: "video" }));
-    }
-    lines.push("");
-    lines.push("Contact:");
-    lines.push("  " + (listing.agentName || "Agent"));
-    if (listing.agentPhone) lines.push("  📞 " + listing.agentPhone);
-    lines.push("");
-    lines.push("_Powered by Northing_");
-    return lines.join("\n");
-  };
-
-  const shareOnWA = async () => {
-    setDownloading(true);
-    try {
-      const { blob } = await fetchMuxTourMp4Blob(listing.videoPlaybackId);
-      const outName = `${tourDownloadBaseName()}.mp4`;
-      const file = new File([blob], outName, { type: blob.type || "video/mp4" });
-      const text = buildText();
-      if (navigator.share && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: listing.title, text });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.download = outName;
-        a.href = url;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank"), 400);
-      }
-    } catch (e) {
-      if (e?.message === "MUX_MP4_UNAVAILABLE") {
-        window.alert(
-          "The file for attaching in WhatsApp is not ready yet. Use “Open streaming tour” to play it now, try Share again in a minute, or use Copy text for WhatsApp."
-        );
-      } else {
-        window.alert("Could not share the video. Try Download video, then attach it in WhatsApp with the copied text.");
-      }
-    }
-    setDownloading(false);
-  };
-
-  const copyText = () => {
-    navigator.clipboard
-      ?.writeText(buildText())
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      })
-      .catch(() => {});
-  };
-
-  const thumbSrc = muxThumbnailUrl(listing.videoPlaybackId, 1);
-  const cardW = 420;
-  const cardH = 420;
-
-  return (
-    <div
-      className="afd northing-modal-overlay wa-modal-overlay"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(10,5,2,0.75)",
-        zIndex: 3000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        backdropFilter: "blur(8px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="asl wa-card-modal-inner"
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxHeight: "95vh", overflow: "auto" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
-          Preview — download or share the tour as a single video file with your message
-        </p>
-        {streamingTourUrl ? (
-          <a
-            href={streamingTourUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              color: "rgba(147, 197, 253, 0.95)",
-              fontSize: 12,
-              fontWeight: 600,
-              margin: "0 0 8px",
-              textAlign: "center",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
-            }}
-          >
-            Open streaming tour (plays immediately)
-          </a>
-        ) : null}
-        <div
-          id="video-share-card"
-          style={{
-            width: cardW,
-            height: cardH,
-            borderRadius: 20,
-            overflow: "hidden",
-            boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-            position: "relative",
-            flexShrink: 0,
-            background: "#1a1410",
-          }}
-        >
-          <NorthingRemoteImage
-            src={thumbSrc}
-            alt=""
-            fill
-            style={{ objectFit: "cover" }}
-            placeholderEmoji="🎬"
-          />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.1) 40%,rgba(10,5,2,0.88) 72%,rgba(10,5,2,1) 100%)",
-            }}
-          />
-          <div style={{ position: "absolute", top: 16, left: 16, right: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-            <span
-              style={{
-                background: "var(--primary)",
-                color: "#fff",
-                fontSize: 11,
-                fontWeight: 800,
-                padding: "5px 12px",
-                borderRadius: 20,
-                letterSpacing: "0.5px",
-                flexShrink: 0,
-              }}
-            >
-              VIDEO TOUR
-            </span>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 6,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  background: "rgba(0,0,0,0.5)",
-                  backdropFilter: "blur(8px)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 10,
-                  padding: "5px 10px",
-                  minHeight: 28,
-                  minWidth: wlLogo ? 40 : 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {wlLogo ? (
-                  <NorthingRemoteImage src={wlLogo} alt="" width={120} height={26} style={{ height: 26, maxWidth: 120, width: "auto", objectFit: "contain", display: "block" }} />
-                ) : null}
-              </div>
-              {listing.agentPhone ? (
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{listing.agentPhone}</span>
-              ) : null}
-            </div>
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "42%",
-              transform: "translate(-50%,-50%)",
-              width: 64,
-              height: 64,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.95)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 28,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-            }}
-            aria-hidden
-          >
-            ▶
-          </div>
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "18px 18px 16px" }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#fff", marginBottom: 6, lineHeight: 1.25 }}>{listing.title}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 10 }}>📍 {listing.location}</div>
-            {(listing.description || "").trim() ? (
-              <div
-                style={{
-                  fontSize: 12,
-                  lineHeight: 1.45,
-                  color: "rgba(255,255,255,0.82)",
-                  maxHeight: 72,
-                  overflow: "hidden",
-                  marginBottom: 12,
-                }}
-              >
-                {(listing.description || "").trim().slice(0, 180)}
-                {(listing.description || "").trim().length > 180 ? "…" : ""}
-              </div>
-            ) : null}
-            <div style={{ height: 1, background: "rgba(255,255,255,0.12)", marginBottom: 10 }} />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <NorthingWaChipLockup />
-              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>LISTED ON NORTHING</span>
-            </div>
-          </div>
-        </div>
-
-        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={copyText}>
-          {copied ? "✓ Caption copied" : "📋 Copy text for WhatsApp"}
-        </button>
-        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={downloadVideo} disabled={downloading}>
-          {downloading ? "Processing…" : "⬇ Download video"}
-        </button>
-        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--share" onClick={shareOnWA} disabled={downloading}>
-          {downloading ? "⏳ Working…" : (
-            <>
-              <WALogo size={14} />
-              Share on WhatsApp
-            </>
-          )}
-        </button>
-        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--close" onClick={onClose}>
-          Close
-        </button>
       </div>
     </div>
   );
@@ -2171,16 +1904,15 @@ const FS=({label,k,form,set,opts,fmtLabel})=>(<div style={{marginBottom:13}}>{la
 const FormSec=({title,children})=>(<div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}><h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>{title}</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 18px"}}>{children}</div></div>);
 
 const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved,onDraftSaved}) => {
-  const isEdit=!!listingId; const fileRef=useRef(); const [hl,setHl]=useState(""); const [dupModal,setDupModal]=useState(null); const [saving,setSaving]=useState(false); const [photoLoading,setPhotoLoading]=useState(false); const [aiDescBusy,setAiDescBusy]=useState(false);
+  const isEdit=!!listingId; const fileRef=useRef(); const [hl,setHl]=useState(""); const [dupModal,setDupModal]=useState(null); const [saving,setSaving]=useState(false); const [photoLoading,setPhotoLoading]=useState(false);
   const [aiStatus,setAiStatus]=useState("idle"); // idle | analyzing | done
   const [coverIdx,setCoverIdx]=useState(0);
   const [aiPick,setAiPick]=useState(null);
   const [scoringIdx,setScoringIdx]=useState(null);
   const [photoMeta,setPhotoMeta]=useState([]); // [{url,score}] parallel to form.photos
   const [publishTarget,setPublishTarget]=useState("Active"); // status when publishing (chips)
-  const autoAiTriedRef=useRef(false);
   const [pendingVideoFile,setPendingVideoFile]=useState(null);
-  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",aiDescription:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[],muxVideoAssetId:null,videoPlaybackId:null,videoStatus:null,videoViewCount:0,videoFramePhotos:false});
+  const [form,setForm]=useState({title:"",location:"",propertyType:"",listingType:"",price:"",sizesqft:"",bedrooms:"",bathrooms:"",toilets:"",furnishingStatus:"",condition:"",builtYear:"",modernKitchen:"",wcType:"",superBuiltUp:"",carpetArea:"",parkingType:"",vastuDirection:"",totalFloors:"",propertyFloor:"",maintenance:"",societyFormed:"",ocReceived:"",reraRegistered:"",reraNumber:"",description:"",highlights:[],status:"Active",agentName:currentUser?.name||"",agentPhone:currentUser?.phone||"",agencyName:currentUser?.agencyName||"",agentEmail:currentUser?.email||"",photos:[],muxVideoAssetId:null,videoPlaybackId:null,videoStatus:null,videoViewCount:0,videoFramePhotos:false});
   const [errs,setErrs]=useState({});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   useEffect(()=>{
@@ -2192,24 +1924,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     if(s==="Active"||s==="Rented"||s==="Sold")setPublishTarget(s);
     else setPublishTarget("Active");
   },[listingId,allListings,isEdit]);
-  useEffect(()=>{
-    if(!listingAiConfigured()||autoAiTriedRef.current||!isEdit||!listingId)return;
-    const raw=allListings.find(l=>l.id===listingId);
-    if(!raw)return;
-    if(raw.details?.aiDescription)return;
-    const d=String(raw.description||"").trim();
-    if(d.length<25)return;
-    autoAiTriedRef.current=true;
-    (async()=>{
-      setAiDescBusy(true);
-      try{
-        const f=dbToForm(raw);
-        const { text, error }=await generateListingAiDescription(supabase,f);
-        if(text){setForm(prev=>({...prev,aiDescription:text}));showToast("AI summary generated","success");}
-        else if(error&&error!=="not_configured")showToast(error,"error");
-      }finally{setAiDescBusy(false);}
-    })();
-  },[isEdit,listingId,allListings,showToast]);
+  const existingRow = isEdit ? allListings.find((l) => l.id === listingId) : null;
   const addHl=()=>{if(hl.trim()){set("highlights",[...(form.highlights||[]),hl.trim()]);setHl("");}};
   const rmHl=(i)=>set("highlights",form.highlights.filter((_,idx)=>idx!==i));
   const handlePhotos=async(e)=>{
@@ -2322,7 +2037,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
   const doSaveDraft=async()=>{
     setSaving(true);
     try{
-      const dbRow=formToDb({...form,status:"Draft"},currentUser.id);
+      const dbRow=formToDb({...form,status:"Draft"},currentUser.id,existingRow?.details);
       if(!isEdit){
         const gate=await canCreateListing(supabase,currentUser.id,{ignoreSellerActiveCap:true});
         if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
@@ -2358,7 +2073,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
       }
       if(isEdit){
-        const {error}=await supabase.from("listings").update(formToDb(publishForm,currentUser.id)).eq("id",listingId);
+        const {error}=await supabase.from("listings").update(formToDb(publishForm,currentUser.id,existingRow?.details)).eq("id",listingId);
         if(error) throw error;
         savedListingId=listingId;
         try{
@@ -2371,16 +2086,6 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         const { data: inserted, error } = await supabase.from("listings").insert(row).select("id").single();
         if (error) throw error;
         savedListingId=inserted.id;
-        if (inserted?.id && listingAiConfigured()) {
-          const { text: aiText, error: aiErr } = await generateListingAiDescription(supabase, publishForm);
-          if (aiText) {
-            const mergedDetails = { ...(row.details || {}), aiDescription: aiText };
-            const { error: patchErr } = await supabase.from("listings").update({ details: mergedDetails }).eq("id", inserted.id);
-            if (patchErr) console.warn("AI description save:", patchErr);
-          } else if (aiErr && aiErr !== "not_configured") {
-            console.warn("listing-ai on publish:", aiErr);
-          }
-        }
         try{
           await flushPendingVideoUpload(inserted.id);
         }catch(ve){
@@ -2465,41 +2170,6 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>📝 Description *</h3>
         <textarea value={form.description||""} onChange={e=>set("description",e.target.value)} placeholder="Describe the property — highlights, neighbourhood, amenities…" className="inp" rows={4} style={{resize:"vertical",borderColor:errs.description?"#FCA5A5":"var(--border)"}}/>
         {errs.description&&<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>{errs.description}</div>}
-      </div>
-      <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 10px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ AI property summary</h3>
-        <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)",lineHeight:1.5}}>Optional extra blurb for the public page. Uses your listing fields when Listing AI is enabled for this site.</p>
-        {form.aiDescription ? (
-          <textarea value={form.aiDescription} onChange={(e) => set("aiDescription", e.target.value)} className="inp" rows={5} style={{resize:"vertical",marginBottom:12,fontSize:14,lineHeight:1.55}} placeholder="AI-generated summary…" />
-        ) : null}
-        <button
-          type="button"
-          className="btn-green"
-          style={{padding:"10px 18px",borderRadius:10,fontSize:13}}
-          disabled={aiDescBusy}
-          onClick={async () => {
-            if (!listingAiConfigured()) {
-              showToast("Listing AI is not configured. Set NEXT_PUBLIC_LISTING_AI_URL, deploy the listing-ai function, then redeploy this app.", "error");
-              return;
-            }
-            setAiDescBusy(true);
-            try {
-              const { text, error } = await generateListingAiDescription(supabase, form);
-              if (text) {
-                set("aiDescription", text);
-                showToast(isEdit ? "Summary ready — save your listing to keep it" : "Summary ready — it will be saved when you publish", "success");
-              } else if (error === "not_configured") {
-                showToast("Listing AI is not configured. Set NEXT_PUBLIC_LISTING_AI_URL, deploy the listing-ai function, then redeploy this app.", "error");
-              } else {
-                showToast(error || "Could not generate summary", "error");
-              }
-            } finally {
-              setAiDescBusy(false);
-            }
-          }}
-        >
-          {aiDescBusy ? "Generating…" : form.aiDescription ? "Regenerate summary" : "Generate summary"}
-        </button>
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>✨ Key Highlights</h3>
@@ -4192,92 +3862,140 @@ export const Nav = ({currentUser,page,onNavigate,onLogout,onSecretClick}) => {
   );
 };
 
-export const MarketingKitModal = ({listing, onClose, currentUser}) => {
+export const MarketingKitModal = ({ listing, onClose, currentUser }) => {
   const agentBrand = useListingAgentBrand(listing, currentUser);
-  const [status,setStatus]=useState("idle");
-  const [copied,setCopied]=useState(false);
-  const shareUrl=`${getPublicSiteBase()}/share/${listing.id}`;
-  const copyShareLink=()=>{
-    const run=()=>{setCopied(true);setTimeout(()=>setCopied(false),2200);};
-    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(shareUrl).then(run).catch(()=>alert("Could not copy link"));
-    else{const t=document.createElement("textarea");t.value=shareUrl;document.body.appendChild(t);t.select();try{document.execCommand("copy");run();}catch{alert("Could not copy link")}document.body.removeChild(t);}
-  };
-  const download=async()=>{
-    setStatus("loading");
-    try{
-      const JSZip=await new Promise((res,rej)=>{
-        if(window.JSZip){res(window.JSZip);return;}
-        const s=document.createElement("script");
-        s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
-        s.onload=()=>res(window.JSZip);s.onerror=rej;document.head.appendChild(s);
-      });
-      const wmOptions=watermarkBrandOptionsFromAgent(listing, agentBrand);
-      const zip=new JSZip();
-      const imgFolder=zip.folder("photos");
-      for(let i=0;i<(listing.photos||[]).length;i++){
-        try{
-          const resp=await fetch(listing.photos[i],{mode:"cors"});
-          if(!resp.ok) continue;
-          const blob=await resp.blob();
-          const mime=blob.type&&blob.type.startsWith("image/")?blob.type:"image/jpeg";
-          const rawFile=new File([blob],`raw-${i}`,{type:mime});
-          const wmFile=await burnWatermark(rawFile,wmOptions);
-          imgFolder.file(`photo-${i+1}.jpg`,wmFile);
-        }catch(e){}
+  const [status, setStatus] = useState("idle");
+  const [copied, setCopied] = useState(false);
+  const shareUrl = `${getPublicSiteBase()}/share/${listing.id}`;
+  const copyShareLink = () => {
+    const run = () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(shareUrl).then(run).catch(() => window.alert("Could not copy link"));
+    else {
+      const t = document.createElement("textarea");
+      t.value = shareUrl;
+      document.body.appendChild(t);
+      t.select();
+      try {
+        document.execCommand("copy");
+        run();
+      } catch {
+        window.alert("Could not copy link");
       }
-      const info=[
+      document.body.removeChild(t);
+    }
+  };
+  const download = async () => {
+    setStatus("loading");
+    try {
+      const JSZip = await new Promise((res, rej) => {
+        if (window.JSZip) {
+          res(window.JSZip);
+          return;
+        }
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        s.onload = () => res(window.JSZip);
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      const wmOptions = watermarkBrandOptionsFromAgent(listing, agentBrand);
+      const zip = new JSZip();
+      const imgFolder = zip.folder("photos");
+      for (let i = 0; i < (listing.photos || []).length; i++) {
+        try {
+          const resp = await fetch(listing.photos[i], { mode: "cors" });
+          if (!resp.ok) continue;
+          const blob = await resp.blob();
+          const mime = blob.type && blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+          const rawFile = new File([blob], `raw-${i}`, { type: mime });
+          const wmFile = await burnWatermark(rawFile, wmOptions);
+          imgFolder.file(`photo-${i + 1}.jpg`, wmFile);
+        } catch (e) {
+          /* skip bad photo */
+        }
+      }
+      const info = [
         listing.title,
         `Location: ${listing.location}`,
-        `Price: ${fmtP(listing.price)}${listing.listingType==="Rent"?" /month":""}`,
+        `Price: ${fmtP(listing.price)}${listing.listingType === "Rent" ? " /month" : ""}`,
         `Type: ${listing.propertyType} · For ${listing.listingType}`,
-        listing.bedrooms?`Beds: ${listing.bedrooms}`:"",
-        listing.bathrooms?`Baths: ${listing.bathrooms}`:"",
-        listing.sizesqft?`Size: ${listing.sizesqft} sqft`:"",
+        listing.bedrooms ? `Beds: ${listing.bedrooms}` : "",
+        listing.bathrooms ? `Baths: ${listing.bathrooms}` : "",
+        listing.sizesqft ? `Size: ${listing.sizesqft} sqft` : "",
         "",
         `Agent: ${listing.agentName}`,
-        listing.agentPhone?`Phone: ${listing.agentPhone}`:"",
-        listing.agencyName?`Agency: ${listing.agencyName}`:"",
+        listing.agentPhone ? `Phone: ${listing.agentPhone}` : "",
+        listing.agencyName ? `Agency: ${listing.agencyName}` : "",
         "",
         `Shareable Link: ${shareUrl}`,
         "",
-        "Powered by Northing"
+        "Powered by Northing",
       ].join("\n");
-      zip.file("property-info.txt",info);
-      const blob=await zip.generateAsync({type:"blob"});
-      const a=document.createElement("a");
-      a.href=URL.createObjectURL(blob);
-      a.download=`marketing-kit-${(listing.title||"property").replace(/\s+/g,"-").toLowerCase()}.zip`;
+      zip.file("property-info.txt", info);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `marketing-kit-${(listing.title || "property").replace(/\s+/g, "-").toLowerCase()}.zip`;
       a.click();
       setStatus("done");
-    }catch(e){alert("Download failed: "+e.message);setStatus("idle");}
+    } catch (e) {
+      window.alert("Download failed: " + e.message);
+      setStatus("idle");
+    }
   };
   return (
-    <div className="afd northing-modal-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4500,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div className="card asl" style={{maxWidth:420,width:"100%",padding:32}} onClick={e=>e.stopPropagation()}>
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{fontSize:44,marginBottom:10}}>📦</div>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:800,color:"var(--navy)",marginBottom:8}}>Marketing Kit</h2>
-          <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.7}}>Download all watermarked photos + property info as a ZIP. Ready to share on WhatsApp, Instagram or email.</p>
+    <div
+      className="afd northing-modal-overlay"
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 4500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div className="card asl" style={{ maxWidth: 420, width: "100%", padding: 32 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 44, marginBottom: 10 }}>📦</div>
+          <h2 style={{ fontFamily: "'Fraunces',serif", fontSize: 22, fontWeight: 800, color: "var(--navy)", marginBottom: 8 }}>Marketing Kit</h2>
+          <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.7 }}>Download all watermarked photos + property info as a ZIP. Ready to share on WhatsApp, Instagram or email.</p>
         </div>
-        <div style={{background:"var(--cream)",borderRadius:12,padding:16,marginBottom:16,border:"1px solid var(--border)"}}>
-          <div style={{fontSize:12,fontWeight:700,color:"var(--navy)",marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>📁 Included in ZIP</div>
-          {[
-            `🖼 ${(listing.photos||[]).length} watermarked photo${(listing.photos||[]).length!==1?"s":""}`,
-            "📄 Property info text file",
-          ].map((item,i)=>(
-            <div key={i} style={{fontSize:13,color:"var(--muted)",marginBottom:5,display:"flex",gap:6,alignItems:"flex-start"}}>{item}</div>
+        <div style={{ background: "var(--cream)", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>📁 Included in ZIP</div>
+          {[`🖼 ${(listing.photos || []).length} watermarked photo${(listing.photos || []).length !== 1 ? "s" : ""}`, "📄 Property info text file"].map((item, i) => (
+            <div key={i} style={{ fontSize: 13, color: "var(--muted)", marginBottom: 5, display: "flex", gap: 6, alignItems: "flex-start" }}>
+              {item}
+            </div>
           ))}
-          <div style={{fontSize:12,fontWeight:700,color:"var(--navy)",marginTop:12,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>🔗 Share link</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
-            <a href={shareUrl} target="_blank" rel="noreferrer" style={{fontSize:12,color:"var(--primary)",fontWeight:600,wordBreak:"break-all",flex:"1 1 180px"}}>{shareUrl}</a>
-            <button type="button" onClick={copyShareLink} className="btn-ghost" style={{padding:"8px 14px",borderRadius:9,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}}>{copied?"✓ Copied":"📋 Copy link"}</button>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", marginTop: 12, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>🔗 Share link</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <a href={shareUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--primary)", fontWeight: 600, wordBreak: "break-all", flex: "1 1 180px" }}>
+              {shareUrl}
+            </a>
+            <button type="button" onClick={copyShareLink} className="btn-ghost" style={{ padding: "8px 14px", borderRadius: 9, fontSize: 12, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
+              {copied ? "✓ Copied" : "📋 Copy link"}
+            </button>
           </div>
         </div>
-        <button onClick={download} disabled={status==="loading"} className="btn-primary"
-          style={{width:"100%",padding:"13px",borderRadius:10,fontSize:14,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8,border:"none"}}>
-          {status==="loading"?<><span className="spin"/>Packaging…</>:status==="done"?"✅ Downloaded!":"⬇️ Download Marketing Kit"}
+        <button
+          type="button"
+          onClick={download}
+          disabled={status === "loading"}
+          className="btn-primary"
+          style={{ width: "100%", padding: "13px", borderRadius: 10, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none" }}
+        >
+          {status === "loading" ? (
+            <>
+              <span className="spin" />
+              Packaging…
+            </>
+          ) : status === "done" ? (
+            "✅ Downloaded!"
+          ) : (
+            "⬇️ Download Marketing Kit"
+          )}
         </button>
-        <button onClick={onClose} className="btn-ghost" style={{width:"100%",padding:"11px",borderRadius:10,fontSize:13}}>Close</button>
+        <button type="button" onClick={onClose} className="btn-ghost" style={{ width: "100%", padding: "11px", borderRadius: 10, fontSize: 13 }}>
+          Close
+        </button>
       </div>
     </div>
   );

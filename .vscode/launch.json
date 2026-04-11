@@ -2,17 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Open app — 127.0.0.1:5173 (run npm run dev first)",
+      "name": "Open app — localhost:3000 (run npm run dev first)",
       "type": "pwa-chrome",
       "request": "launch",
-      "url": "http://127.0.0.1:5173",
+      "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}"
     },
     {
-      "name": "Open app — localhost:5173 (run npm run dev first)",
+      "name": "Open app — 127.0.0.1:3000 (run npm run dev first)",
       "type": "pwa-chrome",
       "request": "launch",
-      "url": "http://localhost:5173",
+      "url": "http://127.0.0.1:3000",
       "webRoot": "${workspaceFolder}"
     }
   ]

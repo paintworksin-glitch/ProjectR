@@ -1,21 +1,26 @@
 /**
- * Listing AI calls a server-side endpoint (e.g. Supabase Edge Function).
- * Do not put Anthropic or other LLM API keys in public env vars.
- *
- * Set NEXT_PUBLIC_LISTING_AI_URL to the function URL, e.g.
+ * Listing AI calls this app at `/api/listing-ai`, which forwards to your Supabase Edge Function.
+ * Set **LISTING_AI_URL** (server-only, recommended) or **NEXT_PUBLIC_LISTING_AI_URL** on Vercel, e.g.
  * https://<project>.supabase.co/functions/v1/listing-ai
+ *
+ * Do not put Anthropic keys in the Next app — only on the edge function (ANTHROPIC_API_KEY).
  */
 
-const listingAiBaseUrl = () => {
+/**
+ * In the browser we always route via `/api/listing-ai` (server may use LISTING_AI_URL only).
+ * On the server, true only if either env is set (SSR / tests).
+ */
+export const listingAiConfigured = () => {
+  if (typeof window !== "undefined") return true;
   try {
-    const u = String((typeof process !== "undefined" && process.env?.NEXT_PUBLIC_LISTING_AI_URL) || "").trim();
-    return u ? u.replace(/\/$/, "") : "";
+    const server =
+      String((typeof process !== "undefined" && process.env?.LISTING_AI_URL) || "").trim() ||
+      String((typeof process !== "undefined" && process.env?.NEXT_PUBLIC_LISTING_AI_URL) || "").trim();
+    return Boolean(server);
   } catch {
-    return "";
+    return false;
   }
 };
-
-export const listingAiConfigured = () => Boolean(listingAiBaseUrl());
 
 const anonKey = () => {
   try {
@@ -26,8 +31,9 @@ const anonKey = () => {
 };
 
 async function postListingAi(supabase, body) {
-  const base = listingAiBaseUrl();
-  if (!base) return { ok: false, error: "not_configured" };
+  if (typeof window === "undefined") {
+    return { ok: false, error: "not_configured" };
+  }
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -37,7 +43,7 @@ async function postListingAi(supabase, body) {
   const key = anonKey();
   if (key) headers.apikey = key;
   if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-  const res = await fetch(base, {
+  const res = await fetch("/api/listing-ai", {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -50,6 +56,9 @@ async function postListingAi(supabase, body) {
     data = null;
   }
   if (!res.ok) {
+    if (res.status === 503 && (data?.error === "not_configured" || data?.message?.includes("LISTING_AI_URL"))) {
+      return { ok: false, error: "not_configured" };
+    }
     return {
       ok: false,
       error: data?.error || data?.message || text || `HTTP ${res.status}`,
@@ -64,9 +73,7 @@ const defaultScores = () => ({
   angle: 5,
   appeal: 5,
   clarity: 5,
-  reason: listingAiConfigured()
-    ? "Could not score"
-    : "Set NEXT_PUBLIC_LISTING_AI_URL and deploy listing-ai edge function",
+  reason: "Could not score",
 });
 
 export async function scorePhotoWithListingAi(supabase, base64, mediaType) {
@@ -82,42 +89,3 @@ export async function scorePhotoWithListingAi(supabase, base64, mediaType) {
   return data.scores;
 }
 
-/**
- * @returns {Promise<{ text: string | null, error: string | null }>}
- */
-export async function generateListingAiDescription(supabase, form) {
-  if (!listingAiConfigured()) {
-    return { text: null, error: "not_configured" };
-  }
-  const payload = {
-    title: form.title,
-    location: form.location,
-    propertyType: form.propertyType,
-    listingType: form.listingType,
-    price: form.price,
-    sizesqft: form.sizesqft,
-    bedrooms: form.bedrooms,
-    bathrooms: form.bathrooms,
-    furnishingStatus: form.furnishingStatus,
-    parkingType: form.parkingType,
-    highlights: form.highlights || [],
-    description: form.description,
-  };
-  const { ok, data, error } = await postListingAi(supabase, {
-    action: "describe",
-    form: payload,
-  });
-  if (!ok) {
-    console.warn("listing-ai describe:", error);
-    const msg =
-      typeof error === "string" && error.trim()
-        ? error.trim()
-        : "The summary service returned an error. Check Listing AI logs or try again.";
-    return { text: null, error: msg };
-  }
-  const text = (data?.text || "").trim();
-  if (!text) {
-    return { text: null, error: "No summary text was returned. Try again or edit manually." };
-  }
-  return { text, error: null };
-}
