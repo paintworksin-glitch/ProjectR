@@ -18,6 +18,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { fmtP } from "@/lib/formatPrice";
 import { mapListing } from "@/lib/mapListing";
 import { canCreateListing } from "@/lib/listingEligibility";
+import {
+  LISTING_PUBLISH_MEDIA_ERROR,
+  listingFormHasPublishableMedia,
+  listingRowHasPublishableMedia,
+} from "@/lib/listingPublishMedia.js";
 import { uploadListingTourVideo } from "@/lib/listingVideoUploadClient";
 import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
 import { PHONE_INLINE_ERROR, digits10From, isEmptyOrTenDigitMobile } from "@/lib/phoneDigits";
@@ -223,16 +228,6 @@ const findDups = (form, all, editId) => all.filter(l => {
   const dm=form.bedrooms&&l.bedrooms&&String(form.bedrooms)===String(l.bedrooms)&&form.propertyType===l.propertyType;
   return (ts>0.6?2:0)+(ls>0.7?2:0)+(pm?1:0)+(dm?1:0)>=3;
 });
-
-/** DB row: no photos yet but video pipeline active — do not leave as Active without stills */
-function listingNeedsStillsBeforePublic(row) {
-  const ph = Array.isArray(row?.photos) ? row.photos.length : 0;
-  if (ph > 0) return false;
-  const vs = row?.video_status;
-  if (vs === "processing") return true;
-  if (row?.video_playback_id && vs === "ready" && ph === 0) return true;
-  return false;
-}
 
 /** Static Mumbai listing for homepage PDF/WhatsApp samples (not from DB). */
 const HOME_SAMPLE_BROCHURE = {
@@ -1997,13 +1992,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     }catch(err){showToast("Photo upload failed: "+err.message,"error");setPhotoLoading(false);}
   };
   const rmPhoto=(i)=>{setForm(f=>({...f,photos:f.photos.filter((_,idx)=>idx!==i)}));setPhotoMeta(m=>m.filter((_,idx)=>idx!==i));if(coverIdx>=( form.photos?.length||1)-1)setCoverIdx(0);};
-  const hasListingMedia=()=>{
-    if(pendingVideoFile)return true;
-    if((form.photos?.length||0)>0)return true;
-    if(form.videoPlaybackId)return true;
-    if(form.videoStatus==="processing")return true;
-    return false;
-  };
+  const hasListingMedia=()=>listingFormHasPublishableMedia(form, pendingVideoFile);
   const flushPendingVideoUpload=async(targetId)=>{
     if(!pendingVideoFile||!targetId)return;
     const file=pendingVideoFile;
@@ -2021,10 +2010,9 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     const ph=form.photos?.length||0;
     if(ph>0)return null;
     if(pendingVideoFile)return null;
-    if(form.videoStatus==="failed")return "Video processing failed. Remove the video or add photos before publishing.";
-    const hasVideo=form.videoStatus==="processing"||form.videoPlaybackId||form.muxVideoAssetId;
-    if(!hasVideo)return null;
-    if(form.videoStatus==="processing")return "Video is still processing. Save a draft and publish when it’s ready.";
+    if(form.videoStatus==="failed"&&(form.muxVideoAssetId||form.videoPlaybackId)){
+      return "Video processing failed. Remove the video or add photos before publishing.";
+    }
     return null;
   };
   const validatePublish=()=>{
@@ -2035,7 +2023,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     if(!form.listingType)e.listingType="Required";
     if(!form.price)e.price="Required";
     if(!form.description?.trim())e.description="Description is required";
-    if(!hasListingMedia())e.photos="Add at least one photo or a video tour.";
+    if(!hasListingMedia())e.photos=LISTING_PUBLISH_MEDIA_ERROR;
     const vpb=videoPublishBlockedMessage();
     if(vpb)e.photos=vpb;
     setErrs(e);
@@ -2072,6 +2060,11 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     setSaving(false);
   };
   const doSave=async()=>{
+    if(!listingFormHasPublishableMedia(form, pendingVideoFile)){
+      const vpbFail=videoPublishBlockedMessage();
+      showToast(vpbFail||LISTING_PUBLISH_MEDIA_ERROR,"error");
+      return;
+    }
     setSaving(true);
     let savedListingId=null;
     try{
@@ -2109,19 +2102,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       }
       if(savedListingId){
         const { data: fresh } = await supabase.from("listings").select("*").eq("id", savedListingId).single();
-        if(fresh){
-          if(listingNeedsStillsBeforePublic(fresh)){
-            const { error: draftErr } = await supabase.from("listings").update({ status: "Draft" }).eq("id", savedListingId);
-            if(draftErr) console.warn("draft downgrade", draftErr);
-            const { data: fresh2 } = await supabase.from("listings").select("*").eq("id", savedListingId).single();
-            if(fresh2)setForm(dbToForm(fresh2));
-            showToast("Your video is still preparing still images for PDFs and WhatsApp. Listing saved as draft until photos appear below (usually 2–3 minutes) — then publish again.","info");
-            onDraftSaved?.(savedListingId);
-            setSaving(false);
-            return;
-          }
-          setForm(dbToForm(fresh));
-        }
+        if(fresh)setForm(dbToForm(fresh));
       }
       showToast(isEdit?"Listing updated!":"Listing published!","success");
       onSaved();
@@ -2133,7 +2114,13 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     await doSaveDraft();
   };
   const handleSave=async()=>{
-    if(!validatePublish()){showToast("Please fill required fields","error");return;}
+    if(!validatePublish()){
+      const vpb=videoPublishBlockedMessage();
+      if(vpb)showToast(vpb,"error");
+      else if(!listingFormHasPublishableMedia(form, pendingVideoFile))showToast(LISTING_PUBLISH_MEDIA_ERROR,"error");
+      else showToast("Please fill required fields","error");
+      return;
+    }
     if(!isEdit){
       const dups=findDups({...form,status:publishTarget},allListings.map(mapListing),null);
       if(dups.length>0){setDupModal(dups);return;}
@@ -2301,6 +2288,13 @@ export const AgentDash = ({currentUser,showToast}) => {
     })();
   },[tab,currentUser.id,showToast]);
   const quickStatus=async(id,newStatus)=>{
+    if(newStatus!=="Draft"){
+      const row=listings.find(l=>l.id===id);
+      if(row&&!listingRowHasPublishableMedia(row)){
+        showToast(LISTING_PUBLISH_MEDIA_ERROR,"error");
+        return;
+      }
+    }
     setStatusChanging(id);
     const {error}=await supabase.from("listings").update({status:newStatus}).eq("id",id);
     if(error){showToast("Update failed","error");}

@@ -121,7 +121,7 @@ export async function POST(request) {
           property_type: propertyType,
           listing_type: listingType,
           price,
-          status: "Active",
+          status: "Draft",
           description: "Listing created by admin dashboard",
           highlights: [],
           photos: [],

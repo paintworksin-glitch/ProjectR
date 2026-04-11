@@ -1,3 +1,8 @@
+/**
+ * Public listing feed (GET). Agents create/update listings via the Supabase client;
+ * publishing without a photo or an in-flight video is blocked in the app and enforced
+ * in Postgres (see supabase/migrations/20260418120000_listings_publish_requires_media.sql).
+ */
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
