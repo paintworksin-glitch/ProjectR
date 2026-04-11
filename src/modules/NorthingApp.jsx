@@ -29,6 +29,7 @@ import { OPEN_ENQUIRIES_TAB_STORAGE_KEY, PROPERTY_BACK_STORAGE_KEY } from "./nor
 import { uploadPropertyPhoto as uploadPhoto } from "@/lib/uploadPropertyPhoto";
 import { getBrowserSiteOrigin, propertyPageUrl } from "@/lib/publicSiteUrl.js";
 import { muxThumbnailUrl } from "@/lib/muxThumbnailUrl.js";
+import { fetchMuxTourMp4Blob, probeMuxTourMp4Availability } from "@/lib/muxTourMp4Fetch.js";
 import { ListingVideoUpload } from "@/components/ListingVideoUpload";
 import { IntroVideoUpload } from "@/components/IntroVideoUpload";
 import { NorthingMuxPlayer } from "@/components/NorthingMuxPlayer";
@@ -987,87 +988,62 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
   const wlLogo = agentBrand?.logoUrl || null;
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  /** checking | ready | preparing | unknown */
+  const [mp4Probe, setMp4Probe] = useState("checking");
   useEffect(() => {
     if (listing?.id && listing?.videoPlaybackId) track(listing.id, "video_share_card");
   }, [listing?.id, listing?.videoPlaybackId]);
+  useEffect(() => {
+    const pid = listing?.videoPlaybackId;
+    if (!pid) {
+      setMp4Probe("checking");
+      return;
+    }
+    const ac = new AbortController();
+    let cancelled = false;
+    setMp4Probe("checking");
+    (async () => {
+      try {
+        const r = await probeMuxTourMp4Availability(pid, ac.signal);
+        if (cancelled) return;
+        setMp4Probe(r.status === "ready" ? "ready" : "preparing");
+      } catch (e) {
+        if (!cancelled && e?.name !== "AbortError") setMp4Probe("unknown");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [listing?.videoPlaybackId]);
   if (!listing?.videoPlaybackId) return null;
 
-  const loadH2C = () =>
-    new Promise((res, rej) => {
-      if (window.html2canvas) {
-        res(window.html2canvas);
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      s.onload = () => res(window.html2canvas);
-      s.onerror = rej;
-      document.head.appendChild(s);
-    });
+  const tourDownloadBaseName = () =>
+    `northing-tour-${(listing.title || "property")
+      .replace(/\s+/g, "-")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "")
+      .slice(0, 72) || "property"}`;
 
-  const captureCard = async () => {
-    const h2c = await loadH2C();
-    const card = document.getElementById("video-share-card");
-    if (!card) throw new Error("Card not found");
-    if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
-    await waitForImagesInElement(card);
-    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 2 : 2;
-    const scale = Math.min(5, Math.max(4, dpr * 2));
-    const raw = await h2c(card, {
-      scale,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: null,
-      logging: false,
-      imageTimeout: 25000,
-      removeContainer: true,
-      foreignObjectRendering: false,
-      onclone: (_doc, clone) => {
-        clone.style.webkitFontSmoothing = "antialiased";
-        const nodes = [clone, ...clone.querySelectorAll("*")];
-        nodes.forEach((node) => {
-          if (!(node instanceof HTMLElement)) return;
-          const st = node.style;
-          if (st.backdropFilter || st.webkitBackdropFilter) {
-            st.backdropFilter = "none";
-            st.webkitBackdropFilter = "none";
-            if (!st.backgroundColor || st.backgroundColor === "transparent") st.backgroundColor = "rgba(0,0,0,0.52)";
-          }
-        });
-      },
-    });
-    return normalizeWaCardCanvas(raw);
-  };
-
-  const downloadImage = async () => {
+  const downloadVideo = async () => {
     setDownloading(true);
     try {
-      const canvas = await captureCard();
-      const name = `Northing-video-${(listing.title || "property").replace(/\s+/g, "-").toLowerCase()}.png`;
-      if (canvas.toBlob) {
-        await new Promise((res, rej) => {
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              rej();
-              return;
-            }
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.download = name;
-            a.href = url;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 3000);
-            res();
-          }, "image/png");
-        });
+      const { blob } = await fetchMuxTourMp4Blob(listing.videoPlaybackId);
+      const name = `${tourDownloadBaseName()}.mp4`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = name;
+      a.href = url;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      if (e?.message === "MUX_MP4_UNAVAILABLE") {
+        window.alert(
+          "The downloadable video file is not ready yet (Mux may still be encoding the MP4), or this tour was uploaded before MP4 downloads were enabled. Wait a minute and try again, or use Copy text for WhatsApp."
+        );
       } else {
-        const a = document.createElement("a");
-        a.download = name;
-        a.href = canvas.toDataURL("image/png");
-        a.click();
+        window.alert("Could not download the video. Check your connection and try again.");
       }
-    } catch {
-      window.alert("Download failed — try screenshotting the card manually.");
     }
     setDownloading(false);
   };
@@ -1100,21 +1076,29 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
   const shareOnWA = async () => {
     setDownloading(true);
     try {
-      const canvas = await captureCard();
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], "Northing-video-card.png", { type: "image/png" });
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: listing.title, text: buildText() });
-        } else {
-          const a = document.createElement("a");
-          a.download = "Northing-video-card.png";
-          a.href = canvas.toDataURL();
-          a.click();
-          setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`, "_blank"), 800);
-        }
-      }, "image/png");
-    } catch {
-      window.alert("Share failed — try downloading the image instead.");
+      const { blob } = await fetchMuxTourMp4Blob(listing.videoPlaybackId);
+      const outName = `${tourDownloadBaseName()}.mp4`;
+      const file = new File([blob], outName, { type: blob.type || "video/mp4" });
+      const text = buildText();
+      if (navigator.share && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: listing.title, text });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.download = outName;
+        a.href = url;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank"), 400);
+      }
+    } catch (e) {
+      if (e?.message === "MUX_MP4_UNAVAILABLE") {
+        window.alert(
+          "The video file is not available to share yet (encoding may still be in progress), or this tour predates MP4 downloads. Try again shortly or use Copy text for WhatsApp."
+        );
+      } else {
+        window.alert("Could not share the video. Try Download video, then attach it in WhatsApp with the copied text.");
+      }
     }
     setDownloading(false);
   };
@@ -1155,8 +1139,21 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600, margin: "0 0 4px", textAlign: "center", maxWidth: cardW }}>
-          Share video + description (WhatsApp card)
+          Preview — download or share the real tour video with your message
         </p>
+        {mp4Probe === "checking" ? (
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>Checking downloadable file…</p>
+        ) : null}
+        {mp4Probe === "preparing" ? (
+          <p style={{ color: "rgba(253, 224, 71, 0.95)", fontSize: 12, lineHeight: 1.45, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
+            MP4 is still preparing (Mux may be encoding it). Wait a minute and try Download video again, or use Copy text for WhatsApp.
+          </p>
+        ) : null}
+        {mp4Probe === "unknown" ? (
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.45, margin: "0 0 2px", textAlign: "center", maxWidth: cardW }}>
+            Could not verify the file from your network. If download fails, wait briefly and retry, or use Copy text.
+          </p>
+        ) : null}
         <div
           id="video-share-card"
           style={{
@@ -1280,8 +1277,8 @@ export const VideoShareCardModal = ({ listing, onClose, currentUser }) => {
         <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={copyText}>
           {copied ? "✓ Caption copied" : "📋 Copy text for WhatsApp"}
         </button>
-        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={downloadImage} disabled={downloading}>
-          {downloading ? "Processing…" : "⬇ Download card"}
+        <button type="button" className="wa-card-modal-btn wa-card-modal-btn--download" onClick={downloadVideo} disabled={downloading}>
+          {downloading ? "Processing…" : "⬇ Download video"}
         </button>
         <button type="button" className="wa-card-modal-btn wa-card-modal-btn--share" onClick={shareOnWA} disabled={downloading}>
           {downloading ? "⏳ Working…" : (
