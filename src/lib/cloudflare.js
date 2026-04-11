@@ -2,6 +2,7 @@
  * Cloudflare Stream API (server-only). Do not import from client components.
  */
 import crypto from "crypto";
+import { normalizeCloudflareStreamCustomerCode } from "./cloudflareStreamCustomerCode.js";
 
 export function getCloudflareStreamConfig() {
   const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
@@ -43,9 +44,12 @@ export async function cfStreamApi(path, opts = {}) {
 }
 
 export function getCloudflareCustomerCode() {
-  return (
-    (process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE || process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "").trim()
-  );
+  const raw = (
+    process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE ||
+    process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE ||
+    ""
+  ).trim();
+  return normalizeCloudflareStreamCustomerCode(raw);
 }
 
 export function cloudflareStreamHlsUrl(videoUid) {

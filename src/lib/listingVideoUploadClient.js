@@ -8,6 +8,27 @@ function formatErr(msg) {
   return formatVideoUploadError(String(msg || ""));
 }
 
+async function postRegisterUpload(body, signal) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
+    try {
+      const res = await fetch("/api/video/register-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) return;
+      lastErr = formatErr(j.error || res.statusText || `HTTP ${res.status}`);
+    } catch (e) {
+      lastErr = formatErr(e?.message || e);
+    }
+  }
+  throw new Error(lastErr || "Could not register upload");
+}
+
 /**
  * Cloudflare Stream direct upload: POST multipart form (field name `file`) to uploadUrl.
  */
@@ -56,6 +77,30 @@ function postFileToStreamUpload(uploadUrl, file, _contentType, { onUploadProgres
   });
 }
 
+async function cleanupOrphanListingVideo(listingId, videoId) {
+  try {
+    await fetch("/api/video/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId, orphanStreamVideoId: videoId }),
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+async function cleanupOrphanIntroVideo(videoId) {
+  try {
+    await fetch("/api/video/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ introVideo: true, orphanStreamVideoId: videoId }),
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * @param {string} listingId
  * @param {File} file
@@ -72,24 +117,35 @@ export async function uploadListingTourVideo(listingId, file, opts = {}) {
     throw new Error(formatErr(e?.message || ""));
   }
   const mime = (file.type || "video/mp4").toLowerCase();
-  const res = await fetch("/api/video/direct-upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      kind: "listing",
-      listingId,
-      contentType: mime,
-      durationSec: probe.durationSec,
-      videoWidth: probe.videoWidth,
-      videoHeight: probe.videoHeight,
-      fileSizeBytes: file.size,
-    }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
-  const uploadUrl = j.uploadUrl;
-  if (!uploadUrl) throw new Error("No upload URL returned");
-  await postFileToStreamUpload(uploadUrl, file, mime, opts);
+  let pendingCfVideoId = null;
+  try {
+    const res = await fetch("/api/video/direct-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "listing",
+        listingId,
+        contentType: mime,
+        durationSec: probe.durationSec,
+        videoWidth: probe.videoWidth,
+        videoHeight: probe.videoHeight,
+        fileSizeBytes: file.size,
+      }),
+      signal: opts.signal,
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
+    const uploadUrl = j.uploadUrl;
+    const videoId = j.videoId != null ? String(j.videoId).trim() : null;
+    if (!uploadUrl || !videoId) throw new Error("No upload URL returned");
+    pendingCfVideoId = videoId;
+    await postFileToStreamUpload(uploadUrl, file, mime, opts);
+    pendingCfVideoId = null;
+    await postRegisterUpload({ listingId, videoId }, opts.signal);
+  } catch (e) {
+    if (pendingCfVideoId) await cleanupOrphanListingVideo(listingId, pendingCfVideoId);
+    throw e;
+  }
 }
 
 /**
@@ -107,21 +163,32 @@ export async function uploadIntroVideo(file, opts = {}) {
     throw new Error(formatErr(e?.message || ""));
   }
   const mime = (file.type || "video/mp4").toLowerCase();
-  const res = await fetch("/api/video/direct-upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      kind: "intro",
-      contentType: mime,
-      durationSec: probe.durationSec,
-      videoWidth: probe.videoWidth,
-      videoHeight: probe.videoHeight,
-      fileSizeBytes: file.size,
-    }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
-  const uploadUrl = j.uploadUrl;
-  if (!uploadUrl) throw new Error("No upload URL returned");
-  await postFileToStreamUpload(uploadUrl, file, mime, opts);
+  let pendingCfVideoId = null;
+  try {
+    const res = await fetch("/api/video/direct-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "intro",
+        contentType: mime,
+        durationSec: probe.durationSec,
+        videoWidth: probe.videoWidth,
+        videoHeight: probe.videoHeight,
+        fileSizeBytes: file.size,
+      }),
+      signal: opts.signal,
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
+    const uploadUrl = j.uploadUrl;
+    const videoId = j.videoId != null ? String(j.videoId).trim() : null;
+    if (!uploadUrl || !videoId) throw new Error("No upload URL returned");
+    pendingCfVideoId = videoId;
+    await postFileToStreamUpload(uploadUrl, file, mime, opts);
+    pendingCfVideoId = null;
+    await postRegisterUpload({ intro: true, videoId }, opts.signal);
+  } catch (e) {
+    if (pendingCfVideoId) await cleanupOrphanIntroVideo(pendingCfVideoId);
+    throw e;
+  }
 }

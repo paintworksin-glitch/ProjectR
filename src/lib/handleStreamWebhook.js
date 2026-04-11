@@ -1,27 +1,34 @@
 import { NextResponse } from "next/server";
 import { verifyStreamWebhookSignature } from "@/lib/cloudflare.js";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
-
-function parsePassthrough(raw) {
-  if (!raw || typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+import { parseStreamPassthroughMeta } from "@/lib/streamVideoPassthrough.js";
 
 /**
- * @param {{ uid: string, status: { state?: string }, readyToStream?: boolean, meta?: Record<string, string> }} video
+ * @param {{ uid?: string, status?: { state?: string }, readyToStream?: boolean, meta?: Record<string, unknown> }} video
  */
 async function handleCloudflareStreamVideo(video) {
   const admin = createSupabaseAdminClient();
-  const pt = parsePassthrough(video.meta?.passthrough);
+  const meta = video.meta && typeof video.meta === "object" ? video.meta : {};
+  const pt = parseStreamPassthroughMeta(meta);
 
   const state = video.status?.state;
   const uid = video.uid;
 
+  console.log("[stream-webhook] video event", {
+    uid,
+    state,
+    readyToStream: video.readyToStream,
+    hasPassthroughKey: Boolean(meta.passthrough),
+    metaName: meta.name,
+    ptKind: pt?.k,
+  });
+
   if (state === "ready") {
+    if (!uid) {
+      console.warn("[stream-webhook] ready but missing uid");
+      return NextResponse.json({ ok: true });
+    }
+
     if (pt?.k === "i" && pt?.uid) {
       const { error } = await admin
         .from("profiles")
@@ -32,7 +39,7 @@ async function handleCloudflareStreamVideo(video) {
           intro_video_status: "ready",
         })
         .eq("id", pt.uid);
-      if (error) console.error("profile stream video ready", error);
+      if (error) console.error("[stream-webhook] profile ready update", error);
       return NextResponse.json({ ok: true });
     }
 
@@ -40,6 +47,7 @@ async function handleCloudflareStreamVideo(video) {
       const listingId = pt.lid;
       const { data: listing, error: le } = await admin.from("listings").select("id, details").eq("id", listingId).single();
       if (le || !listing) {
+        console.warn("[stream-webhook] listing not found for ready", listingId, le?.message);
         return NextResponse.json({ ok: true });
       }
 
@@ -55,9 +63,12 @@ async function handleCloudflareStreamVideo(video) {
       };
 
       const { error: up } = await admin.from("listings").update(patch).eq("id", listingId);
-      if (up) console.error("listing stream video ready", up);
+      if (up) console.error("[stream-webhook] listing ready update", up);
       return NextResponse.json({ ok: true });
     }
+
+    console.warn("[stream-webhook] ready video with no matching passthrough", { uid, meta });
+    return NextResponse.json({ ok: true });
   }
 
   if (state === "error") {
@@ -78,11 +89,15 @@ async function handleCloudflareStreamVideo(video) {
 export async function handleStreamWebhookPost(request) {
   const rawBody = await request.text();
 
-  const cfSecret = (process.env.CLOUDFLARE_STREAM_WEBHOOK_SECRET || "").trim();
+  const cfSecret = (
+    process.env.CLOUDFLARE_STREAM_WEBHOOK_SECRET ||
+    process.env.CLOUDFLARE_WEBHOOK_SECRET ||
+    ""
+  ).trim();
   const sigHeader = request.headers.get("Webhook-Signature");
   if (cfSecret) {
     if (!verifyStreamWebhookSignature(rawBody, sigHeader, cfSecret)) {
-      console.error("stream webhook: invalid Webhook-Signature");
+      console.error("[stream-webhook] invalid Webhook-Signature");
       return NextResponse.json({ error: "invalid signature" }, { status: 400 });
     }
   }

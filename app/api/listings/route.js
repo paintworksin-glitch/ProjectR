@@ -1,11 +1,12 @@
 /**
- * Public listing feed (GET). Agents create/update listings via the Supabase client;
- * publishing without a photo or an in-flight video is blocked in the app and enforced
- * in Postgres (see supabase/migrations/20260418120000_listings_publish_requires_media.sql).
+ * Public listing feed (GET). POST action `validate_publish` — draft ok without media;
+ * non-draft requires photos or video_id (see listingPublishMedia.js).
+ * Agents also mutate via Supabase; Postgres trigger enforces publish media (supabase/migrations/20260418120000_listings_publish_requires_media.sql).
  */
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { validateListingPublishPayload } from "@/lib/listingPublishMedia.js";
 
 function clampInt(v, min, max, fallback) {
   const n = Number.parseInt(v, 10);
@@ -78,4 +79,35 @@ export async function GET(request) {
     page,
     pageSize,
   });
+}
+
+/**
+ * Preflight: { action: "validate_publish", status, photos, video_id }
+ * Draft is allowed without media; non-draft requires at least one photo or video_id.
+ */
+export async function POST(request) {
+  const ip = (request.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+  const rate = await checkRateLimit(`listings-post:${ip}`, 60_000, 60);
+  if (!rate.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (body?.action !== "validate_publish") {
+    return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
+  }
+
+  const pre = validateListingPublishPayload({
+    status: body.status,
+    photos: body.photos,
+    video_id: body.video_id,
+  });
+  if (!pre.ok) {
+    return NextResponse.json({ error: pre.error }, { status: 400 });
+  }
+  return NextResponse.json({ ok: true });
 }

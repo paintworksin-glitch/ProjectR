@@ -20,8 +20,10 @@ import { mapListing } from "@/lib/mapListing";
 import { canCreateListing } from "@/lib/listingEligibility";
 import {
   LISTING_PUBLISH_MEDIA_ERROR,
+  LISTING_PUBLISH_SERVER_ERROR,
   listingFormHasPublishableMedia,
   listingRowHasPublishableMedia,
+  validateListingPublishPayload,
 } from "@/lib/listingPublishMedia.js";
 import { uploadListingTourVideo } from "@/lib/listingVideoUploadClient";
 import { checkPhoneAvailableRequest } from "@/lib/checkPhoneClient";
@@ -2069,12 +2071,18 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     let savedListingId=null;
     try{
       const publishForm={...form,status:publishTarget};
+      const deferPublishForVideo=Boolean(
+        pendingVideoFile&&
+        (form.photos?.length||0)===0&&
+        !form.muxVideoAssetId,
+      );
+      const saveForm=deferPublishForVideo?{...form,status:"Draft"}:publishForm;
       if(!isEdit){
         const gate=await canCreateListing(supabase,currentUser.id);
         if(!gate.ok){showToast(gate.message,"error");setSaving(false);return;}
       }
       if(isEdit){
-        const {error}=await supabase.from("listings").update(formToDb(publishForm,currentUser.id,existingRow?.details)).eq("id",listingId);
+        const {error}=await supabase.from("listings").update(formToDb(saveForm,currentUser.id,existingRow?.details)).eq("id",listingId);
         if(error) throw error;
         savedListingId=listingId;
         try{
@@ -2083,7 +2091,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           showToast(ve?.message==="aborted"?"Video upload cancelled":(`Saved, but video failed: ${ve?.message||"error"}`),"error");
         }
       } else {
-        const row = formToDb(publishForm, currentUser.id);
+        const row = formToDb(saveForm, currentUser.id);
         const { data: inserted, error } = await supabase.from("listings").insert(row).select("id").single();
         if (error) throw error;
         savedListingId=inserted.id;
@@ -2098,6 +2106,31 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
           onDraftSaved?.(inserted.id);
           setSaving(false);
           return;
+        }
+      }
+      if(deferPublishForVideo&&savedListingId){
+        const { data: after } = await supabase.from("listings").select("*").eq("id", savedListingId).single();
+        if(after){
+          if(!listingRowHasPublishableMedia(after)){
+            showToast("Video did not attach. Listing saved as draft — try uploading again.","error");
+            setForm(dbToForm(after));
+            onDraftSaved?.(savedListingId);
+            setSaving(false);
+            return;
+          }
+          const pre=validateListingPublishPayload({
+            status:publishTarget,
+            photos:after.photos,
+            video_id:after.video_id,
+          });
+          if(!pre.ok){
+            showToast(pre.error||LISTING_PUBLISH_SERVER_ERROR,"error");
+            setForm(dbToForm(after));
+            setSaving(false);
+            return;
+          }
+          const { error: stErr } = await supabase.from("listings").update({ status: publishTarget }).eq("id", savedListingId);
+          if(stErr) throw stErr;
         }
       }
       if(savedListingId){
@@ -3718,7 +3751,7 @@ export const AgentPage = ({agentId,onNavigate,currentUser}) => {
         </div>
       </div>
       <div style={{maxWidth:960,margin:"0 auto",padding:"36px 24px"}}>
-        {agent.intro_video_playback_id&&agent.intro_video_status==="ready"?(
+        {agent.intro_video_playback_id&&agent.intro_video_status!=="failed"?(
           <div className="card" style={{padding:24,marginBottom:28,maxWidth:360,marginLeft:"auto",marginRight:"auto"}}>
             <h2 style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:800,color:"var(--navy)",margin:"0 0 12px"}}>Introduction</h2>
             <NorthingMuxPlayer playbackId={agent.intro_video_playback_id} aspectRatio="9 / 16" onPlay={()=>{fetch("/api/video/view",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({introUserId:agentId})}).catch(()=>{});}} />

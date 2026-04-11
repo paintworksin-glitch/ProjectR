@@ -129,7 +129,7 @@ export function IntroVideoUpload({ userId, showToast }) {
         Vertical 9:16 · Max 60 seconds · Optional. Shown on your public profile.
       </p>
 
-      {playbackId && status === "ready" ? (
+      {playbackId && status !== "failed" ? (
         <div style={{ marginBottom: 14 }}>
           <NorthingMuxPlayer
             playbackId={playbackId}
@@ -143,7 +143,11 @@ export function IntroVideoUpload({ userId, showToast }) {
               }).catch(() => {});
             }}
           />
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Views: {views}</p>
+          {status === "processing" ? (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Encoding — refresh if the player does not start.</p>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Views: {views}</p>
+          )}
         </div>
       ) : status === "processing" && !playbackId ? (
         <div

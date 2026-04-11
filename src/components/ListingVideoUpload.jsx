@@ -176,7 +176,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
 
   return (
     <div>
-      {form.videoPlaybackId && form.videoStatus === "ready" ? (
+      {form.videoPlaybackId && form.videoStatus !== "failed" ? (
         <div style={{ marginBottom: 14 }}>
           <NorthingMuxPlayer
             playbackId={form.videoPlaybackId}
@@ -189,11 +189,15 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
               }).catch(() => {});
             }}
           />
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-            🎥 Views tracked: {form.videoViewCount ?? 0}
-          </p>
+          {form.videoStatus === "processing" ? (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Encoding — if playback stalls, wait a minute and refresh.</p>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
+              🎥 Views tracked: {form.videoViewCount ?? 0}
+            </p>
+          )}
         </div>
-      ) : form.videoStatus === "processing" ? (
+      ) : form.videoStatus === "processing" && !form.videoPlaybackId ? (
         <div style={{ padding: "14px 16px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 13, color: "#475569", marginBottom: 12 }}>Processing on our video partner — typically a few minutes.</div>
       ) : form.videoStatus === "failed" ? (
         <div style={{ padding: 12, borderRadius: 10, background: "#FEF2F2", color: "#991B1B", fontSize: 13, marginBottom: 12 }}>

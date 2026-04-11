@@ -2,20 +2,17 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
+import { normalizeCloudflareStreamCustomerCode } from "@/lib/cloudflareStreamCustomerCode.js";
 
-const StreamLazy = dynamic(
-  () => import("@cloudflare/stream-react").then((m) => m.Stream),
-  { ssr: false },
-);
+const Stream = dynamic(() => import("@cloudflare/stream-react").then((m) => m.Stream), { ssr: false });
 
-function getCustomerCode() {
-  return (process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "").trim();
+function readCustomerCodeFromEnv() {
+  return normalizeCloudflareStreamCustomerCode(process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "");
 }
 
 /**
  * Optional on-video overlay: agent logo + phone on top (logo slot empty if missing), Northing mark bottom-right.
- * Player is `ssr: false`; rendering during SSR would not match the client tree and can crash hydration.
- * We show a stable placeholder until after mount, then render the player.
+ * Stream is loaded with `dynamic(..., { ssr: false })` and only after mount to avoid hydration mismatch (#425).
  *
  * @param {{ playbackId?: string, onPlay?: () => void, aspectRatio?: string, watermark?: { logoUrl?: string, phone?: string }, style?: import("react").CSSProperties }} props
  */
@@ -28,13 +25,40 @@ export function NorthingVideoPlayer({
   ...rest
 }) {
   const [mounted, setMounted] = useState(false);
-  const customerCode = useMemo(() => getCustomerCode(), []);
+  const customerCode = useMemo(() => readCustomerCodeFromEnv(), []);
+
+  const videoUid = useMemo(() => {
+    const s = playbackId != null ? String(playbackId).trim() : "";
+    if (!s) return "";
+    if (s.includes("cloudflarestream.com") || s.includes("videodelivery.net")) {
+      try {
+        const u = new URL(s.startsWith("http") ? s : `https://${s}`);
+        const parts = u.pathname.split("/").filter(Boolean);
+        return parts[0] || s;
+      } catch {
+        return s;
+      }
+    }
+    return s;
+  }, [playbackId]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!playbackId) return null;
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (!mounted || !videoUid) return;
+    // eslint-disable-next-line no-console -- intentional dev-only Stream debug
+    console.log("[NorthingVideoPlayer]", {
+      playbackIdProp: playbackId,
+      videoUidForStreamSrc: videoUid,
+      customerCodeProp: customerCode || "(empty — Stream uses iframe.cloudflarestream.com fallback)",
+      expectedIframeHost: customerCode ? `customer-${customerCode}.cloudflarestream.com` : "iframe.cloudflarestream.com",
+    });
+  }, [mounted, playbackId, videoUid, customerCode]);
+
+  if (!playbackId || !videoUid) return null;
 
   if (!mounted) {
     return (
@@ -53,7 +77,7 @@ export function NorthingVideoPlayer({
 
   const streamProps = {
     ...rest,
-    src: playbackId,
+    src: videoUid,
     controls: true,
     autoplay: true,
     muted: true,
@@ -80,7 +104,7 @@ export function NorthingVideoPlayer({
         ...(style || {}),
       }}
     >
-      <StreamLazy {...streamProps} />
+      <Stream {...streamProps} />
     </div>
   );
 

@@ -19,8 +19,48 @@ export async function POST(request) {
     const intro = Boolean(body.introVideo);
     const master = Boolean(body.master);
     const targetUserId = body.targetUserId ? String(body.targetUserId) : null;
+    const orphanStreamVideoId = body.orphanStreamVideoId ? String(body.orphanStreamVideoId).trim() : null;
 
     const admin = createSupabaseAdminClient();
+
+    /** Cancelled / failed direct upload: remove empty Cloudflare asset only (no full listing/profile wipe). */
+    if (orphanStreamVideoId && intro) {
+      const uid = master && targetUserId ? targetUserId : user.id;
+      if (!master && uid !== user.id) {
+        return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+      }
+      try {
+        await videoProvider.delete(orphanStreamVideoId);
+      } catch (e) {
+        console.warn("orphan intro stream delete", e);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (orphanStreamVideoId && listingId) {
+      const { data: listing, error: le } = await admin
+        .from("listings")
+        .select("id, agent_id, video_id, details")
+        .eq("id", listingId)
+        .single();
+      if (le || !listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+      if (!master && listing.agent_id !== user.id) {
+        return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+      }
+      const details = listing.details && typeof listing.details === "object" ? { ...listing.details } : {};
+      const pending = details.muxPendingUploadId != null ? String(details.muxPendingUploadId).trim() : "";
+      if (pending && pending !== orphanStreamVideoId) {
+        return NextResponse.json({ error: "Upload session mismatch" }, { status: 400 });
+      }
+      try {
+        await videoProvider.delete(orphanStreamVideoId);
+      } catch (e) {
+        console.warn("orphan listing stream delete", e);
+      }
+      delete details.muxPendingUploadId;
+      await admin.from("listings").update({ details }).eq("id", listingId);
+      return NextResponse.json({ ok: true });
+    }
 
     if (master) {
       const { data: prof, error: pe } = await supabase.from("profiles").select("role").eq("id", user.id).single();
