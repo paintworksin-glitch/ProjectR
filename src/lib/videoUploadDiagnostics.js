@@ -2,7 +2,7 @@ import { createMuxClient } from "@/lib/mux.js";
 import { muxErrorForClient } from "@/lib/muxClientError.js";
 import { getMuxAssetOrigin } from "@/lib/publicSiteUrl.js";
 import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseAdmin.js";
-import { getEffectiveMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
+import { getEffectiveMuxWatermarkImageUrl, getMuxNorthingStaticPngUrl } from "@/lib/watermarkUrl.js";
 import { muxDirectUploadBaseNewAssetSettings, muxDirectUploadNewAssetSettings } from "@/lib/videoProvider.js";
 
 const DEFAULT_TEST_AGENT_ID = "00000000-0000-4000-8000-000000000000";
@@ -40,7 +40,7 @@ export async function runVideoUploadDiagnostics(opts = {}) {
 /**
  * 1) Create direct upload with no overlay. 2) If (1) ok, create again with watermark inputs.
  */
-async function probeMuxDirectUploadCreates(agentId) {
+async function probeMuxDirectUploadCreates(_agentId) {
   const id = (process.env.MUX_TOKEN_ID || "").trim();
   const sec = (process.env.MUX_TOKEN_SECRET || "").trim();
   const cors = "*";
@@ -70,15 +70,14 @@ async function probeMuxDirectUploadCreates(agentId) {
 
     if (!withoutWatermark.ok) {
       withWatermark.skipped = "without-watermark create failed";
-      const wm = getEffectiveMuxWatermarkImageUrl(agentId);
-      withWatermark.watermarkUrl = wm || null;
+      withWatermark.watermarkUrl = getMuxNorthingStaticPngUrl();
       return { withoutWatermark, withWatermark };
     }
 
-    const wmUrl = getEffectiveMuxWatermarkImageUrl(agentId);
+    const wmUrl = getMuxNorthingStaticPngUrl();
     withWatermark.watermarkUrl = wmUrl || null;
     if (!wmUrl) {
-      withWatermark.skipped = "no watermark URL to test";
+      withWatermark.skipped = "no static northing-in.png URL (set NEXT_PUBLIC_SITE_URL or VERCEL_URL)";
       return { withoutWatermark, withWatermark };
     }
 

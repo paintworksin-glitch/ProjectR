@@ -4,7 +4,7 @@
  */
 import { createMuxClient } from "./mux.js";
 import { muxThumbnailUrl } from "./muxThumbnailUrl.js";
-import { getStaticMuxWatermarkImageUrl } from "./watermarkUrl.js";
+import { getMuxNorthingStaticPngUrl } from "./watermarkUrl.js";
 import { muxErrorForLog } from "./muxClientError.js";
 
 function getClient() {
@@ -18,8 +18,35 @@ const WATERMARK_OVERLAY_SETTINGS = {
   horizontal_margin: "0px",
   width: "100%",
   height: "15%",
+  /** Mux expects a number in [0, 1], not a string. */
   opacity: 1,
 };
+
+const WATERMARK_PREFLIGHT_MS = 10_000;
+
+/**
+ * @param {string} url
+ * @returns {Promise<boolean>}
+ */
+async function watermarkUrlReachable(url) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), WATERMARK_PREFLIGHT_MS);
+  try {
+    const r = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: ac.signal,
+      headers: { Accept: "image/*,*/*" },
+    });
+    if (!r.ok) return false;
+    const ct = (r.headers.get("content-type") || "").toLowerCase();
+    return ct.includes("image/");
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Base Mux `new_asset_settings` for direct upload (no `inputs` = no overlay).
@@ -38,9 +65,10 @@ export function muxDirectUploadBaseNewAssetSettings(passthrough) {
 }
 
 /**
- * Same as production direct-upload asset settings for a resolved watermark HTTPS URL.
+ * Direct upload + burn-in overlay. First input must be `{}` so Mux uses the uploaded file
+ * as the primary input (Mux API; not a literal `upload://` URL).
  * @param {string} passthrough
- * @param {string | null | undefined} watermarkUrl absolute URL or falsy for no overlay
+ * @param {string} watermarkUrl absolute HTTPS URL to PNG/JPG
  */
 export function muxDirectUploadNewAssetSettings(passthrough, watermarkUrl) {
   const base = muxDirectUploadBaseNewAssetSettings(passthrough);
@@ -56,35 +84,59 @@ export function muxDirectUploadNewAssetSettings(passthrough, watermarkUrl) {
   return base;
 }
 
-function buildNewAssetSettings(passthrough, watermarkImageUrl) {
-  const watermarkUrl = (watermarkImageUrl && String(watermarkImageUrl).trim()) || getStaticMuxWatermarkImageUrl();
-  return muxDirectUploadNewAssetSettings(passthrough, watermarkUrl || null);
-}
-
 function hadWatermarkInputs(settings) {
   return Array.isArray(settings.inputs) && settings.inputs.length > 1;
+}
+
+function logMuxInputs(tag, settings) {
+  const inputs = settings.inputs ?? [];
+  console.log(`[videoProvider] ${tag} Mux new_asset_settings.inputs`, JSON.stringify(inputs, null, 2));
 }
 
 export const videoProvider = {
   /**
    * Create a Mux direct upload URL only (browser PUTs the file — avoids Vercel body limits).
+   * Burn-in uses static `{site}/mux-watermark/northing-in.png` only (no per-agent URL yet).
    * @param {{ passthrough: string, corsOrigin?: string, watermarkImageUrl?: string }} metadata
    * @returns {Promise<{ uploadUrl: string, muxUploadId: string, watermarkSkipped?: boolean }>}
    */
   async createDirectUpload(metadata) {
     const mux = getClient();
     const cors = metadata.corsOrigin || "*";
-    const newAssetSettings = buildNewAssetSettings(metadata.passthrough, metadata.watermarkImageUrl);
+
+    const staticWatermarkUrl = getMuxNorthingStaticPngUrl();
+    let newAssetSettings;
+    let attemptedWatermark = false;
+
+    if (staticWatermarkUrl) {
+      const reachable = await watermarkUrlReachable(staticWatermarkUrl);
+      if (reachable) {
+        attemptedWatermark = true;
+        newAssetSettings = muxDirectUploadNewAssetSettings(metadata.passthrough, staticWatermarkUrl);
+      } else {
+        console.warn("[videoProvider] Watermark URL not accessible, skipping", { url: staticWatermarkUrl });
+        newAssetSettings = muxDirectUploadBaseNewAssetSettings(metadata.passthrough);
+      }
+    } else {
+      console.warn("[videoProvider] No public site origin for static watermark; upload without overlay");
+      newAssetSettings = muxDirectUploadBaseNewAssetSettings(metadata.passthrough);
+    }
+
+    logMuxInputs("createDirectUpload (before Mux API)", newAssetSettings);
 
     const payload = { cors_origin: cors, new_asset_settings: newAssetSettings };
-    console.log("[videoProvider] Mux createDirectUpload payload (full)", JSON.stringify(payload, null, 2));
+    console.log("[videoProvider] Mux createDirectUpload full payload", JSON.stringify(payload, null, 2));
 
     try {
       const upload = await mux.video.uploads.create({
         cors_origin: cors,
         new_asset_settings: newAssetSettings,
       });
-      return { uploadUrl: upload.url, muxUploadId: upload.id };
+      const out = { uploadUrl: upload.url, muxUploadId: upload.id };
+      if (!hadWatermarkInputs(newAssetSettings)) {
+        out.watermarkSkipped = true;
+      }
+      return out;
     } catch (e) {
       if (!hadWatermarkInputs(newAssetSettings)) {
         throw e;
@@ -94,15 +146,14 @@ export const videoProvider = {
         muxErrorForLog(e),
       );
       const minimal = muxDirectUploadBaseNewAssetSettings(metadata.passthrough);
+      logMuxInputs("createDirectUpload retry (no overlay)", minimal);
       const retryPayload = { cors_origin: cors, new_asset_settings: minimal };
-      console.log("[videoProvider] Mux createDirectUpload retry (no overlay)", JSON.stringify(retryPayload, null, 2));
+      console.log("[videoProvider] Mux createDirectUpload retry full payload", JSON.stringify(retryPayload, null, 2));
       const upload = await mux.video.uploads.create({
         cors_origin: cors,
         new_asset_settings: minimal,
       });
-      console.warn(
-        "[videoProvider] createDirectUpload succeeded without watermark — check watermark URL reachability from Mux",
-      );
+      console.warn("[videoProvider] createDirectUpload succeeded without watermark after Mux error");
       return { uploadUrl: upload.url, muxUploadId: upload.id, watermarkSkipped: true };
     }
   },

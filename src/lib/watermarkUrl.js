@@ -12,9 +12,17 @@ export function getAgentMuxWatermarkImageUrl(agentId) {
 export function getStaticMuxWatermarkImageUrl() {
   const explicit = (process.env.MUX_WATERMARK_IMAGE_URL || "").trim();
   if (explicit) return explicit;
+  return getMuxNorthingStaticPngUrl();
+}
+
+/**
+ * Site-hosted burn-in PNG only: `{origin}/mux-watermark/northing-in.png` (HTTPS).
+ * No env override — used while validating Mux overlay before per-agent URLs.
+ */
+export function getMuxNorthingStaticPngUrl() {
   const origin = getMuxAssetOrigin();
-  if (origin) return `${origin}/mux-watermark/northing-in.png`;
-  return null;
+  if (!origin) return null;
+  return `${origin}/mux-watermark/northing-in.png`;
 }
 
 /** Resolved overlay URL passed to Mux for a given agent (agent-specific or static fallback). */
