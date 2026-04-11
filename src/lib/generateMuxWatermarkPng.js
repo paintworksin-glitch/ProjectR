@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
@@ -7,6 +8,25 @@ const W = 1920;
 const H = 1080;
 const STRIP_H = Math.round(H * 0.15);
 const STRIP_Y = H - STRIP_H;
+
+const WM_FONT_FAMILY = "NotoSansWM";
+
+/** Embedded Noto Sans (latin + latin-ext + devanagari) for Sharp SVG→PNG on serverless (no system fonts). */
+function watermarkFontFaceCss() {
+  const dir = path.join(process.cwd(), "public", "fonts");
+  const b64 = (name) =>
+    readFileSync(path.join(dir, name), { encoding: "base64" });
+  const src = (filename) => `url('data:font/woff2;base64,${b64(filename)}') format('woff2')`;
+
+  return `
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:400;font-display:block;src:${src("noto-sans-wm-latin-400.woff2")};unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:400;font-display:block;src:${src("noto-sans-wm-latin-ext-400.woff2")};unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:400;font-display:block;src:${src("noto-sans-wm-devanagari-400.woff2")};unicode-range:U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+20F0,U+25CC,U+A830-A839,U+A8E0-A8FF,U+11B00-11B09;}
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:700;font-display:block;src:${src("noto-sans-wm-latin-700.woff2")};unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:700;font-display:block;src:${src("noto-sans-wm-latin-ext-700.woff2")};unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+@font-face{font-family:'${WM_FONT_FAMILY}';font-style:normal;font-weight:700;font-display:block;src:${src("noto-sans-wm-devanagari-700.woff2")};unicode-range:U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+20F0,U+25CC,U+A830-A839,U+A8E0-A8FF,U+11B00-11B09;}
+`.trim();
+}
 
 function escXml(s) {
   return String(s || "")
@@ -75,39 +95,42 @@ export async function generateMuxWatermarkPng(agentId) {
   const phoneSize = 28;
   const brandSize = 26;
 
-  let logoEl = "";
+  let logoImageEl = "";
   let textStartX = pad;
+  let logoClipDef = "";
   if (logoHref) {
     const lcx = pad + logoR;
     textStartX = pad + logoR * 2 + 28;
     const safeLogoHref = logoHref.replace(/&/g, "&amp;");
-    logoEl = `
-      <defs>
-        <clipPath id="wmLogoClip"><circle cx="${lcx}" cy="${cxStrip}" r="${logoR}"/></clipPath>
-      </defs>
+    logoClipDef = `<clipPath id="wmLogoClip"><circle cx="${lcx}" cy="${cxStrip}" r="${logoR}"/></clipPath>`;
+    logoImageEl = `
       <image clip-path="url(#wmLogoClip)" href="${safeLogoHref}" x="${lcx - logoR}" y="${cxStrip - logoR}" width="${logoR * 2}" height="${logoR * 2}" preserveAspectRatio="xMidYMid slice"/>
     `;
   }
 
+  const fontFaces = watermarkFontFaceCss();
+  const defsBlock = `<defs><style type="text/css"><![CDATA[${fontFaces}]]></style>${logoClipDef}</defs>`;
+
   let leftText = "";
   if (agentName && agentPhone) {
     leftText = `
-      <text x="${textStartX}" y="${cxStrip - 16}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${nameSize}" font-weight="700" dominant-baseline="middle">${escXml(agentName)}</text>
-      <text x="${textStartX}" y="${cxStrip + 22}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${phoneSize}" font-weight="500" dominant-baseline="middle">${escXml(agentPhone)}</text>
+      <text x="${textStartX}" y="${cxStrip - 16}" fill="#ffffff" font-family="${WM_FONT_FAMILY}, sans-serif" font-size="${nameSize}" font-weight="700" dominant-baseline="middle">${escXml(agentName)}</text>
+      <text x="${textStartX}" y="${cxStrip + 22}" fill="#ffffff" font-family="${WM_FONT_FAMILY}, sans-serif" font-size="${phoneSize}" font-weight="400" dominant-baseline="middle">${escXml(agentPhone)}</text>
     `;
   } else if (agentName) {
-    leftText = `<text x="${textStartX}" y="${cxStrip}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${nameSize}" font-weight="700" dominant-baseline="middle">${escXml(agentName)}</text>`;
+    leftText = `<text x="${textStartX}" y="${cxStrip}" fill="#ffffff" font-family="${WM_FONT_FAMILY}, sans-serif" font-size="${nameSize}" font-weight="700" dominant-baseline="middle">${escXml(agentName)}</text>`;
   } else if (agentPhone) {
-    leftText = `<text x="${textStartX}" y="${cxStrip}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${phoneSize}" font-weight="500" dominant-baseline="middle">${escXml(agentPhone)}</text>`;
+    leftText = `<text x="${textStartX}" y="${cxStrip}" fill="#ffffff" font-family="${WM_FONT_FAMILY}, sans-serif" font-size="${phoneSize}" font-weight="400" dominant-baseline="middle">${escXml(agentPhone)}</text>`;
   }
 
-  const rightText = `<text x="${W - pad}" y="${cxStrip}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${brandSize}" font-weight="600" text-anchor="end" dominant-baseline="middle">${escXml(brandText)}</text>`;
+  const rightText = `<text x="${W - pad}" y="${cxStrip}" fill="#ffffff" font-family="${WM_FONT_FAMILY}, sans-serif" font-size="${brandSize}" font-weight="400" text-anchor="end" dominant-baseline="middle">${escXml(brandText)}</text>`;
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <rect width="${W}" height="${H}" fill="none"/>
   <rect x="0" y="${STRIP_Y}" width="${W}" height="${STRIP_H}" fill="#000000" fill-opacity="0.6"/>
-  ${logoEl}
+  ${defsBlock}
+  ${logoImageEl}
   ${leftText}
   ${rightText}
 </svg>`;
