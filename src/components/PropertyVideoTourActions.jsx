@@ -15,6 +15,13 @@ function DownloadIcon({ size = 18 }) {
   );
 }
 
+function listingStreamUid(listing) {
+  if (!listing) return null;
+  const a = listing.videoPlaybackId && String(listing.videoPlaybackId).trim();
+  const b = listing.muxVideoAssetId && String(listing.muxVideoAssetId).trim();
+  return a || b || null;
+}
+
 function tourFileBaseName(listing) {
   const slug = (listing.title || "property")
     .replace(/\s+/g, "-")
@@ -65,7 +72,8 @@ export function PropertyVideoTourActions({ listing }) {
     []
   );
 
-  if (!listing?.videoPlaybackId) return null;
+  const streamUid = listingStreamUid(listing);
+  if (!streamUid) return null;
 
   const downloadBusy = downloadPhase === "preparing" || downloadPhase === "ready";
 
@@ -75,15 +83,15 @@ export function PropertyVideoTourActions({ listing }) {
     setDownloadInfo("");
 
     const mp4Name = `${tourFileBaseName(listing)}.mp4`;
-    const probeUrl = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name, { probe: "1" });
-    const mp4Href = muxTourMp4ApiPath(listing.videoPlaybackId, mp4Name);
+    const probeUrl = muxTourMp4ApiPath(streamUid, mp4Name, { probe: "1" });
+    const mp4Href = muxTourMp4ApiPath(streamUid, mp4Name);
 
     const ac = new AbortController();
     downloadPollAbortRef.current = ac;
     setDownloadPhase("preparing");
     setDownloadInfo("Preparing the downloadable MP4 — the player above streams sooner than the file is ready.");
 
-    await ensureListingMp4(listing.id, listing.videoPlaybackId, ac.signal);
+    await ensureListingMp4(listing.id, streamUid, ac.signal);
 
     if (ac.signal.aborted) return;
 
@@ -133,9 +141,9 @@ export function PropertyVideoTourActions({ listing }) {
   const shareOnWhatsApp = async () => {
     setWaBusy(true);
     try {
-      await ensureListingMp4(listing.id, listing.videoPlaybackId, undefined);
+      await ensureListingMp4(listing.id, streamUid, undefined);
       const outName = `${tourFileBaseName(listing)}.mp4`;
-      const href = muxTourMp4ApiPath(listing.videoPlaybackId, outName);
+      const href = muxTourMp4ApiPath(streamUid, outName);
       const res = await fetch(href);
       if (!res.ok) {
         if (res.status === 404) {

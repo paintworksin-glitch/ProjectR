@@ -77,10 +77,14 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
 
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "video" && listing?.videoPlaybackId) setToolTab("video");
+    const uid =
+      (listing?.videoPlaybackId && String(listing.videoPlaybackId).trim()) ||
+      (listing?.muxVideoAssetId && String(listing.muxVideoAssetId).trim()) ||
+      null;
+    if (t === "video" && uid) setToolTab("video");
     else if (t === "pdf") setToolTab("pdf");
     else if (t === "wa") setToolTab("wa");
-  }, [searchParams, listing?.videoPlaybackId]);
+  }, [searchParams, listing?.videoPlaybackId, listing?.muxVideoAssetId]);
 
   const syncToolTab = (t) => {
     setToolTab(t);
@@ -94,6 +98,12 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
   }, [listing?.id]);
 
   if (!listing) return null;
+
+  /** Cloudflare Stream UID: same in video_playback_id and video_id; prefer playback column, fall back to asset id. */
+  const streamTourUid =
+    (listing.videoPlaybackId && String(listing.videoPlaybackId).trim()) ||
+    (listing.muxVideoAssetId && String(listing.muxVideoAssetId).trim()) ||
+    null;
 
   const listingActive = listing.status === "Active";
   const loginNext = `/login?next=${encodeURIComponent(`/property/${listing.id}`)}`;
@@ -353,7 +363,7 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             </span>
             <span className="property-detail-tool-tab__label">PDF</span>
           </button>
-          {listing.videoPlaybackId ? (
+          {streamTourUid ? (
             <button
               type="button"
               aria-pressed={toolTab === "video"}
@@ -368,10 +378,10 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
           ) : null}
         </div>
 
-        {toolTab === "video" && listing.videoPlaybackId ? (
+        {toolTab === "video" && streamTourUid ? (
           <div className="property-detail-video-panel">
             <NorthingMuxPlayer
-              playbackId={listing.videoPlaybackId}
+              playbackId={streamTourUid}
               aspectRatio="16 / 9"
               onPlay={() => {
                 fetch("/api/video/view", {

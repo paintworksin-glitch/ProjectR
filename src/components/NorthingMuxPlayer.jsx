@@ -6,10 +6,6 @@ import { normalizeCloudflareStreamCustomerCode } from "@/lib/cloudflareStreamCus
 
 const Stream = dynamic(() => import("@cloudflare/stream-react").then((m) => m.Stream), { ssr: false });
 
-function readCustomerCodeFromEnv() {
-  return normalizeCloudflareStreamCustomerCode(process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "");
-}
-
 /**
  * Optional on-video overlay: agent logo + phone on top (logo slot empty if missing), Northing mark bottom-right.
  * Stream is loaded with `dynamic(..., { ssr: false })` and only after mount to avoid hydration mismatch (#425).
@@ -24,8 +20,13 @@ export function NorthingVideoPlayer({
   style,
   ...rest
 }) {
+  const { customerCode: _ignoreCustomerCode, src: _ignoreSrc, ...streamRest } = rest;
+
   const [mounted, setMounted] = useState(false);
-  const customerCode = useMemo(() => readCustomerCodeFromEnv(), []);
+  const customerCode = useMemo(
+    () => normalizeCloudflareStreamCustomerCode(process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || ""),
+    [],
+  );
 
   const videoUid = useMemo(() => {
     const s = playbackId != null ? String(playbackId).trim() : "";
@@ -76,7 +77,7 @@ export function NorthingVideoPlayer({
   }
 
   const streamProps = {
-    ...rest,
+    ...streamRest,
     src: videoUid,
     controls: true,
     autoplay: true,
