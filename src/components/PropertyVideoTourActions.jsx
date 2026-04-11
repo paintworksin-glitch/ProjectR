@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { muxTourMp4ApiPath } from "@/lib/muxTourMp4Fetch.js";
 import { buildVideoTourShareText } from "@/lib/videoTourShareText.js";
 import { WALogo } from "@/modules/NorthingApp.jsx";
@@ -24,46 +24,87 @@ function tourFileBaseName(listing) {
   return `northing-tour-${slug || "property"}`;
 }
 
+const DOWNLOAD_POLL_MS = 2000;
+const DOWNLOAD_MAX_WAIT_MS = 5 * 60 * 1000;
+const DOWNLOAD_READY_SHOW_MS = 2800;
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 /**
  * Premium action bar below the Mux player: download MP4 + share to WhatsApp with caption.
  */
 export function PropertyVideoTourActions({ listing }) {
-  const [busy, setBusy] = useState(false);
+  const [waBusy, setWaBusy] = useState(false);
+  const [downloadPhase, setDownloadPhase] = useState("idle");
+  const [downloadError, setDownloadError] = useState("");
+  const downloadPollAbortRef = useRef(null);
+  const downloadReadyTimerRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      downloadPollAbortRef.current?.abort();
+      if (downloadReadyTimerRef.current) clearTimeout(downloadReadyTimerRef.current);
+    },
+    []
+  );
 
   if (!listing?.videoPlaybackId) return null;
 
+  const downloadBusy = downloadPhase === "preparing" || downloadPhase === "ready";
+
   const downloadVideo = async () => {
-    setBusy(true);
+    if (downloadBusy) return;
+    setDownloadError("");
+    const name = `${tourFileBaseName(listing)}.mp4`;
+    const probeUrl = muxTourMp4ApiPath(listing.videoPlaybackId, name, { probe: "1" });
+    const href = muxTourMp4ApiPath(listing.videoPlaybackId, name);
+
+    const ac = new AbortController();
+    downloadPollAbortRef.current = ac;
+    setDownloadPhase("preparing");
+    const started = Date.now();
+
     try {
-      const name = `${tourFileBaseName(listing)}.mp4`;
-      const href = muxTourMp4ApiPath(listing.videoPlaybackId, name);
-      const probe = await fetch(muxTourMp4ApiPath(listing.videoPlaybackId, name, { probe: "1" }));
-      if (!probe.ok) {
-        if (probe.status === 404) {
-          window.alert(
-            "The downloadable file is still being prepared — you can watch the tour in the player above right away. Try Download again in a minute, or use Copy text on the WhatsApp tab."
-          );
-        } else {
-          window.alert("Could not download the video. Try again in a moment.");
+      while (Date.now() - started < DOWNLOAD_MAX_WAIT_MS) {
+        if (ac.signal.aborted) return;
+        const probe = await fetch(probeUrl, { signal: ac.signal, cache: "no-store" });
+        if (probe.ok) {
+          downloadPollAbortRef.current = null;
+          setDownloadPhase("ready");
+          const a = document.createElement("a");
+          a.href = href;
+          a.download = name;
+          a.rel = "noopener";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          if (downloadReadyTimerRef.current) clearTimeout(downloadReadyTimerRef.current);
+          downloadReadyTimerRef.current = setTimeout(() => {
+            downloadReadyTimerRef.current = null;
+            setDownloadPhase("idle");
+          }, DOWNLOAD_READY_SHOW_MS);
+          return;
         }
-        return;
+        if (probe.status !== 404) {
+          setDownloadError("Could not prepare the download. Try again in a moment.");
+          setDownloadPhase("idle");
+          return;
+        }
+        await sleep(DOWNLOAD_POLL_MS);
       }
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = name;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch {
-      window.alert("Could not download the video. Check your connection and try again.");
-    } finally {
-      setBusy(false);
+      setDownloadError("The file is still being prepared. Try again in a few minutes — the player above works now.");
+      setDownloadPhase("idle");
+    } catch (e) {
+      if (e?.name === "AbortError") return;
+      setDownloadError("Could not prepare the download. Check your connection and try again.");
+      setDownloadPhase("idle");
     }
   };
 
   const shareOnWhatsApp = async () => {
-    setBusy(true);
+    setWaBusy(true);
     try {
       const outName = `${tourFileBaseName(listing)}.mp4`;
       const href = muxTourMp4ApiPath(listing.videoPlaybackId, outName);
@@ -95,28 +136,37 @@ export function PropertyVideoTourActions({ listing }) {
     } catch {
       window.alert("Could not share the video. Try Download, then attach the file in WhatsApp.");
     } finally {
-      setBusy(false);
+      setWaBusy(false);
     }
   };
+
+  const downloadLabel =
+    downloadPhase === "preparing" ? "Preparing file…" : downloadPhase === "ready" ? "Ready to download" : "Download video";
 
   return (
     <div className="property-detail-video-actions" aria-label="Video tour actions">
       <p className="property-detail-video-actions__eyebrow">Save or share</p>
       <p className="property-detail-video-actions__sub">Download the tour file or send it with a ready-to-send message.</p>
       <div className="property-detail-video-actions__row">
-        <button type="button" className="property-detail-video-actions__btn property-detail-video-actions__btn--secondary" disabled={busy} onClick={downloadVideo}>
+        <button
+          type="button"
+          className="property-detail-video-actions__btn property-detail-video-actions__btn--secondary"
+          disabled={downloadBusy}
+          onClick={downloadVideo}
+        >
           <span className="property-detail-video-actions__btn-icon" aria-hidden>
             <DownloadIcon size={18} />
           </span>
-          {busy ? "Working…" : "Download video"}
+          {downloadLabel}
         </button>
-        <button type="button" className="property-detail-video-actions__btn property-detail-video-actions__btn--wa" disabled={busy} onClick={shareOnWhatsApp}>
+        <button type="button" className="property-detail-video-actions__btn property-detail-video-actions__btn--wa" disabled={waBusy} onClick={shareOnWhatsApp}>
           <span className="property-detail-video-actions__btn-icon property-detail-video-actions__btn-icon--light" aria-hidden>
             <WALogo size={16} />
           </span>
-          {busy ? "Working…" : "Share on WhatsApp"}
+          {waBusy ? "Working…" : "Share on WhatsApp"}
         </button>
       </div>
+      {downloadError ? <p className="property-detail-video-actions__hint property-detail-video-actions__hint--error">{downloadError}</p> : null}
     </div>
   );
 }

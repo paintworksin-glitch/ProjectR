@@ -936,6 +936,15 @@ export const G = `
     box-shadow: 0 2px 10px rgba(22, 163, 74, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.16);
   }
   .property-detail-video-actions__btn--wa:hover:not(:disabled) { filter: brightness(1.05); }
+  .property-detail-video-actions__hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #64748b;
+  }
+  .property-detail-video-actions__hint--error {
+    color: #b45309;
+  }
   .northing-mux-watermark-wrap {
     position: relative;
     width: 100%;
