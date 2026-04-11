@@ -373,10 +373,6 @@ export default function PropertyPublicPageClient({ id, initialListing }) {
             <NorthingMuxPlayer
               playbackId={listing.videoPlaybackId}
               aspectRatio="16 / 9"
-              watermark={{
-                logoUrl: agentBrand?.logoUrl || null,
-                phone: listing.agentPhone || null,
-              }}
               onPlay={() => {
                 fetch("/api/video/view", {
                   method: "POST",

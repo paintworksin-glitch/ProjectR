@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { videoProvider } from "@/lib/videoProvider";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { validateVideoMetaJson } from "@/lib/videoUploadValidation";
+import { getAgentMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,7 +86,8 @@ export async function POST(request) {
       let muxUploadId;
       let uploadUrl;
       try {
-        const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin });
+        const wm = getAgentMuxWatermarkImageUrl(user.id);
+        const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wm });
         muxUploadId = up.muxUploadId;
         uploadUrl = up.uploadUrl;
       } catch (e) {
@@ -134,7 +136,8 @@ export async function POST(request) {
     let muxUploadId;
     let uploadUrl;
     try {
-      const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin });
+      const wm = getAgentMuxWatermarkImageUrl(user.id);
+      const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wm });
       muxUploadId = up.muxUploadId;
       uploadUrl = up.uploadUrl;
     } catch (e) {

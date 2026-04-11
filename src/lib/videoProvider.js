@@ -19,9 +19,9 @@ function getMuxWatermarkImageUrl() {
   return null;
 }
 
-function buildNewAssetSettings(passthrough) {
+function buildNewAssetSettings(passthrough, watermarkImageUrl) {
   const videoQuality = (process.env.MUX_VIDEO_QUALITY || "plus").trim() || "plus";
-  const watermarkUrl = getMuxWatermarkImageUrl();
+  const watermarkUrl = (watermarkImageUrl && String(watermarkImageUrl).trim()) || getMuxWatermarkImageUrl();
 
   const newAssetSettings = {
     playback_policies: ["public"],
@@ -33,8 +33,8 @@ function buildNewAssetSettings(passthrough) {
   };
 
   /**
-   * Direct upload: first input must omit url (Mux uses the uploaded file as primary).
-   * Watermark is a second input with overlay_settings — a single PNG-only inputs[] breaks ingest.
+   * Direct upload: first input omits url (Mux uses the uploaded file as primary).
+   * Second input: full-width bottom-aligned PNG strip (transparent outside strip).
    */
   if (watermarkUrl) {
     newAssetSettings.inputs = [
@@ -43,11 +43,11 @@ function buildNewAssetSettings(passthrough) {
         url: watermarkUrl,
         overlay_settings: {
           vertical_align: "bottom",
-          vertical_margin: "2%",
-          horizontal_align: "right",
-          horizontal_margin: "2%",
-          width: "22%",
-          opacity: "62%",
+          vertical_margin: "0%",
+          horizontal_align: "center",
+          horizontal_margin: "0%",
+          width: "100%",
+          opacity: "100%",
         },
       },
     ];
@@ -58,13 +58,13 @@ function buildNewAssetSettings(passthrough) {
 export const videoProvider = {
   /**
    * Create a Mux direct upload URL only (browser PUTs the file — avoids Vercel body limits).
-   * @param {{ passthrough: string, corsOrigin?: string }} metadata
+   * @param {{ passthrough: string, corsOrigin?: string, watermarkImageUrl?: string }} metadata
    * @returns {Promise<{ uploadUrl: string, muxUploadId: string }>}
    */
   async createDirectUpload(metadata) {
     const mux = getClient();
     const cors = metadata.corsOrigin || "*";
-    const newAssetSettings = buildNewAssetSettings(metadata.passthrough);
+    const newAssetSettings = buildNewAssetSettings(metadata.passthrough, metadata.watermarkImageUrl);
     const upload = await mux.video.uploads.create({
       cors_origin: cors,
       new_asset_settings: newAssetSettings,
@@ -75,10 +75,14 @@ export const videoProvider = {
   /**
    * Create upload and PUT from server (small files only; prefer createDirectUpload on Vercel).
    * @param {Buffer} buffer raw video bytes
-   * @param {{ passthrough: string, contentType: string, corsOrigin?: string }} metadata
+   * @param {{ passthrough: string, contentType: string, corsOrigin?: string, watermarkImageUrl?: string }} metadata
    */
   async upload(buffer, metadata) {
-    const { uploadUrl, muxUploadId } = await this.createDirectUpload(metadata);
+    const { uploadUrl, muxUploadId } = await this.createDirectUpload({
+      passthrough: metadata.passthrough,
+      corsOrigin: metadata.corsOrigin,
+      watermarkImageUrl: metadata.watermarkImageUrl,
+    });
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
       body: buffer,

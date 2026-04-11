@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { videoProvider } from "@/lib/videoProvider";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { bufferLooksLikeSupportedVideo, parseAndValidateClientVideoMeta } from "@/lib/videoUploadValidation";
+import { getAgentMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -87,7 +88,8 @@ export async function POST(request) {
 
       let muxUploadId;
       try {
-        const up = await videoProvider.upload(buf, { passthrough, contentType: mime });
+        const wm = getAgentMuxWatermarkImageUrl(user.id);
+        const up = await videoProvider.upload(buf, { passthrough, contentType: mime, watermarkImageUrl: wm });
         muxUploadId = up.muxUploadId;
       } catch (e) {
         console.error("mux upload", e);
@@ -133,7 +135,8 @@ export async function POST(request) {
 
     let muxUploadId;
     try {
-      const up = await videoProvider.upload(buf, { passthrough, contentType: mime });
+      const wm = getAgentMuxWatermarkImageUrl(user.id);
+      const up = await videoProvider.upload(buf, { passthrough, contentType: mime, watermarkImageUrl: wm });
       muxUploadId = up.muxUploadId;
     } catch (e) {
       console.error("mux upload intro", e);

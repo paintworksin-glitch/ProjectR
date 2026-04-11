@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { createMuxClient } from "@/lib/mux.js";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
-import { videoProvider } from "@/lib/videoProvider";
-
 export const runtime = "nodejs";
 
 function parsePassthrough(raw) {
@@ -48,7 +46,6 @@ export async function POST(request) {
 
   if (type === "video.asset.ready") {
     const playbackId = publicPlaybackId(asset);
-    const duration = Number(asset.duration) || 0;
 
     if (pt?.k === "i" && pt?.uid) {
       const { error } = await admin
@@ -66,13 +63,11 @@ export async function POST(request) {
 
     if (pt?.k === "l" && pt?.lid) {
       const listingId = pt.lid;
-      const { data: listing, error: le } = await admin.from("listings").select("id, photos, details").eq("id", listingId).single();
+      const { data: listing, error: le } = await admin.from("listings").select("id, details").eq("id", listingId).single();
       if (le || !listing) {
         return NextResponse.json({ ok: true });
       }
 
-      const { data: fresh } = await admin.from("listings").select("photos").eq("id", listingId).single();
-      const photosNow = Array.isArray(fresh?.photos) ? [...fresh.photos] : [];
       const details = listing.details && typeof listing.details === "object" ? { ...listing.details } : {};
       delete details.muxPendingUploadId;
 
@@ -84,13 +79,18 @@ export async function POST(request) {
         details,
       };
 
-      if (pt.pe === 1 && photosNow.length === 0 && playbackId && duration > 0) {
-        const times = [0.1, 0.2, 0.35, 0.5, 0.65, 0.8].map((p) => Math.min(duration * p, Math.max(duration - 0.5, 0)));
-        const urls = times.map((t) => videoProvider.getThumbnailUrl(playbackId, t));
-        patch.photos = urls;
-        details.videoFramePhotos = true;
-        patch.details = details;
-      }
+      /*
+       * Reserved for AI frame selection — not active.
+       * Video-only listings no longer auto-fill photos; PDF uses a video QR callout instead.
+       *
+       * if (pt.pe === 1 && photosNow.length === 0 && playbackId && duration > 0) {
+       *   const times = [0.1, 0.2, 0.35, 0.5, 0.65, 0.8].map((p) => Math.min(duration * p, Math.max(duration - 0.5, 0)));
+       *   const urls = times.map((t) => videoProvider.getThumbnailUrl(playbackId, t));
+       *   patch.photos = urls;
+       *   details.videoFramePhotos = true;
+       *   patch.details = details;
+       * }
+       */
 
       const { error: up } = await admin.from("listings").update(patch).eq("id", listingId);
       if (up) console.error("listing video ready", up);

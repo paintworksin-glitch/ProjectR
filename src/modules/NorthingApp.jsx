@@ -1018,21 +1018,32 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
   const [mapSrc,setMapSrc]=useState(null);
   const [pdfQrDataUrl,setPdfQrDataUrl]=useState(null);
   useEffect(()=>{if(listing?.id)track(listing.id,"pdf");},[listing?.id]);
-  useEffect(()=>{
-    let alive=true;
-    (async()=>{
-      if(!listing?.videoPlaybackId||!listing?.videoFramePhotos){setPdfQrDataUrl(null);return;}
-      const origin=getBrowserSiteOrigin();
-      if(!origin){setPdfQrDataUrl(null);return;}
-      try{
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const ph = Array.isArray(listing?.photos) ? listing.photos.length : 0;
+      if (!listing?.videoPlaybackId || ph > 0) {
+        if (alive) setPdfQrDataUrl(null);
+        return;
+      }
+      const origin = getBrowserSiteOrigin();
+      if (!origin) {
+        if (alive) setPdfQrDataUrl(null);
+        return;
+      }
+      try {
         const { default: QRCode } = await import("qrcode");
         const url = propertyPageUrl(origin, listing.id, { tab: "video" });
-        const dataUrl = await QRCode.toDataURL(url, { width: 128, margin: 1, color: { dark: "#1a1a1a", light: "#ffffffff" } });
-        if(alive) setPdfQrDataUrl(dataUrl);
-      }catch{ if(alive) setPdfQrDataUrl(null); }
+        const dataUrl = await QRCode.toDataURL(url, { width: 168, margin: 1, color: { dark: "#1a1a1a", light: "#ffffffff" } });
+        if (alive) setPdfQrDataUrl(dataUrl);
+      } catch {
+        if (alive) setPdfQrDataUrl(null);
+      }
     })();
-    return ()=>{ alive=false; };
-  },[listing?.id,listing?.videoPlaybackId,listing?.videoFramePhotos]);
+    return () => {
+      alive = false;
+    };
+  }, [listing?.id, listing?.videoPlaybackId, listing?.photos]);
   const gMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   useEffect(()=>{
     if(!listing?.location||!gMapsKey){setMapSrc(null);return;}
@@ -1115,15 +1126,13 @@ export const PDFModal = ({listing,onClose,currentUser}) => {
             {listing.highlights.map((h,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:13,alignItems:"flex-start"}}><span style={{color:"var(--primary)",fontWeight:700,flexShrink:0}}>✓</span>{h}</div>)}
           </div>}
 
-          {pdfQrDataUrl&&(
-            <div style={{marginBottom:24,display:"flex",gap:20,alignItems:"center",flexWrap:"wrap"}}>
-              <img src={pdfQrDataUrl} alt="" width={120} height={120} style={{borderRadius:10,border:"1px solid #eee",display:"block"}} />
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:"var(--primary)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>Video tour</div>
-                <div style={{fontSize:13,color:"#555",lineHeight:1.5,maxWidth:280}}>Scan to watch video tour</div>
-              </div>
+          {listing.videoPlaybackId && (!listing.photos || listing.photos.length === 0) && pdfQrDataUrl ? (
+            <div style={{ marginBottom: 24, padding: "28px 24px", border: "2px solid #e2e8f0", borderRadius: 16, textAlign: "center", background: "#fafafa" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--navy)", marginBottom: 8 }}>🎥 Video tour available</div>
+              <div style={{ fontSize: 14, color: "#64748b", marginBottom: 20, lineHeight: 1.55, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>Scan to watch the property walkthrough</div>
+              <img src={pdfQrDataUrl} alt="" width={168} height={168} style={{ display: "block", margin: "0 auto", borderRadius: 12, border: "1px solid #e2e8f0" }} />
             </div>
-          )}
+          ) : null}
 
           {/* ── PHOTOS stacked vertically ── */}
           {listing.photos?.length>0&&(
@@ -2015,8 +2024,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
     if(form.videoStatus==="failed")return "Video processing failed. Remove the video or add photos before publishing.";
     const hasVideo=form.videoStatus==="processing"||form.videoPlaybackId||form.muxVideoAssetId;
     if(!hasVideo)return null;
-    if(form.videoStatus==="processing")return "Video is processing. Wait for still images (about 2–3 minutes), then publish.";
-    if(form.videoPlaybackId&&form.videoStatus==="ready"&&ph===0)return "Stills from your video are still attaching. Retry in a few seconds.";
+    if(form.videoStatus==="processing")return "Video is still processing. Save a draft and publish when it’s ready.";
     return null;
   };
   const validatePublish=()=>{
@@ -2184,11 +2192,11 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
       </FormSec>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
         <h3 style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span>📸 Photos or video</span>
+          <span>Photos</span>
           {aiStatus==="analyzing"&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--primary)",fontWeight:600,textTransform:"none",letterSpacing:0}}><span className="spin"/>AI picking best cover…</span>}
           {aiStatus==="done"&&<span style={{fontSize:11,color:"#059669",fontWeight:600,textTransform:"none",letterSpacing:0}}>✨ Best cover auto-selected</span>}
         </h3>
-        <p style={{margin:"0 0 12px",fontSize:12,color:"var(--muted)",lineHeight:1.5}}>Upload up to 10 photos here, or use <strong>Video Tour</strong> below — <strong>one of them is required</strong> to publish.</p>
+        <p style={{margin:"0 0 12px",fontSize:13,color:"var(--muted)",lineHeight:1.55}}>Up to 10 images. You need photos or a video tour to publish.</p>
         {photoLoading&&<div style={{textAlign:"center",padding:"16px",color:"var(--green)",fontWeight:600,fontSize:13}}>⬆ Uploading photos… please wait</div>}
         {(form.photos||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:12}}>
           {form.photos.map((p,i)=>{
@@ -2214,23 +2222,7 @@ const ListingForm = ({currentUser,listingId,allListings,showToast,onBack,onSaved
         {errs.photos&&<div style={{fontSize:11,color:"#DC2626",marginTop:6}}>{errs.photos}</div>}
       </div>
       <div className="card-flat" style={{padding:"20px 22px",marginBottom:14}}>
-        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>🎥 Video Tour</h3>
-        {(pendingVideoFile||form.videoStatus==="processing"||(form.videoPlaybackId&&(form.photos?.length||0)===0)||(form.videoFramePhotos&&(form.photos?.length||0)>0))?(
-          <div style={{marginBottom:14,padding:"12px 14px",borderRadius:10,background:"var(--primary-light)",border:"1px solid var(--primary-mid)",fontSize:12,color:"var(--navy)",lineHeight:1.55}}>
-            <strong style={{display:"block",marginBottom:6}}>Video → still images (PDF &amp; WhatsApp)</strong>
-            <p style={{margin:"6px 0 0",lineHeight:1.55}}>
-              {(() => {
-                const ph = form.photos?.length || 0;
-                if (pendingVideoFile) return "Selected file uploads when you save draft or publish. Stills appear after encoding (~2–3 min).";
-                if (form.videoStatus === "processing") return "Encoding on Mux… stills will appear in the photo strip when ready. Draft saves anytime; publish waits until images appear.";
-                if (form.videoPlaybackId && form.videoStatus === "ready" && ph === 0) return "Attaching frame stills to this listing — wait a few seconds or refresh.";
-                if (ph > 0 && form.videoFramePhotos) return `${ph} stills from your video are attached. You can publish.`;
-                if (ph > 0) return "Photos are set. You can publish.";
-                return "";
-              })()}
-            </p>
-          </div>
-        ):null}
+        <h3 style={{margin:"0 0 14px",fontSize:12,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:1,borderBottom:"1px solid var(--border)",paddingBottom:9}}>Video tour</h3>
         <ListingVideoUpload listingId={listingId} form={form} setForm={setForm} showToast={showToast} isEdit={isEdit} pendingVideoFile={pendingVideoFile} onPendingVideoChange={setPendingVideoFile} />
       </div>
       <div className="card-flat" style={{padding:"16px 22px",marginBottom:24}}>

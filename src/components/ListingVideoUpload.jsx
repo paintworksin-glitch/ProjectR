@@ -87,7 +87,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
       await refreshForm();
       setPct(85);
       setStage("Almost ready…");
-      showToast("Video uploaded — processing on Northing (usually 2–3 minutes)", "success");
+      showToast("Video uploaded — processing now", "success");
       setPct(100);
       setStage("Your video is live ✓");
     } catch (ex) {
@@ -152,7 +152,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
     return (
       <div>
         <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--muted)", lineHeight: 1.55 }}>
-          Choose a video now or after you save a draft. <strong>Either photos or a video</strong> is required to publish. Video-only: we use frames for PDFs and WhatsApp after processing.
+          Add a tour after your first save, or pick a file now — it uploads when you save draft or publish.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 10 }}>
           <label className="btn-ghost" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>
@@ -181,9 +181,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
           </div>
         ) : null}
         {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
-        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
-          MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px.
-        </p>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px</p>
       </div>
     );
   }
@@ -208,19 +206,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
           </p>
         </div>
       ) : form.videoStatus === "processing" ? (
-        <div
-          style={{
-            padding: 16,
-            borderRadius: 12,
-            background: "var(--primary-light)",
-            border: "1px solid var(--primary-mid)",
-            fontSize: 13,
-            color: "var(--navy)",
-            marginBottom: 12,
-          }}
-        >
-          Processing your video… usually 2–3 minutes
-        </div>
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 13, color: "#475569", marginBottom: 12 }}>Processing on our video partner — typically a few minutes.</div>
       ) : form.videoStatus === "failed" ? (
         <div style={{ padding: 12, borderRadius: 10, background: "#FEF2F2", color: "#991B1B", fontSize: 13, marginBottom: 12 }}>
           Video processing failed. Please try uploading again.
@@ -254,9 +240,7 @@ export function ListingVideoUpload({ listingId, form, setForm, showToast, isEdit
       )}
 
       {err ? <div style={{ fontSize: 12, color: "#DC2626", marginTop: 6 }}>{err}</div> : null}
-      <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
-        Optional if you already have photos · MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px. Video-only: stills for PDFs/WhatsApp after processing.
-      </p>
+      <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>MP4, MOV, WebM or AVI · Max 500MB · 5s–5min · Short edge ≥360px</p>
     </div>
   );
 }
