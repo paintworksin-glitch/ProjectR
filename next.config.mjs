@@ -2,13 +2,13 @@
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://vercel.live",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://vercel.live https://embed.cloudflarestream.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://vitals.vercel-insights.com https://api.resend.com https://*.mux.com https://stream.mux.com https://image.mux.com https://storage.googleapis.com https://*.googleapis.com",
-  "frame-src 'self' https://www.google.com https://maps.google.com https://www.google.com/maps https://vercel.live https://*.mux.com",
-  "media-src 'self' blob: https://*.mux.com https://stream.mux.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://vitals.vercel-insights.com https://api.resend.com https://*.mux.com https://stream.mux.com https://image.mux.com https://storage.googleapis.com https://*.googleapis.com https://*.cloudflarestream.com https://embed.cloudflarestream.com",
+  "frame-src 'self' https://www.google.com https://maps.google.com https://www.google.com/maps https://vercel.live https://*.mux.com https://*.cloudflarestream.com https://iframe.cloudflarestream.com",
+  "media-src 'self' blob: https://*.mux.com https://stream.mux.com https://*.cloudflarestream.com",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",

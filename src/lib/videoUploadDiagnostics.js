@@ -1,9 +1,7 @@
-import { createMuxClient } from "@/lib/mux.js";
-import { muxErrorForClient } from "@/lib/muxClientError.js";
+import { cfStreamApi } from "@/lib/cloudflare.js";
 import { getMuxAssetOrigin } from "@/lib/publicSiteUrl.js";
 import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseAdmin.js";
 import { getEffectiveMuxWatermarkImageUrl, getMuxNorthingStaticPngUrl } from "@/lib/watermarkUrl.js";
-import { muxDirectUploadBaseNewAssetSettings, muxDirectUploadNewAssetSettings } from "@/lib/videoProvider.js";
 
 const DEFAULT_TEST_AGENT_ID = "00000000-0000-4000-8000-000000000000";
 
@@ -29,91 +27,106 @@ export async function runVideoUploadDiagnostics(opts = {}) {
   const agentId = (opts.agentId && String(opts.agentId).trim()) || DEFAULT_TEST_AGENT_ID;
   const timeoutMs = typeof opts.watermarkFetchMs === "number" ? opts.watermarkFetchMs : 15000;
 
-  const mux = await checkMux();
+  const mux = await checkCloudflareStream();
   const supabase = await checkSupabase();
   const watermark = await checkWatermark(agentId, timeoutMs);
-  const muxDirectUpload = await probeMuxDirectUploadCreates(agentId);
+  const muxDirectUpload = await probeStreamDirectUploadCreates();
 
   return { mux, supabase, watermark, muxDirectUpload };
 }
 
 /**
- * 1) Create direct upload with no overlay. 2) If (1) ok, create again with watermark inputs.
+ * 1) Create Cloudflare direct upload with no watermark. 2) If (1) ok, create again with watermark profile (if uid set).
  */
-async function probeMuxDirectUploadCreates(_agentId) {
-  const id = (process.env.MUX_TOKEN_ID || "").trim();
-  const sec = (process.env.MUX_TOKEN_SECRET || "").trim();
-  const cors = "*";
-  const passthrough = JSON.stringify({ probe: "video-diagnostics", t: Date.now() });
-
+async function probeStreamDirectUploadCreates() {
   /** @type {{ ok: boolean, muxUploadId?: string, error?: string }} */
   const withoutWatermark = { ok: false };
   /** @type {{ ok: boolean, watermarkUrl: string | null, muxUploadId?: string, error?: string, skipped?: string }} */
   const withWatermark = { ok: false, watermarkUrl: null };
 
-  if (!id || !sec) {
-    withoutWatermark.error = "MUX_TOKEN_ID or MUX_TOKEN_SECRET is not set";
-    withWatermark.skipped = "Mux credentials missing";
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = (process.env.CLOUDFLARE_STREAM_API_TOKEN || "").trim();
+  if (!accountId || !token) {
+    withoutWatermark.error = "CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_STREAM_API_TOKEN is not set";
+    withWatermark.skipped = "Cloudflare credentials missing";
     return { withoutWatermark, withWatermark };
   }
 
   try {
-    const mux = createMuxClient();
-    const minimal = muxDirectUploadBaseNewAssetSettings(passthrough);
+    const baseBody = {
+      maxDurationSeconds: 60,
+      meta: { name: `diagnostics-${Date.now()}` },
+    };
     try {
-      const up = await mux.video.uploads.create({ cors_origin: cors, new_asset_settings: minimal });
-      withoutWatermark.ok = true;
-      withoutWatermark.muxUploadId = up.id;
+      const up = await cfStreamApi("direct_upload", { method: "POST", body: baseBody });
+      const uid = up.uid;
+      const uploadURL = up.uploadURL || up.uploadUrl;
+      if (!uid || !uploadURL) {
+        withoutWatermark.error = "direct_upload missing uid or uploadURL";
+      } else {
+        withoutWatermark.ok = true;
+        withoutWatermark.muxUploadId = uid;
+      }
     } catch (e) {
-      withoutWatermark.error = muxErrorForClient(e);
+      withoutWatermark.error = String(e?.message || e);
     }
 
     if (!withoutWatermark.ok) {
-      withWatermark.skipped = "without-watermark create failed";
+      withWatermark.skipped = "without-watermark direct_upload failed";
       withWatermark.watermarkUrl = getMuxNorthingStaticPngUrl();
       return { withoutWatermark, withWatermark };
     }
 
-    const wmUrl = getMuxNorthingStaticPngUrl();
-    withWatermark.watermarkUrl = wmUrl || null;
-    if (!wmUrl) {
-      withWatermark.skipped = "no static northing-in.png URL (set NEXT_PUBLIC_SITE_URL or VERCEL_URL)";
+    const wmUid = (process.env.CLOUDFLARE_WATERMARK_UID || "").trim();
+    withWatermark.watermarkUrl = wmUid || null;
+    if (!wmUid) {
+      withWatermark.skipped = "CLOUDFLARE_WATERMARK_UID not set";
       return { withoutWatermark, withWatermark };
     }
 
-    const withSettings = muxDirectUploadNewAssetSettings(
-      JSON.stringify({ probe: "video-diagnostics-wm", t: Date.now() }),
-      wmUrl,
-    );
     try {
-      const up2 = await mux.video.uploads.create({ cors_origin: cors, new_asset_settings: withSettings });
-      withWatermark.ok = true;
-      withWatermark.muxUploadId = up2.id;
+      const up2 = await cfStreamApi("direct_upload", {
+        method: "POST",
+        body: {
+          ...baseBody,
+          meta: { name: `diagnostics-wm-${Date.now()}` },
+          watermark: {
+            uid: wmUid,
+            position: "bottom-left",
+            opacity: 0.8,
+            scale: 0.1,
+          },
+        },
+      });
+      const uid2 = up2.uid;
+      if (!uid2) {
+        withWatermark.error = "direct_upload (with watermark) missing uid";
+      } else {
+        withWatermark.ok = true;
+        withWatermark.muxUploadId = uid2;
+      }
     } catch (e) {
-      withWatermark.error = muxErrorForClient(e);
+      withWatermark.error = String(e?.message || e);
     }
     return { withoutWatermark, withWatermark };
   } catch (e) {
-    withoutWatermark.error = withoutWatermark.error || muxErrorForClient(e);
+    withoutWatermark.error = withoutWatermark.error || String(e?.message || e);
     withWatermark.skipped = "probe error";
     return { withoutWatermark, withWatermark };
   }
 }
 
-async function checkMux() {
-  const id = (process.env.MUX_TOKEN_ID || "").trim();
-  const sec = (process.env.MUX_TOKEN_SECRET || "").trim();
-  if (!id || !sec) {
-    return "MUX_TOKEN_ID or MUX_TOKEN_SECRET is not set";
+async function checkCloudflareStream() {
+  const accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = (process.env.CLOUDFLARE_STREAM_API_TOKEN || "").trim();
+  if (!accountId || !token) {
+    return "CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_STREAM_API_TOKEN is not set";
   }
   try {
-    const mux = createMuxClient();
-    for await (const _ of mux.video.assets.list({ limit: 1 })) {
-      break;
-    }
+    await cfStreamApi("?per_page=1");
     return "ok";
   } catch (e) {
-    return muxErrorForClient(e);
+    return String(e?.message || e);
   }
 }
 

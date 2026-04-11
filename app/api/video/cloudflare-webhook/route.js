@@ -2,7 +2,7 @@ import { handleStreamWebhookPost } from "@/lib/handleStreamWebhook.js";
 
 export const runtime = "nodejs";
 
-/** Legacy path name; handles Cloudflare Stream webhooks (signed with CLOUDFLARE_STREAM_WEBHOOK_SECRET). */
+/** Cloudflare Stream webhook — same handler as /api/video/mux-webhook */
 export async function POST(request) {
   return handleStreamWebhookPost(request);
 }

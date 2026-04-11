@@ -1,4 +1,5 @@
 import { createMuxClient } from "@/lib/mux.js";
+import { cloudflareStreamSignedDownloadUrl } from "@/lib/videoProvider.js";
 import { MUX_MP4_CANDIDATES, muxTourMp4Url } from "@/lib/muxTourMp4Fetch.js";
 
 function rankMp4CandidateName(name) {
@@ -60,6 +61,11 @@ async function resolveMuxMasterTemporaryDownloadUrl(mux, assetId) {
  * Order: Mux API static files → legacy / CDN names → temporary master access.
  */
 export async function resolveMuxTourVideoDownload(playbackId) {
+  const cfUrl = await cloudflareStreamSignedDownloadUrl(playbackId);
+  if (cfUrl) {
+    return { url: cfUrl, source: "cloudflare" };
+  }
+
   let mux;
   try {
     mux = createMuxClient();

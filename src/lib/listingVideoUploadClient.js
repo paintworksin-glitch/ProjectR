@@ -9,12 +9,13 @@ function formatErr(msg) {
 }
 
 /**
- * 1) POST /api/video/direct-upload (small JSON)
- * 2) PUT file to Mux uploadUrl (full size — not through Vercel)
+ * Cloudflare Stream direct upload: POST multipart form (field name `file`) to uploadUrl.
  */
-function putFileToMux(uploadUrl, file, contentType, { onUploadProgress, signal } = {}) {
+function postFileToStreamUpload(uploadUrl, file, _contentType, { onUploadProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const fd = new FormData();
+    fd.append("file", file, file.name || "video.mp4");
     const onAbort = () => {
       try {
         xhr.abort();
@@ -50,9 +51,8 @@ function putFileToMux(uploadUrl, file, contentType, { onUploadProgress, signal }
       if (signal) signal.removeEventListener("abort", onAbort);
       reject(new Error("aborted"));
     });
-    xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("Content-Type", contentType || file.type || "application/octet-stream");
-    xhr.send(file);
+    xhr.open("POST", uploadUrl);
+    xhr.send(fd);
   });
 }
 
@@ -89,7 +89,7 @@ export async function uploadListingTourVideo(listingId, file, opts = {}) {
   if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
   const uploadUrl = j.uploadUrl;
   if (!uploadUrl) throw new Error("No upload URL returned");
-  await putFileToMux(uploadUrl, file, mime, opts);
+  await postFileToStreamUpload(uploadUrl, file, mime, opts);
 }
 
 /**
@@ -123,5 +123,5 @@ export async function uploadIntroVideo(file, opts = {}) {
   if (!res.ok) throw new Error(formatErr(j.error || res.statusText || `HTTP ${res.status}`));
   const uploadUrl = j.uploadUrl;
   if (!uploadUrl) throw new Error("No upload URL returned");
-  await putFileToMux(uploadUrl, file, mime, opts);
+  await postFileToStreamUpload(uploadUrl, file, mime, opts);
 }

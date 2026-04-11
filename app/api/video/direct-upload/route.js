@@ -4,8 +4,6 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { videoProvider } from "@/lib/videoProvider";
 import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseAdmin";
 import { validateVideoMetaJson } from "@/lib/videoUploadValidation";
-import { getAgentMuxWatermarkImageUrl, getEffectiveMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
-import { muxErrorForClient, muxErrorForLog } from "@/lib/muxClientError.js";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,21 +25,24 @@ function err(status, message) {
 
 function logEnvSnapshot() {
   console.log(`[${TAG}] env snapshot`, {
-    muxTokenIdSet: Boolean((process.env.MUX_TOKEN_ID || "").trim()),
-    muxTokenSecretSet: Boolean((process.env.MUX_TOKEN_SECRET || "").trim()),
+    cloudflareAccountSet: Boolean((process.env.CLOUDFLARE_ACCOUNT_ID || "").trim()),
+    cloudflareTokenSet: Boolean((process.env.CLOUDFLARE_STREAM_API_TOKEN || "").trim()),
+    cloudflareCustomerSet: Boolean(
+      (process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE || process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "").trim(),
+    ),
     supabaseUrlSet: Boolean((process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim()),
     serviceRoleSet: Boolean(
       (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "").trim(),
     ),
-    vercelUrlSet: Boolean((process.env.VERCEL_URL || "").trim()),
-    publicSiteUrlSet: Boolean(
-      (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || "").trim(),
-    ),
   });
 }
 
+function logErr(e) {
+  return { message: e?.message, stack: e?.stack, name: e?.name };
+}
+
 /**
- * Small JSON body only: creates Mux direct-upload URL so the browser PUTs the file (bypasses Vercel ~4.5MB limit).
+ * JSON body only: Cloudflare Stream direct creator upload URL; client POSTs multipart file to uploadUrl.
  */
 export async function POST(request) {
   try {
@@ -103,7 +104,9 @@ export async function POST(request) {
     }
 
     const corsOrigin = request.headers.get("origin") || "*";
-    console.log(`[${TAG}] CORS origin for Mux`, corsOrigin);
+    console.log(`[${TAG}] browser origin (logged for CORS debugging)`, corsOrigin);
+
+    const maxDurationSeconds = kind === "intro" ? 60 : 300;
 
     if (kind === "listing") {
       console.log(`[${TAG}] loading listing`, listingId);
@@ -123,10 +126,10 @@ export async function POST(request) {
 
       if (row.video_id) {
         try {
-          console.log(`[${TAG}] deleting previous Mux asset`, row.video_id);
+          console.log(`[${TAG}] deleting previous Stream video`, row.video_id);
           await videoProvider.delete(row.video_id);
         } catch (e) {
-          console.warn(`[${TAG}] delete previous asset (ignored)`, muxErrorForLog(e));
+          console.warn(`[${TAG}] delete previous video (ignored)`, logErr(e));
         }
       }
 
@@ -138,27 +141,23 @@ export async function POST(request) {
         uid: user.id,
       });
 
-      const wmAgent = getAgentMuxWatermarkImageUrl(user.id);
-      const wmEffective = getEffectiveMuxWatermarkImageUrl(user.id);
-      console.log(`[${TAG}] watermark URLs`, { agent: wmAgent || null, effective: wmEffective || null });
-
       let muxUploadId;
       let uploadUrl;
-      let watermarkSkipped = false;
+      let videoId;
       try {
-        console.log(`[${TAG}] calling Mux createDirectUpload (listing)`);
-        const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wmAgent });
+        console.log(`[${TAG}] Cloudflare createDirectUpload (listing)`, { maxDurationSeconds });
+        const up = await videoProvider.createDirectUpload({
+          passthrough,
+          corsOrigin,
+          maxDurationSeconds,
+        });
         muxUploadId = up.muxUploadId;
+        videoId = up.videoId;
         uploadUrl = up.uploadUrl;
-        watermarkSkipped = Boolean(up.watermarkSkipped);
-        if (watermarkSkipped) {
-          console.warn(`[${TAG}] Mux upload created without watermark (overlay failed; retried bare)`, { muxUploadId });
-        }
-        console.log(`[${TAG}] Mux direct upload created`, { muxUploadId, watermarkSkipped });
+        console.log(`[${TAG}] direct upload URL created`, { videoId });
       } catch (e) {
-        console.error(`[${TAG}] Mux createDirectUpload failed (listing)`, muxErrorForLog(e));
-        const clientMsg = muxErrorForClient(e);
-        return err(502, clientMsg || "Could not start Mux direct upload.");
+        console.error(`[${TAG}] createDirectUpload failed (listing)`, logErr(e));
+        return err(502, String(e?.message || "Could not start video upload."));
       }
 
       const nextDetails = { ...(row.details && typeof row.details === "object" ? row.details : {}) };
@@ -171,7 +170,7 @@ export async function POST(request) {
         .update({
           video_id: null,
           video_playback_id: null,
-          video_provider: "mux",
+          video_provider: "cloudflare",
           video_status: "processing",
           details: nextDetails,
         })
@@ -184,9 +183,9 @@ export async function POST(request) {
       return NextResponse.json({
         uploadUrl,
         muxUploadId,
+        videoId,
         status: "processing",
-        message: "PUT your file to uploadUrl, then wait for processing.",
-        ...(watermarkSkipped ? { watermarkSkipped: true } : {}),
+        message: "POST multipart form with field `file` to uploadUrl, then wait for processing.",
       });
     }
 
@@ -200,36 +199,32 @@ export async function POST(request) {
 
     if (prof.intro_video_id) {
       try {
-        console.log(`[${TAG}] deleting previous intro Mux asset`, prof.intro_video_id);
+        console.log(`[${TAG}] deleting previous intro video`, prof.intro_video_id);
         await videoProvider.delete(prof.intro_video_id);
       } catch (e) {
-        console.warn(`[${TAG}] delete intro asset (ignored)`, muxErrorForLog(e));
+        console.warn(`[${TAG}] delete intro video (ignored)`, logErr(e));
       }
     }
 
     const passthrough = JSON.stringify({ k: "i", uid: user.id });
 
-    const wmAgent = getAgentMuxWatermarkImageUrl(user.id);
-    const wmEffective = getEffectiveMuxWatermarkImageUrl(user.id);
-    console.log(`[${TAG}] watermark URLs (intro)`, { agent: wmAgent || null, effective: wmEffective || null });
-
     let muxUploadId;
     let uploadUrl;
-    let introWatermarkSkipped = false;
+    let videoId;
     try {
-      console.log(`[${TAG}] calling Mux createDirectUpload (intro)`);
-      const up = await videoProvider.createDirectUpload({ passthrough, corsOrigin, watermarkImageUrl: wmAgent });
+      console.log(`[${TAG}] Cloudflare createDirectUpload (intro)`, { maxDurationSeconds });
+      const up = await videoProvider.createDirectUpload({
+        passthrough,
+        corsOrigin,
+        maxDurationSeconds,
+      });
       muxUploadId = up.muxUploadId;
+      videoId = up.videoId;
       uploadUrl = up.uploadUrl;
-      introWatermarkSkipped = Boolean(up.watermarkSkipped);
-      if (introWatermarkSkipped) {
-        console.warn(`[${TAG}] Mux upload created without watermark (intro)`, { muxUploadId });
-      }
-      console.log(`[${TAG}] Mux direct upload created (intro)`, { muxUploadId, watermarkSkipped: introWatermarkSkipped });
+      console.log(`[${TAG}] direct upload URL created (intro)`, { videoId });
     } catch (e) {
-      console.error(`[${TAG}] Mux createDirectUpload failed (intro)`, muxErrorForLog(e));
-      const clientMsg = muxErrorForClient(e);
-      return err(502, clientMsg || "Could not start Mux direct upload.");
+      console.error(`[${TAG}] createDirectUpload failed (intro)`, logErr(e));
+      return err(502, String(e?.message || "Could not start video upload."));
     }
 
     const { error: pErr } = await admin
@@ -237,7 +232,7 @@ export async function POST(request) {
       .update({
         intro_video_id: null,
         intro_video_playback_id: null,
-        intro_video_provider: "mux",
+        intro_video_provider: "cloudflare",
         intro_video_status: "processing",
       })
       .eq("id", user.id);
@@ -249,17 +244,17 @@ export async function POST(request) {
     return NextResponse.json({
       uploadUrl,
       muxUploadId,
+      videoId,
       status: "processing",
-      message: "PUT your file to uploadUrl.",
-      ...(introWatermarkSkipped ? { watermarkSkipped: true } : {}),
+      message: "POST multipart form with field `file` to uploadUrl.",
     });
   } catch (e) {
-    console.error(`[${TAG}] unhandled error`, muxErrorForLog(e));
+    console.error(`[${TAG}] unhandled error`, logErr(e));
     const msg = String(e?.message || "");
     if (/Missing NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SERVICE_KEY/i.test(msg)) {
       return err(500, adminApiErrorMessage(e));
     }
-    if (/Missing MUX_TOKEN/i.test(msg)) {
+    if (/Missing CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_STREAM_API_TOKEN/i.test(msg)) {
       return err(500, msg);
     }
     if (/network|fetch|ECONNRESET/i.test(msg)) {

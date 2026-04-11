@@ -1,18 +1,25 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const MuxPlayer = dynamic(() => import("@mux/mux-player-react").then((m) => m.default), { ssr: false });
+const StreamLazy = dynamic(
+  () => import("@cloudflare/stream-react").then((m) => m.Stream),
+  { ssr: false },
+);
+
+function getCustomerCode() {
+  return (process.env.NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_CODE || "").trim();
+}
 
 /**
  * Optional on-video overlay: agent logo + phone on top (logo slot empty if missing), Northing mark bottom-right.
- * Does not change playback; pointer-events none so controls stay usable.
- *
- * MuxPlayer is `ssr: false`; rendering it during SSR would not match the client tree and can crash hydration.
+ * Player is `ssr: false`; rendering during SSR would not match the client tree and can crash hydration.
  * We show a stable placeholder until after mount, then render the player.
+ *
+ * @param {{ playbackId?: string, onPlay?: () => void, aspectRatio?: string, watermark?: { logoUrl?: string, phone?: string }, style?: import("react").CSSProperties }} props
  */
-export function NorthingMuxPlayer({
+export function NorthingVideoPlayer({
   playbackId,
   onPlay,
   aspectRatio = "16 / 9",
@@ -21,6 +28,8 @@ export function NorthingMuxPlayer({
   ...rest
 }) {
   const [mounted, setMounted] = useState(false);
+  const customerCode = useMemo(() => getCustomerCode(), []);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -42,23 +51,37 @@ export function NorthingMuxPlayer({
     );
   }
 
+  const streamProps = {
+    ...rest,
+    src: playbackId,
+    controls: true,
+    autoplay: true,
+    muted: true,
+    startTime: 0,
+    primaryColor: "#1a1a1a",
+    letterboxColor: "#1a1a1a",
+    responsive: true,
+    ...(customerCode ? { customerCode } : {}),
+    onPlay: onPlay
+      ? () => {
+          onPlay();
+        }
+      : undefined,
+  };
+
   const player = (
-    <MuxPlayer
-      playbackId={playbackId}
-      streamType="on-demand"
-      autoPlay="muted"
-      thumbnailTime={0}
-      accentColor="#1a1a1a"
+    <div
       style={{
         width: "100%",
         aspectRatio,
         borderRadius: 12,
         minHeight: 200,
+        overflow: "hidden",
         ...(style || {}),
       }}
-      onPlay={onPlay}
-      {...rest}
-    />
+    >
+      <StreamLazy {...streamProps} />
+    </div>
   );
 
   if (!watermark) return player;
@@ -86,3 +109,6 @@ export function NorthingMuxPlayer({
     </div>
   );
 }
+
+/** @deprecated Use NorthingVideoPlayer; kept for existing imports. */
+export const NorthingMuxPlayer = NorthingVideoPlayer;

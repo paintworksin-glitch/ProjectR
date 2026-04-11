@@ -4,8 +4,6 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { videoProvider } from "@/lib/videoProvider";
 import { createSupabaseAdminClient, adminApiErrorMessage } from "@/lib/supabaseAdmin";
 import { bufferLooksLikeSupportedVideo, parseAndValidateClientVideoMeta } from "@/lib/videoUploadValidation";
-import { getAgentMuxWatermarkImageUrl, getEffectiveMuxWatermarkImageUrl } from "@/lib/watermarkUrl.js";
-import { muxErrorForClient, muxErrorForLog } from "@/lib/muxClientError.js";
 import { MAX_VIDEO_UPLOAD_BYTES } from "@/lib/videoUploadLimits.js";
 
 export const runtime = "nodejs";
@@ -27,17 +25,17 @@ function err(status, message) {
 
 function logEnvSnapshot() {
   console.log(`[${TAG}] env snapshot`, {
-    muxTokenIdSet: Boolean((process.env.MUX_TOKEN_ID || "").trim()),
-    muxTokenSecretSet: Boolean((process.env.MUX_TOKEN_SECRET || "").trim()),
+    cloudflareAccountSet: Boolean((process.env.CLOUDFLARE_ACCOUNT_ID || "").trim()),
+    cloudflareTokenSet: Boolean((process.env.CLOUDFLARE_STREAM_API_TOKEN || "").trim()),
     supabaseUrlSet: Boolean((process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim()),
     serviceRoleSet: Boolean(
       (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "").trim(),
     ),
-    vercelUrlSet: Boolean((process.env.VERCEL_URL || "").trim()),
-    publicSiteUrlSet: Boolean(
-      (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || "").trim(),
-    ),
   });
+}
+
+function logErr(e) {
+  return { message: e?.message, stack: e?.stack, name: e?.name };
 }
 
 export async function POST(request) {
@@ -107,6 +105,8 @@ export async function POST(request) {
       return err(400, "File does not look like a supported video. Please upload mp4, mov, webm or avi.");
     }
 
+    const maxDurationSeconds = kind === "intro" ? 60 : 300;
+
     if (kind === "listing") {
       console.log(`[${TAG}] listing flow`, listingId);
       const { data: row, error: le } = await admin.from("listings").select("id, agent_id, photos, video_id, details").eq("id", listingId).single();
@@ -124,7 +124,7 @@ export async function POST(request) {
           console.log(`[${TAG}] deleting previous asset`, row.video_id);
           await videoProvider.delete(row.video_id);
         } catch (e) {
-          console.warn(`[${TAG}] delete previous (ignored)`, muxErrorForLog(e));
+          console.warn(`[${TAG}] delete previous (ignored)`, logErr(e));
         }
       }
 
@@ -136,21 +136,19 @@ export async function POST(request) {
         uid: user.id,
       });
 
-      const wmAgent = getAgentMuxWatermarkImageUrl(user.id);
-      console.log(`[${TAG}] watermark`, {
-        agent: wmAgent || null,
-        effective: getEffectiveMuxWatermarkImageUrl(user.id) || null,
-      });
-
       let muxUploadId;
       try {
-        console.log(`[${TAG}] Mux upload (listing) starting`);
-        const up = await videoProvider.upload(buf, { passthrough, contentType: mime, watermarkImageUrl: wmAgent });
+        console.log(`[${TAG}] Stream upload (listing) starting`, { maxDurationSeconds });
+        const up = await videoProvider.upload(buf, {
+          passthrough,
+          contentType: mime,
+          maxDurationSeconds,
+        });
         muxUploadId = up.muxUploadId;
-        console.log(`[${TAG}] Mux upload (listing) done`, muxUploadId);
+        console.log(`[${TAG}] Stream upload (listing) done`, muxUploadId);
       } catch (e) {
-        console.error(`[${TAG}] Mux upload failed (listing)`, muxErrorForLog(e));
-        return err(502, muxErrorForClient(e) || "Mux upload failed.");
+        console.error(`[${TAG}] Stream upload failed (listing)`, logErr(e));
+        return err(502, String(e?.message || "Video upload failed."));
       }
 
       const nextDetails = { ...(row.details && typeof row.details === "object" ? row.details : {}) };
@@ -162,7 +160,7 @@ export async function POST(request) {
         .update({
           video_id: null,
           video_playback_id: null,
-          video_provider: "mux",
+          video_provider: "cloudflare",
           video_status: "processing",
           details: nextDetails,
         })
@@ -174,6 +172,7 @@ export async function POST(request) {
 
       return NextResponse.json({
         muxUploadId,
+        videoId: muxUploadId,
         status: "processing",
         message: "Processing video...",
       });
@@ -192,27 +191,25 @@ export async function POST(request) {
         console.log(`[${TAG}] deleting previous intro`, prof.intro_video_id);
         await videoProvider.delete(prof.intro_video_id);
       } catch (e) {
-        console.warn(`[${TAG}] delete intro (ignored)`, muxErrorForLog(e));
+        console.warn(`[${TAG}] delete intro (ignored)`, logErr(e));
       }
     }
 
     const passthrough = JSON.stringify({ k: "i", uid: user.id });
 
-    const wmAgent = getAgentMuxWatermarkImageUrl(user.id);
-    console.log(`[${TAG}] watermark (intro)`, {
-      agent: wmAgent || null,
-      effective: getEffectiveMuxWatermarkImageUrl(user.id) || null,
-    });
-
     let muxUploadId;
     try {
-      console.log(`[${TAG}] Mux upload (intro) starting`);
-      const up = await videoProvider.upload(buf, { passthrough, contentType: mime, watermarkImageUrl: wmAgent });
+      console.log(`[${TAG}] Stream upload (intro) starting`, { maxDurationSeconds });
+      const up = await videoProvider.upload(buf, {
+        passthrough,
+        contentType: mime,
+        maxDurationSeconds,
+      });
       muxUploadId = up.muxUploadId;
-      console.log(`[${TAG}] Mux upload (intro) done`, muxUploadId);
+      console.log(`[${TAG}] Stream upload (intro) done`, muxUploadId);
     } catch (e) {
-      console.error(`[${TAG}] Mux upload failed (intro)`, muxErrorForLog(e));
-      return err(502, muxErrorForClient(e) || "Mux upload failed.");
+      console.error(`[${TAG}] Stream upload failed (intro)`, logErr(e));
+      return err(502, String(e?.message || "Video upload failed."));
     }
 
     const { error: pErr } = await admin
@@ -220,7 +217,7 @@ export async function POST(request) {
       .update({
         intro_video_id: null,
         intro_video_playback_id: null,
-        intro_video_provider: "mux",
+        intro_video_provider: "cloudflare",
         intro_video_status: "processing",
       })
       .eq("id", user.id);
@@ -231,16 +228,17 @@ export async function POST(request) {
 
     return NextResponse.json({
       muxUploadId,
+      videoId: muxUploadId,
       status: "processing",
       message: "Processing your video... usually 2-3 minutes",
     });
   } catch (e) {
-    console.error(`[${TAG}] unhandled`, muxErrorForLog(e));
+    console.error(`[${TAG}] unhandled`, logErr(e));
     const msg = e?.message || "";
     if (/Missing NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SERVICE_KEY/i.test(String(msg))) {
       return err(500, adminApiErrorMessage(e));
     }
-    if (/Missing MUX_TOKEN/i.test(String(msg))) {
+    if (/Missing CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_STREAM_API_TOKEN/i.test(String(msg))) {
       return err(500, String(msg));
     }
     if (/network|fetch|ECONNRESET/i.test(String(msg))) {
